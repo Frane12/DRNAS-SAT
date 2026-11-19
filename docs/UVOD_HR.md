@@ -12,7 +12,7 @@ U primjeru **PCMAX m14** program je pronašao 20 skupina koje trebaju dodjelu. Z
 
 Označimo s $W$ ukupnu dokaznu težinu dodijeljenih poslova iz odabranih skupina. Lijevu granicu daju skupine poslova, a desnu strojevi. Svaki valjan raspored morao bi zadovoljiti
 
-$$31 = 11(2)+9(1) \;\le W \le\; 2(0)+3(1)+6(2)+3(5) = 30.$$
+$$31 = 11(2)+9(1)  \le W \le  2(0)+3(1)+6(2)+3(5) = 30.$$
 
 Akram i Schreiber objavili su ishod m14 još 2024. Ovdje se može proučiti drukčiji put do njega, sve do pojedinih klauzula i formalnog certifikata od 557.597 bajtova. Na 20 već proučavanih PCMAX formula VeriPB je prihvatio 11 dokaza. Preostalih devet bile su kontrole označene kao SAT. Strukturni modul na svih je devet vratio UNKNOWN. [Tablica I izvornog rada](https://dominikschreiber.de/papers/2024-isc-pcmax.pdf) · [Registar svih 11 dokaza](VERIFIED_PROOF_REGISTRY.md)
 
@@ -24,7 +24,7 @@ Zamisli da na karti svaki susjed mora imati različitu boju. Za trokut trebaju t
 
 **Klika** je skup vrhova u kojemu je svaki par susjedan. Označimo s $\chi(G)$ najmanji broj boja kojima možemo obojiti vrhove grafa $G$. U stvarnom primjeru K₁₁ lijevu granicu daje pronađena klika, a desnu bi morao zadovoljiti graf obojen s deset boja.
 
-$$11 = |V(K_{11})| \;\le\; \chi(G) \;\le\; 10.$$
+$$11 = |V(K_{11})|  \le  \chi(G)  \le  10.$$
 
 ### Kad su i bridovi nepoznanice
 
@@ -32,7 +32,7 @@ $$11 = |V(K_{11})| \;\le\; \chi(G) \;\le\; 10.$$
 
 Ovdje $P_{i,u}$ znači da položaj $i$ bira vrh $u$, $E_{uv}$ da između vrhova postoji brid, a $C_{u,t}$ da vrh $u$ ima boju $t$. Za dva različita položaja i dva različita vrha vrijede dva pravila.
 
-$$P_{i,u}\land P_{j,v}\;\Rightarrow\;E_{uv}, \qquad E_{uv}\land C_{u,t}\;\Rightarrow\;\neg C_{v,t}.$$
+$$P_{i,u}\land P_{j,v} \Rightarrow E_{uv}, \qquad E_{uv}\land C_{u,t} \Rightarrow \neg C_{v,t}.$$
 
 Ako odaberemo oba vrha, između njih mora postojati brid. Ako prvi ima boju $t$, drugi mora dobiti neku drugu. U izvornom primjeru 9 odabir pet vrhova prisiljava svih deset bridova među njima. Treba pet različitih boja, a formula dopušta četiri. [Primjer 9 i izvorne klauzule](../research/CLIQUE_COLORING_2025_SOURCE_AUDIT.md)
 
@@ -87,7 +87,7 @@ Svaki je brid na dva vrha, pa se svako slovo na lijevoj strani pojavljuje dvaput
 
 ![Tri posla A, B i C mogu na dva stroja. Svaki stroj može primiti po jedan posao.](figures/formula-hall.svg)
 
-Na ovoj skici $S$ su tri posla, $N(S)$ su strojevi dostupni tim poslovima, a $c_r$ je broj mjesta na stroju $r$. Da bi raspored bio moguć, treba vrijediti $|S|\le\sum_{r\in N(S)}c_r$. Ovdje je **$3>1+1$**. Kako god rasporedimo prva dva posla, za treći ponestane mjesta. MATCH3 prvo u klauzulama provjerava kojim strojevima posao smije pristupiti i koliki im je kapacitet. [Hallov uvjet i postupak provjere](../research/MATCH3_FLOW_HALL_POLY1.md)
+Na ovoj skici $S$ su tri posla, $N(S)$ su strojevi dostupni tim poslovima, a $c_r$ je broj mjesta na stroju $r$. Da bi raspored bio moguć, treba vrijediti $|S|\le\sum_{r\in N(S)}c_r$. Ovdje je **$3\gt 1+1$**. Kako god rasporedimo prva dva posla, za treći ponestane mjesta. MATCH3 prvo u klauzulama provjerava kojim strojevima posao smije pristupiti i koliki im je kapacitet. [Hallov uvjet i postupak provjere](../research/MATCH3_FLOW_HALL_POLY1.md)
 
 </details>
 
@@ -96,9 +96,9 @@ Na ovoj skici $S$ su tri posla, $N(S)$ su strojevi dostupni tim poslovima, a $c_
 
 ![Matrica presjeka šest mogućih punih tereta. Na dijagonali je pet, a u svakom drugom polju jedan zajednički posao.](figures/formula-petersen-sets.svg)
 
-Ukupna težina svih poslova je $3T$, a svaki od tri stroja prima najviše $T=29\,524$. Zato bi **sva tri morala biti točno puna**. Izvornih 15 težina daju šest različitih skupova poslova koji mogu napuniti jedan stroj. Redak i stupac slike biraju dva takva skupa. Broj u polju kaže koliko im je poslova zajedničko.
+Ukupna težina svih poslova je $3T$, a svaki od tri stroja prima najviše $T=29524$. Zato bi **sva tri morala biti točno puna**. Izvornih 15 težina daju šest različitih skupova poslova koji mogu napuniti jedan stroj. Redak i stupac slike biraju dva takva skupa. Broj u polju kaže koliko im je poslova zajedničko.
 
-$$\mathcal F=\left\{A:\sum_{j\in A}w_j=T\right\},\qquad |\mathcal F|=6,\qquad |A_i\cap A_j|=1\quad(i\ne j).$$
+$$\mathcal F=\left\lbrace A:\sum_{j\in A}w_j=T\right\rbrace,\qquad |\mathcal F|=6,\qquad |A_i\cap A_j|=1\quad(i\ne j).$$
 
 Odaberi bilo koje polje izvan dijagonale. Svuda je **1**. Dakle, koja god dva različita puna tereta izabereš, isti bi posao morao ići na oba stroja. Izvorna formula dopušta mu samo jedan. IPG7-B tim skupovima vodi ograničeno grananje pri izradi dokaza od 150 koraka. [Težine i izvorni dokaz](../evidence/ipg7b-petersen) · [Kako je dokaz izgrađen](../research/IPG7B_DIRECT_ORIGINAL_VERIPB_RESULTS.md)
 

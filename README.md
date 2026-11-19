@@ -14,7 +14,7 @@ In the m14 benchmark, each selected group requires an assignment. Eleven groups 
 
 Write $W$ for the proof weight of the selected assignments. The left bound comes from the job groups, and the right bound from the machines. A feasible schedule would require
 
-$$31 = 11(2)+9(1) \;\le W \le\; 2(0)+3(1)+6(2)+3(5) = 30.$$
+$$31 = 11(2)+9(1)  \le W \le  2(0)+3(1)+6(2)+3(5) = 30.$$
 
 Akram and Schreiber reported m14 as UNSAT in 2024. The contribution documented here is a structural derivation from the original CNF and a 557,597-byte certificate that anyone can replay. The same method produced accepted proofs on **11 of 20** retrospective PCMAX formulas. It returned **UNKNOWN on all nine SAT-labeled controls**. [Original benchmark paper, Table I](https://dominikschreiber.de/papers/2024-isc-pcmax.pdf) · [All 20 outcomes](evidence/pcmax-weighted2/summary.json) · [Proof registry](docs/VERIFIED_PROOF_REGISTRY.md)
 
@@ -26,7 +26,7 @@ The picture is a teaching example. In an actual benchmark, the code has to find 
 
 For a fixed graph $G$, a clique is a set of vertices that are all neighbors. Its size gives a lower bound on the number of colors needed. In input 55, the clique alone gives the contradiction
 
-$$11 = |V(K_{11})| \;\le\; \chi(G) \;\le\; 10.$$
+$$11 = |V(K_{11})|  \le  \chi(G)  \le  10.$$
 
 ### When the edges are variables
 
@@ -34,7 +34,7 @@ $$11 = |V(K_{11})| \;\le\; \chi(G) \;\le\; 10.$$
 
 Here $P_{i,u}$ means position $i$ selects vertex $u$, $E_{uv}$ means the edge exists, and $C_{u,t}$ means vertex $u$ has color $t$. For distinct positions and distinct selected vertices, two input rules connect those choices.
 
-$$P_{i,u}\land P_{j,v}\;\Rightarrow\;E_{uv}, \qquad E_{uv}\land C_{u,t}\;\Rightarrow\;\neg C_{v,t}.$$
+$$P_{i,u}\land P_{j,v} \Rightarrow E_{uv}, \qquad E_{uv}\land C_{u,t} \Rightarrow \neg C_{v,t}.$$
 
 On source 9, selecting five clique vertices forces all ten edges between them. Four colors cannot distinguish five mutually adjacent vertices. The extension proof makes these implications explicit in the original encoding. [Source 9 and the input clauses](research/CLIQUE_COLORING_2025_SOURCE_AUDIT.md)
 
@@ -93,7 +93,7 @@ The left side is 0 because each bit occurs twice. The right side is 1. The pictu
 
 ![Three jobs can reach only two resources, each able to take one job.](docs/figures/formula-hall.svg)
 
-In this teaching example, $S$ is the set of three jobs, $N(S)$ is the set of resources they can use, and $c_r$ is the capacity of resource $r$. Every feasible assignment requires $|S|\le\sum_{r\in N(S)}c_r$. Here **$3>1+1$**, so at least one job would be left without a place. MATCH3 checks the restrictions against the input clauses before using the cut. [Hall witness and checker](research/MATCH3_FLOW_HALL_POLY1.md)
+In this teaching example, $S$ is the set of three jobs, $N(S)$ is the set of resources they can use, and $c_r$ is the capacity of resource $r$. Every feasible assignment requires $|S|\le\sum_{r\in N(S)}c_r$. Here **$3\gt 1+1$**, so at least one job would be left without a place. MATCH3 checks the restrictions against the input clauses before using the cut. [Hall witness and checker](research/MATCH3_FLOW_HALL_POLY1.md)
 
 </details>
 
@@ -104,7 +104,7 @@ In this teaching example, $S$ is the set of three jobs, $N(S)$ is the set of res
 
 All jobs together weigh $3T$, with $T=29{,}524$ per machine. All three machines would have to fill exactly to $T$. Enumerating the 15 job weights in the original gives six possible full loads. Entry $(i,j)$ counts the jobs shared by two loads.
 
-$$\mathcal F=\left\{A:\sum_{j\in A}w_j=T\right\},\qquad |\mathcal F|=6,\qquad |A_i\cap A_j|=1\quad(i\ne j).$$
+$$\mathcal F=\left\lbrace A:\sum_{j\in A}w_j=T\right\rbrace,\qquad |\mathcal F|=6,\qquad |A_i\cap A_j|=1\quad(i\ne j).$$
 
 Even two full machines would have to share a job. Each job may be assigned only once. IPG7-B uses these configurations to guide bounded case splits in its 150-step original-CNF proof. [Original weights and proof](evidence/ipg7b-petersen) · [Proof construction](research/IPG7B_DIRECT_ORIGINAL_VERIPB_RESULTS.md)
 
