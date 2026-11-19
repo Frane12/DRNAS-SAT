@@ -1,0 +1,41 @@
+name: DRNAS SAT - source-only initial import
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/initial-sat-import.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: drnas-sat-initial-migration
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out empty DRNAS SAT repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 1
+      - name: Import curated SAT research and freeze old source refs
+        env:
+          GIT_TERMINAL_PROMPT: "0"
+        shell: bash
+        run: |
+          bash scripts/import_from_androidgametest.sh
+      - name: Verify source import on main
+        shell: bash
+        run: |
+          git fetch origin main --depth 1
+          git ls-tree -r --name-only FETCH_HEAD | grep '^src/drnas_x59.cpp$'
+          git ls-tree -r --name-only FETCH_HEAD | grep '^research/pcmax_capacity/emit_veripb_capacity_weighted2.py$'
+          git ls-tree -r --name-only FETCH_HEAD | grep '^docs/LEGACY_SAT_BRANCHES.md$'
+          echo "DRNAS SAT files are present on new repository main"
