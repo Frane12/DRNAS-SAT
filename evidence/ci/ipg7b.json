@@ -1,0 +1,19 @@
+{
+  "CDCL_SAT_portfolio_calls": 0,
+  "DPLL_used_to_bridge_exact_configurations": true,
+  "direct_original_CNF_VerIPB_verified": 3,
+  "errors": [],
+  "independent_new_five_job_direct_VerIPB_verified": true,
+  "master_separately_VerIPB_verified": true,
+  "original_300_clause_Petersen_VerIPB_verified": true,
+  "original_source_full_SAT_models": 2,
+  "petersen_config_no_good_source_RUP_steps": 50,
+  "petersen_final_source_closing_RUP_steps": 100,
+  "petersen_k_exact_configs": 6,
+  "petersen_original_VerIPB_proof_bytes": 16663,
+  "petersen_single_original_VerIPB_POL_steps": 150,
+  "scope": "IPG7B builds ONE STANDARD direct-original-CNF VeriPB proof using per-exact-config source RUP blocks plus bounded DPLL completion. Separately verified 7-line pure master is NOT literally the same proof. This closes direct original proof TARGET gap, NOT the search-free proof discovery gap. Exponential complexity.",
+  "source_cases": 6,
+  "source_disjoint_blind_competition_PAR2": false,
+  "status": "PASS"
+}

@@ -1,0 +1,221 @@
+{
+  "attempts": 120,
+  "best_reference": "Kissat",
+  "cap_s": 8.0,
+  "critical": [],
+  "critical_count": 0,
+  "new_source_count": 10,
+  "no_overlap_old_67_ids_or_isohashes": true,
+  "paired": {
+    "GRAPH_ONLY": {
+      "best_reference": "Kissat",
+      "families": 3,
+      "family_cluster_bootstrap95_s": [
+        0.0,
+        0.0
+      ],
+      "losses": 0,
+      "source_mean_total_saving_s": 0.0,
+      "ties": 10,
+      "wins": 0
+    },
+    "GRAPH_PLUS_MATH5": {
+      "best_reference": "Kissat",
+      "families": 3,
+      "family_cluster_bootstrap95_s": [
+        0.0,
+        0.0
+      ],
+      "losses": 0,
+      "source_mean_total_saving_s": 0.0,
+      "ties": 10,
+      "wins": 0
+    },
+    "X59_MATH5_VERIPB": {
+      "best_reference": "Kissat",
+      "families": 3,
+      "family_cluster_bootstrap95_s": [
+        0,
+        0
+      ],
+      "losses": 0,
+      "source_mean_total_saving_s": 0,
+      "ties": 10,
+      "wins": 0
+    }
+  },
+  "repetitions": 2,
+  "scope": "New fixed instance-level source/GBD-iso excluded pilot. Not proof unseen across every earlier branch; family cluster only 3 groups, small sample; no auto-main promotion.",
+  "source_ids": [
+    {
+      "family": "clique-coloring",
+      "gbd_hash": "06d2ca2ee0b47f00d93090495f7fd4f4",
+      "id": 0,
+      "isohash": "d632b4a8814446f919b8bf5cb5d4497f",
+      "sha256": "92d69a56836e0abbc2381d8ad1f00d5b409e4627685080e869c4432b8de36188"
+    },
+    {
+      "family": "clique-coloring",
+      "gbd_hash": "110f8eb8b9b80204fe955ea0973bbb00",
+      "id": 1,
+      "isohash": "dce8da853dd7d3124b978c73886ed3a5",
+      "sha256": "56cd26bfd63e66949d40d565145d958943def5ff882097a65850cb4fee6fd32f"
+    },
+    {
+      "family": "clique-coloring",
+      "gbd_hash": "21415e807689ea75536e846a24623de1",
+      "id": 2,
+      "isohash": "97d983a5fb9b7a115082be818d1b46f9",
+      "sha256": "733571b8e7db55b24a62e366703e5228e8680caa495f4ce20e7c96351e3a762b"
+    },
+    {
+      "family": "clique-coloring",
+      "gbd_hash": "80d8c77f6cab179d469462221f3f624a",
+      "id": 3,
+      "isohash": "304bbfa2255068e32e4cbdfb8da0ab16",
+      "sha256": "836c090f69634dd74f106ddf98be45ef73834309110e1606b402495ee3bb6a5a"
+    },
+    {
+      "family": "clique-coloring",
+      "gbd_hash": "8707ef793f0443b5804c56c2ffca322e",
+      "id": 4,
+      "isohash": "507abe801f2e138184158b60adda70b0",
+      "sha256": "4feea23dd7fa964b39f0e936e0bef2b6c6c5fe886977408d89c41ec7a9e39072"
+    },
+    {
+      "family": "clique-coloring",
+      "gbd_hash": "ea37a677b357328c1641ef2f6087bf66",
+      "id": 5,
+      "isohash": "917d6b84da8c999addef15b0a8d341a6",
+      "sha256": "b017c49f7c3448d570bf924716786540f220c67c34e95fa6be1a32c968264b86"
+    },
+    {
+      "family": "coloring",
+      "gbd_hash": "08d56c03e6561f6b9bec2e3f344ea3de",
+      "id": 6,
+      "isohash": "f3447fbeb77045bcb952ee1d55a526c8",
+      "sha256": "efb7e17df494bfa073e839056a7263cceec6269cf8c1c6cef03c6da5a7ae0973"
+    },
+    {
+      "family": "coloring",
+      "gbd_hash": "b1c8eaa002ac2fa1c8bfd1002738e78e",
+      "id": 7,
+      "isohash": "bfe2d7c34d3a93095527334a3996f4e3",
+      "sha256": "cd7270bcf08084d7f7a994ea9f4698a94c2b796d9fee9f74ba66eb5cf92337ed"
+    },
+    {
+      "family": "coloring",
+      "gbd_hash": "c8d21db50338d9d5743802bcae77a466",
+      "id": 8,
+      "isohash": "10163643d68706c6070517f85fcf5cf2",
+      "sha256": "71a0df3992835e3493c82b2f8a92cd902e728f6d1cf807b48cd892b672e6f409"
+    },
+    {
+      "family": "coloring-clique",
+      "gbd_hash": "292bedf65cee7cc38fe8b2725eb50868",
+      "id": 9,
+      "isohash": "412aa309cc022c2ebd91a01f6d20cb91",
+      "sha256": "b38a0161e666b101d04db08a7d8791002a80eb809c3fea69bef30fdbef9b2009"
+    }
+  ],
+  "status": "COMPLETE",
+  "totals": {
+    "CaDiCaL": {
+      "attempts": 20,
+      "graph_pbp": 0,
+      "math5_pbp": 0,
+      "proof_kinds": {},
+      "status_count": {
+        "TIMEOUT": 20
+      },
+      "strict_PAR2_s": 320,
+      "strict_verified": 0,
+      "structural_PAR2_s": 320,
+      "unique_solved_sources": 0,
+      "verified": 0,
+      "verified_SAT": 0,
+      "verified_UNSAT": 0
+    },
+    "CryptoMiniSat": {
+      "attempts": 20,
+      "graph_pbp": 0,
+      "math5_pbp": 0,
+      "proof_kinds": {},
+      "status_count": {
+        "TIMEOUT": 20
+      },
+      "strict_PAR2_s": 320,
+      "strict_verified": 0,
+      "structural_PAR2_s": 320,
+      "unique_solved_sources": 0,
+      "verified": 0,
+      "verified_SAT": 0,
+      "verified_UNSAT": 0
+    },
+    "GRAPH_ONLY": {
+      "attempts": 20,
+      "graph_pbp": 0,
+      "math5_pbp": 0,
+      "proof_kinds": {},
+      "status_count": {
+        "GRAPH_UNKNOWN_SAFE_FALLBACK_NOT_REQUESTED": 20
+      },
+      "strict_PAR2_s": 320.0,
+      "strict_verified": 0,
+      "structural_PAR2_s": 320.0,
+      "unique_solved_sources": 0,
+      "verified": 0,
+      "verified_SAT": 0,
+      "verified_UNSAT": 0
+    },
+    "GRAPH_PLUS_MATH5": {
+      "attempts": 20,
+      "graph_pbp": 0,
+      "math5_pbp": 0,
+      "proof_kinds": {},
+      "status_count": {
+        "E2E_OVER_CAP": 20
+      },
+      "strict_PAR2_s": 320.0,
+      "strict_verified": 0,
+      "structural_PAR2_s": 320.0,
+      "unique_solved_sources": 0,
+      "verified": 0,
+      "verified_SAT": 0,
+      "verified_UNSAT": 0
+    },
+    "Kissat": {
+      "attempts": 20,
+      "graph_pbp": 0,
+      "math5_pbp": 0,
+      "proof_kinds": {},
+      "status_count": {
+        "TIMEOUT": 20
+      },
+      "strict_PAR2_s": 320,
+      "strict_verified": 0,
+      "structural_PAR2_s": 320,
+      "unique_solved_sources": 0,
+      "verified": 0,
+      "verified_SAT": 0,
+      "verified_UNSAT": 0
+    },
+    "X59_MATH5_VERIPB": {
+      "attempts": 20,
+      "graph_pbp": 0,
+      "math5_pbp": 0,
+      "proof_kinds": {},
+      "status_count": {
+        "E2E_OVER_CAP": 20
+      },
+      "strict_PAR2_s": 320,
+      "strict_verified": 0,
+      "structural_PAR2_s": 320,
+      "unique_solved_sources": 0,
+      "verified": 0,
+      "verified_SAT": 0,
+      "verified_UNSAT": 0
+    }
+  },
+  "track": "SAT Competition 2025 Main"
+}

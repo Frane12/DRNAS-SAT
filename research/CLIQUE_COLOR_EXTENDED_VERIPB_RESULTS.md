@@ -1,5 +1,7 @@
 # DRNAS Clique-vs-Coloring: STANDARD VeriPB extended source proofs
 
+**CI follow-up · 19 November 2026.** The two-repeat replay subsequently completed with 20/20 strict verified attempts on the ten development sources. [Final record](../evidence/ci/clique-color-replay10.json) · [Separate family-disjoint test](../evidence/ci/graph-disjoint10.json)
+
 **Research date:** 2026-11-16. **Experimental branch only:**
 \`experiment/drnas-cliquecolor-ext-veripb-proof1-20261116\`.
 No main changes. No frozen source/input alterations. No solver-portfolio,

@@ -1,0 +1,61 @@
+{
+  "8s_cap": 8.0,
+  "attempts": 20,
+  "critical_count": 0,
+  "emitter_sha256": "8c380705e2169e4df7134ad89bdf5c1eb7af866a75d4b7f3b222b6f0158825da",
+  "errors": [],
+  "no_main_promotion": true,
+  "not_new_blind": true,
+  "one_logical_cpu": true,
+  "originals": 10,
+  "outcomes": {
+    "0": [
+      "UNSAT_VERIPB_VERIFIED",
+      "UNSAT_VERIPB_VERIFIED"
+    ],
+    "1": [
+      "UNSAT_VERIPB_VERIFIED",
+      "UNSAT_VERIPB_VERIFIED"
+    ],
+    "2": [
+      "UNSAT_VERIPB_VERIFIED",
+      "UNSAT_VERIPB_VERIFIED"
+    ],
+    "3": [
+      "UNSAT_VERIPB_VERIFIED",
+      "UNSAT_VERIPB_VERIFIED"
+    ],
+    "4": [
+      "UNSAT_VERIPB_VERIFIED",
+      "UNSAT_VERIPB_VERIFIED"
+    ],
+    "5": [
+      "UNSAT_VERIPB_VERIFIED",
+      "UNSAT_VERIPB_VERIFIED"
+    ],
+    "6": [
+      "UNSAT_VERIPB_VERIFIED",
+      "UNSAT_VERIPB_VERIFIED"
+    ],
+    "7": [
+      "UNSAT_VERIPB_VERIFIED",
+      "UNSAT_VERIPB_VERIFIED"
+    ],
+    "8": [
+      "UNSAT_VERIPB_VERIFIED",
+      "UNSAT_VERIPB_VERIFIED"
+    ],
+    "9": [
+      "UNSAT_VERIPB_VERIFIED",
+      "UNSAT_VERIPB_VERIFIED"
+    ]
+  },
+  "retrospective_after_development": true,
+  "same_wall_cap_includes_external_proof_checker": true,
+  "source_manifest_sha256": "86e7eea40bcb1b0318442fc9bb300cbfbeb3ef35706262d681aab3c027cbf264",
+  "status": "PASS",
+  "strict_PAR2_s": 22.196811,
+  "strict_verified": 20,
+  "strict_verified_unique_sources": 10,
+  "veripb_sha256": "d21a8d18e8842732fed9049ec16ade60cf5f5f6e64d468e8fbefda810b2b5144"
+}

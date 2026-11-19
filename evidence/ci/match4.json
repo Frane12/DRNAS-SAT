@@ -1,0 +1,18 @@
+{
+  "cases": 10,
+  "false_unsat": 0,
+  "forged_mutated_rejected": 9,
+  "limits": "bounded n<=15 O(2^n) source-bound check; project-specific proof; not polynomial for general input, not standard VeriPB or blind PAR2",
+  "original_petersen": "VERIFIED_UNSAT",
+  "permuted_originals_verified": 4,
+  "petersen_local_support_counts": [
+    7036,
+    7036,
+    7036
+  ],
+  "petersen_matchings": 6,
+  "sat_controls": 2,
+  "sat_models_checked": 2,
+  "source_verified_unsat": 6,
+  "status": "PASS"
+}

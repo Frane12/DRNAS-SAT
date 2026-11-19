@@ -1,0 +1,80 @@
+{
+  "attempts": 24,
+  "cap_s": 8.0,
+  "critical": [],
+  "critical_count": 0,
+  "new_emitter_sha256": "f1d7d7e782a9b8db58c711972d034b0b037cd0899f279662fefdc789fcf288d0",
+  "no_main_promotion": true,
+  "original_sources": [
+    5,
+    6
+  ],
+  "retrospective_development": true,
+  "source_manifest_sha256": "e13117e70a3031dfce0d98b01b7e1784d2a6829d9b2e46b5abed35f5546b0918",
+  "status": "COMPLETE",
+  "strict_standard_checkers_only": true,
+  "totals": {
+    "CaDiCaL": {
+      "attempts": 4,
+      "proof_kinds": {},
+      "statuses": {
+        "TIMEOUT": 4
+      },
+      "strict_PAR2_s": 64,
+      "strict_sources": 0,
+      "strict_verified": 0
+    },
+    "CryptoMiniSat": {
+      "attempts": 4,
+      "proof_kinds": {},
+      "statuses": {
+        "TIMEOUT": 4
+      },
+      "strict_PAR2_s": 64,
+      "strict_sources": 0,
+      "strict_verified": 0
+    },
+    "Kissat": {
+      "attempts": 4,
+      "proof_kinds": {},
+      "statuses": {
+        "TIMEOUT": 4
+      },
+      "strict_PAR2_s": 64,
+      "strict_sources": 0,
+      "strict_verified": 0
+    },
+    "X59_MATH5_VERIPB": {
+      "attempts": 4,
+      "proof_kinds": {},
+      "statuses": {
+        "UNSAT_VERIFIED": 4
+      },
+      "strict_PAR2_s": 64,
+      "strict_sources": 0,
+      "strict_verified": 0
+    },
+    "XOR234_SPLIT_VERIPB": {
+      "attempts": 4,
+      "proof_kinds": {
+        "VERIPB_XOR234_SPLIT_RED_RUP_CP": 4
+      },
+      "statuses": {
+        "UNSAT_VERIFIED": 4
+      },
+      "strict_PAR2_s": 1.086181,
+      "strict_sources": 2,
+      "strict_verified": 4
+    },
+    "XOR3_ONLY_VERIPB": {
+      "attempts": 4,
+      "proof_kinds": {},
+      "statuses": {
+        "PBP_UNSUPPORTED_SOURCE": 4
+      },
+      "strict_PAR2_s": 64.0,
+      "strict_sources": 0,
+      "strict_verified": 0
+    }
+  }
+}
