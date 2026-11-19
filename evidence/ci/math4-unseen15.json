@@ -1,0 +1,251 @@
+{
+  "automatic_promotion": false,
+  "paired_mean_PAR2_improvement_s": 3.9848385000000004,
+  "pairs": [
+    {
+      "PAR2_mean": {
+        "CF7_OFF": 20.0,
+        "CaDiCaL": 20.0,
+        "HALL3_ON": 20.0,
+        "Kissat": 20.0,
+        "MATH4_ON": 0.0733535
+      },
+      "family": "lights-out",
+      "guard_delta_s": 19.9266465,
+      "id": 0
+    },
+    {
+      "PAR2_mean": {
+        "CF7_OFF": 20.0,
+        "CaDiCaL": 20.0,
+        "HALL3_ON": 20.0,
+        "Kissat": 20.0,
+        "MATH4_ON": 0.0619035
+      },
+      "family": "lights-out",
+      "guard_delta_s": 19.9380965,
+      "id": 1
+    },
+    {
+      "PAR2_mean": {
+        "CF7_OFF": 20.0,
+        "CaDiCaL": 20.0,
+        "HALL3_ON": 20.0,
+        "Kissat": 20.0,
+        "MATH4_ON": 0.08401449999999999
+      },
+      "family": "lights-out",
+      "guard_delta_s": 19.9159855,
+      "id": 2
+    },
+    {
+      "PAR2_mean": {
+        "CF7_OFF": 20.0,
+        "CaDiCaL": 20.0,
+        "HALL3_ON": 20.0,
+        "Kissat": 20.0,
+        "MATH4_ON": 20.0
+      },
+      "family": "lights-out",
+      "guard_delta_s": 0.0,
+      "id": 3
+    },
+    {
+      "PAR2_mean": {
+        "CF7_OFF": 20.0,
+        "CaDiCaL": 20.0,
+        "HALL3_ON": 20.0,
+        "Kissat": 20.0,
+        "MATH4_ON": 20.0
+      },
+      "family": "lights-out",
+      "guard_delta_s": 0.0,
+      "id": 4
+    },
+    {
+      "PAR2_mean": {
+        "CF7_OFF": 20.0,
+        "CaDiCaL": 20.0,
+        "HALL3_ON": 20.0,
+        "Kissat": 20.0,
+        "MATH4_ON": 20.0
+      },
+      "family": "xor-shifting",
+      "guard_delta_s": 0.0,
+      "id": 5
+    },
+    {
+      "PAR2_mean": {
+        "CF7_OFF": 20.0,
+        "CaDiCaL": 20.0,
+        "HALL3_ON": 20.0,
+        "Kissat": 20.0,
+        "MATH4_ON": 20.0
+      },
+      "family": "xor-shifting",
+      "guard_delta_s": 0.0,
+      "id": 6
+    },
+    {
+      "PAR2_mean": {
+        "CF7_OFF": 20.0,
+        "CaDiCaL": 20.0,
+        "HALL3_ON": 20.0,
+        "Kissat": 20.0,
+        "MATH4_ON": 20.0
+      },
+      "family": "xor-shifting",
+      "guard_delta_s": 0.0,
+      "id": 7
+    },
+    {
+      "PAR2_mean": {
+        "CF7_OFF": 20.0,
+        "CaDiCaL": 20.0,
+        "HALL3_ON": 20.0,
+        "Kissat": 20.0,
+        "MATH4_ON": 20.0
+      },
+      "family": "xor-shifting",
+      "guard_delta_s": 0.0,
+      "id": 8
+    },
+    {
+      "PAR2_mean": {
+        "CF7_OFF": 20.0,
+        "CaDiCaL": 20.0,
+        "HALL3_ON": 20.0,
+        "Kissat": 20.0,
+        "MATH4_ON": 20.0
+      },
+      "family": "multiplier-circuit-miters",
+      "guard_delta_s": 0.0,
+      "id": 9
+    },
+    {
+      "PAR2_mean": {
+        "CF7_OFF": 20.0,
+        "CaDiCaL": 20.0,
+        "HALL3_ON": 20.0,
+        "Kissat": 20.0,
+        "MATH4_ON": 20.0
+      },
+      "family": "multiplier-circuit-miters",
+      "guard_delta_s": 0.0,
+      "id": 10
+    },
+    {
+      "PAR2_mean": {
+        "CF7_OFF": 20.0,
+        "CaDiCaL": 20.0,
+        "HALL3_ON": 20.0,
+        "Kissat": 20.0,
+        "MATH4_ON": 20.0
+      },
+      "family": "graph-coloring",
+      "guard_delta_s": 0.0,
+      "id": 11
+    },
+    {
+      "PAR2_mean": {
+        "CF7_OFF": 20.0,
+        "CaDiCaL": 20.0,
+        "HALL3_ON": 0.338992,
+        "Kissat": 5.8320585000000005,
+        "MATH4_ON": 0.347143
+      },
+      "family": "graph-coloring",
+      "guard_delta_s": -0.008150999999999964,
+      "id": 12
+    },
+    {
+      "PAR2_mean": {
+        "CF7_OFF": 20.0,
+        "CaDiCaL": 20.0,
+        "HALL3_ON": 20.0,
+        "Kissat": 20.0,
+        "MATH4_ON": 20.0
+      },
+      "family": "linear-equations",
+      "guard_delta_s": 0.0,
+      "id": 13
+    },
+    {
+      "PAR2_mean": {
+        "CF7_OFF": 20.0,
+        "CaDiCaL": 20.0,
+        "HALL3_ON": 20.0,
+        "Kissat": 20.0,
+        "MATH4_ON": 20.0
+      },
+      "family": "linear-equations",
+      "guard_delta_s": 0.0,
+      "id": 14
+    }
+  ],
+  "source_cluster_bootstrap_95_s": [
+    0.0,
+    7.972237866666666
+  ],
+  "sources": 15,
+  "status": "COMPLETE",
+  "structural_is_not_drat": true,
+  "totals": [
+    {
+      "PAR2_certified_e2e_s": 600.0,
+      "PAR2_strict_drat_s": 600.0,
+      "PAR2_verified_s": 600.0,
+      "accepted": 0,
+      "arm": "CF7_OFF",
+      "solved_sources": 0,
+      "strict_accepted": 0,
+      "structural": 0,
+      "trials": 30
+    },
+    {
+      "PAR2_certified_e2e_s": 560.677984,
+      "PAR2_strict_drat_s": 600.0,
+      "PAR2_verified_s": 560.677984,
+      "accepted": 2,
+      "arm": "HALL3_ON",
+      "solved_sources": 1,
+      "strict_accepted": 0,
+      "structural": 2,
+      "trials": 30
+    },
+    {
+      "PAR2_certified_e2e_s": 441.132829,
+      "PAR2_strict_drat_s": 600.0,
+      "PAR2_verified_s": 441.132829,
+      "accepted": 8,
+      "arm": "MATH4_ON",
+      "solved_sources": 4,
+      "strict_accepted": 0,
+      "structural": 8,
+      "trials": 30
+    },
+    {
+      "PAR2_certified_e2e_s": 571.664117,
+      "PAR2_strict_drat_s": 571.664117,
+      "PAR2_verified_s": 571.664117,
+      "accepted": 2,
+      "arm": "Kissat",
+      "solved_sources": 1,
+      "strict_accepted": 2,
+      "structural": 0,
+      "trials": 30
+    },
+    {
+      "PAR2_certified_e2e_s": 600.0,
+      "PAR2_strict_drat_s": 600.0,
+      "PAR2_verified_s": 600.0,
+      "accepted": 0,
+      "arm": "CaDiCaL",
+      "solved_sources": 0,
+      "strict_accepted": 0,
+      "structural": 0,
+      "trials": 30
+    }
+  ],
+  "trials": 150
+}

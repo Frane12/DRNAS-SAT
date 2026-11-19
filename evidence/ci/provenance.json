@@ -1,0 +1,90 @@
+[
+  {
+    "file": "fixed-graph8.json",
+    "file_sha256": "e3819ba9a052f3553b9e6d97658d4b290c9d1445836787d8227da9b1f5cde62f",
+    "source_run": "https://github.com/Frane12/AndroidGameTest/actions/runs/43886450488",
+    "artifact_id": 14235600394,
+    "archive_sha256": "5ed7a62b7579f00c83bc0b74bac64152e1fe5d6f93be76585ba46af81d16e4ce",
+    "member": "results/graphclique_original8/final.json"
+  },
+  {
+    "file": "graph-real67.json",
+    "file_sha256": "e6831d1b0b6b58e90f033c2c49ed5bd84d72f73b024c26e70553e63acc0b51d2",
+    "source_run": "https://github.com/Frane12/AndroidGameTest/actions/runs/43886450488",
+    "artifact_id": 14234974299,
+    "archive_sha256": "8c67eb57cfe0d0aa4a28dcd863deea9a67e265467309de186c82cf528c63d580",
+    "member": "results/graphclique_real67/final.json"
+  },
+  {
+    "file": "graph-first10.json",
+    "file_sha256": "e1c13c1ee638d99529ad3618e194d00797888622eda10827da30334ccac43558",
+    "source_run": "https://github.com/Frane12/AndroidGameTest/actions/runs/43891106380",
+    "artifact_id": 14236263794,
+    "archive_sha256": "a80bde443cee53f37360f2bde2cdcff1a0bdc1138ae8d9464752a0ed512b2b0e",
+    "member": "results/graph_unseen25/final.json"
+  },
+  {
+    "file": "clique-color-replay10.json",
+    "file_sha256": "00074c903dfd7a8392fa78a67c5b1ed97b91e426fcb69570b70b5df124bdcde0",
+    "source_run": "https://github.com/Frane12/AndroidGameTest/actions/runs/43906724163",
+    "artifact_id": 14246132218,
+    "archive_sha256": "6ab67e538aa69111676f7ed1d42e1436b4381a7f219382e74ce00ee6bc1d5706",
+    "member": "results/clique_color_er_original10/final.json"
+  },
+  {
+    "file": "graph-disjoint10.json",
+    "file_sha256": "9b7463960279b985f8859a5d4edfe7f056ffd9b27dd8789f479f392f285ed4ba",
+    "source_run": "https://github.com/Frane12/AndroidGameTest/actions/runs/43913499707",
+    "artifact_id": 14248129665,
+    "archive_sha256": "fc2bc124f119a408b7f6787672101175db9ca2a6fcc8c05753aff47cb986bdb1",
+    "member": "results/graph_family_disjoint25/final.json"
+  },
+  {
+    "file": "xor234-grid2.json",
+    "file_sha256": "03812c709b70f4615b7edc365f304cf02c840e4809acc50836e85f9614b84e8b",
+    "source_run": "https://github.com/Frane12/AndroidGameTest/actions/runs/44046723180",
+    "artifact_id": 14312560500,
+    "archive_sha256": "eeb42201c9bc0f3d3b873dcf45829f073ebf4ddfe429ae36bbe9f3b66637c85b",
+    "member": "results/math5_xor234_grid2/final.json"
+  },
+  {
+    "file": "xorlin-mixed12.json",
+    "file_sha256": "4267d859cddf03b527379a7f9e9830653c7c4d83bc45b13b26593fb2523d0788",
+    "source_run": "https://github.com/Frane12/AndroidGameTest/actions/runs/44071331788",
+    "artifact_id": 14322942761,
+    "archive_sha256": "38905c85eb6f9c60bbf8ce70c811602e159030a5ab652d12dd0cebb3b931f925",
+    "member": "results/xorlin_cdcl1_prospective_mixed12/final.json"
+  },
+  {
+    "file": "match4.json",
+    "file_sha256": "6c3988371b9a0caeb73037e38938e0f48f48d8507ac00d522a253efb54c52f8f",
+    "source_run": "https://github.com/Frane12/AndroidGameTest/actions/runs/43866551408",
+    "artifact_id": 14226380754,
+    "archive_sha256": "0cddbd69ddd4c2c50b22096082b2e966e4a3761918e999fa9662892a0a308cbe",
+    "member": "results/match4_source_parity/summary.json"
+  },
+  {
+    "file": "ipg7b.json",
+    "file_sha256": "2ff6c4564381bf0ccf8d677b184963862f9883f0e4ac128814ab2f3f85c86b6b",
+    "source_run": "https://github.com/Frane12/AndroidGameTest/actions/runs/43890563613",
+    "artifact_id": 14236193208,
+    "archive_sha256": "60463f6e0d5b7dad8d42745ff37a69ac01e435ab0b39db3dfae9e9054b692210",
+    "member": "results/ipg7b_source/summary.json"
+  },
+  {
+    "file": "math4-unseen15.json",
+    "file_sha256": "00822348a9409502fa020368272f7690ed087970287d2acfc2f5c1f476dcad54",
+    "source_run": "https://github.com/Frane12/AndroidGameTest/actions/runs/43646870786",
+    "artifact_id": 14133758676,
+    "archive_sha256": "4183b16b7911e45bc3643f7ed086aa641f9b4aa5ec2775ec8f88082a1c86dff0",
+    "member": "math4_holdout_results/summary.json"
+  },
+  {
+    "file": "tsp-sat3.json",
+    "file_sha256": "21d2821f97aebff5f0ae9fdd6444923bb2570633bede0b3db035534ebfbe0300",
+    "source_run": "https://github.com/Frane12/AndroidGameTest/actions/runs/43950106984",
+    "artifact_id": 14265954390,
+    "archive_sha256": "b79cb2e7b768baa076242e6b1608b4e39cf6260bba71f29a09edbf4e8b909799",
+    "member": "results/tsp_sat3/final.json"
+  }
+]

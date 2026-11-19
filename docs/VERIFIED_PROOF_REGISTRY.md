@@ -1,5 +1,7 @@
 # DRNAS SAT — independently checked proof registry
 
+This register lists the eleven PCMAX certificates. The repository also includes replayable original-CNF examples for graph coloring, XOR grids and weighted Petersen. [Additional proof hashes](../evidence/structural-replay.json) · [Full replay command](../README.md#verify-a-proof)
+
 **Evidence migration:** 19 November 2026  
 **Verifier:** external VeriPB 3.0.2, original CNF input, accepted UNSAT in each case.  
 **Source experiment:** [PCMAX Weighted VeriPB2, run 43719601339](https://github.com/Frane12/AndroidGameTest/actions/runs/43719601339)  

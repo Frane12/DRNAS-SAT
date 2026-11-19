@@ -1,0 +1,251 @@
+{
+  "all_source_families_disjoint_from_prior_77": true,
+  "best_reference": "Kissat",
+  "cap_seconds": 8.0,
+  "catalog_families": 7,
+  "critical": [],
+  "critical_count": 0,
+  "no_main_promotion": true,
+  "paired_family_bootstrap": {
+    "CLIQUE_EXT_GRAPH_MATH5": {
+      "best_reference": "Kissat",
+      "families": 7,
+      "family_bootstrap95_s": [
+        0.0,
+        0.0
+      ],
+      "losses": 0,
+      "source_mean_aggregate_saving_s": 0.0,
+      "ties": 10,
+      "wins": 0
+    },
+    "CLIQUE_EXT_ONLY": {
+      "best_reference": "Kissat",
+      "families": 7,
+      "family_bootstrap95_s": [
+        0.0,
+        0.0
+      ],
+      "losses": 0,
+      "source_mean_aggregate_saving_s": 0.0,
+      "ties": 10,
+      "wins": 0
+    },
+    "GRAPH_MATH5": {
+      "best_reference": "Kissat",
+      "families": 7,
+      "family_bootstrap95_s": [
+        0.0,
+        0.0
+      ],
+      "losses": 0,
+      "source_mean_aggregate_saving_s": 0.0,
+      "ties": 10,
+      "wins": 0
+    },
+    "X59_MATH5_VERIPB": {
+      "best_reference": "Kissat",
+      "families": 7,
+      "family_bootstrap95_s": [
+        0,
+        0
+      ],
+      "losses": 0,
+      "source_mean_aggregate_saving_s": 0,
+      "ties": 10,
+      "wins": 0
+    }
+  },
+  "provenance": [
+    {
+      "family": "hamiltonian",
+      "gbd_hash": "22df1827e3253fc824cc7ce806d75e0a",
+      "id": 0,
+      "isohash": "b25da67a12ea21d8cd043341e6b1d7ae",
+      "source_sha256": "582a4c071196570e817d16ea8c108dc7a9634af5a5b8d455936cf4502b3158ed"
+    },
+    {
+      "family": "independent-set-reconfiguration",
+      "gbd_hash": "27570c6780aaade3dc771c6a12534fb8",
+      "id": 1,
+      "isohash": "511b1dd93fc2d92e0279f97ba0d79bff",
+      "source_sha256": "86bb0a23b63a6a90efda17de902835291595316554e52ed6171dc7df2f22fd30"
+    },
+    {
+      "family": "independent-set-reconfiguration",
+      "gbd_hash": "c033577c6f5f9a1545537518af964305",
+      "id": 2,
+      "isohash": "0622422811fae182963110ffd89884bf",
+      "source_sha256": "871b625d0509c985c821c0ea6f703729bcc51c9ddf9cbc52b26ea1c7be25fb8f"
+    },
+    {
+      "family": "independent-set",
+      "gbd_hash": "2bdfcf23ac1829912a408402a540972a",
+      "id": 3,
+      "isohash": "7e179d72460e6879adc03745e145449d",
+      "source_sha256": "dfdb799f9ee5aa511aed952c9e1c4fc32af8da1667542017d4202ef8e414cf0c"
+    },
+    {
+      "family": "independent-set",
+      "gbd_hash": "f25a1df88f89c6bcbe2602fa7f6e816b",
+      "id": 4,
+      "isohash": "14283863728934781080b1d3fb10c13b",
+      "source_sha256": "0de68a09b2bf8865162d9e796df51fc7fcf66579553daa824f4ce4e69f850c81"
+    },
+    {
+      "family": "rooks",
+      "gbd_hash": "062f58e44eb73f9274b57af5092cad90",
+      "id": 5,
+      "isohash": "c781c6dee94f2379979b715e77f4225f",
+      "source_sha256": "4aa18c3984954f440015b21e85359ef082a44d2f4c80b4490bef4bc25ab80aae"
+    },
+    {
+      "family": "tseitin-formulas",
+      "gbd_hash": "42f1311ce504db8cc0cb590a568da20a",
+      "id": 6,
+      "isohash": "61a257c81b2f81cb419b631cfe821f59",
+      "source_sha256": "9e4c57b9739f39a924d03267f05542831dc87fec9e9e2238f5e4ba11886378f4"
+    },
+    {
+      "family": "ramsey-numbers",
+      "gbd_hash": "04648cef5bed430ab6429991fa9e107d",
+      "id": 7,
+      "isohash": "61f452c5ca9fd747014f68675b6661a2",
+      "source_sha256": "d45db8bce82d19dbd5b35c41842904b01e174329da2e9c4fd7df504d1173f3d9"
+    },
+    {
+      "family": "random-graph-xorsat",
+      "gbd_hash": "b5431f41e3264c64508c30da215c69c6",
+      "id": 8,
+      "isohash": "2060892e420e27fbef312a8ded361bdd",
+      "source_sha256": "f9dcbbbcb2abc290439c21978d04cdc44efffbed9b4e5cdee96dd63856a5a156"
+    },
+    {
+      "family": "independent-set-reconfiguration",
+      "gbd_hash": "8733dfd02c923d69720500c9ec8ce36a",
+      "id": 9,
+      "isohash": "b977b694c1b19e5e84cf471096f6ba80",
+      "source_sha256": "fa66334a47133538acdaa3a67c1614379f50a3ddfab7e60c39221b56d5ba2bb2"
+    }
+  ],
+  "repetitions": 2,
+  "scope": "Family + GBD hash/isohash disjoint from two tracked development datasets. 10 sources, seven families; cannot prove untested across all historic branches.",
+  "shards": 5,
+  "source_family_list": [
+    "hamiltonian",
+    "independent-set",
+    "independent-set-reconfiguration",
+    "ramsey-numbers",
+    "random-graph-xorsat",
+    "rooks",
+    "tseitin-formulas"
+  ],
+  "source_manifest_sha256": "a4f2183dd0b65b70549c4c57aaaec7661512a9de4b39251843408f60ecfbcbdd",
+  "sources": 10,
+  "status": "COMPLETE",
+  "totals": {
+    "CLIQUE_EXT_GRAPH_MATH5": {
+      "SAT_verified": 0,
+      "UNSAT_verified": 0,
+      "attempts": 20,
+      "proof_kinds": {},
+      "solved_sources": 0,
+      "source_PAR2_s": 288.207979,
+      "statuses": {
+        "E2E_OVER_CAP": 18,
+        "UNSAT_VERIFIED": 2
+      },
+      "strict_PAR2_s": 320.0,
+      "strict_verified": 0,
+      "verified": 2
+    },
+    "CLIQUE_EXT_ONLY": {
+      "SAT_verified": 0,
+      "UNSAT_verified": 0,
+      "attempts": 20,
+      "proof_kinds": {},
+      "solved_sources": 0,
+      "source_PAR2_s": 320.0,
+      "statuses": {
+        "EXT_UNSUPPORTED_SAFE_UNKNOWN": 20
+      },
+      "strict_PAR2_s": 320.0,
+      "strict_verified": 0,
+      "verified": 0
+    },
+    "CaDiCaL": {
+      "SAT_verified": 0,
+      "UNSAT_verified": 0,
+      "attempts": 20,
+      "proof_kinds": {},
+      "solved_sources": 0,
+      "source_PAR2_s": 320,
+      "statuses": {
+        "RESOURCE_LIMIT": 2,
+        "TIMEOUT": 18
+      },
+      "strict_PAR2_s": 320,
+      "strict_verified": 0,
+      "verified": 0
+    },
+    "CryptoMiniSat": {
+      "SAT_verified": 0,
+      "UNSAT_verified": 0,
+      "attempts": 20,
+      "proof_kinds": {},
+      "solved_sources": 0,
+      "source_PAR2_s": 320,
+      "statuses": {
+        "TIMEOUT": 20
+      },
+      "strict_PAR2_s": 320,
+      "strict_verified": 0,
+      "verified": 0
+    },
+    "GRAPH_MATH5": {
+      "SAT_verified": 0,
+      "UNSAT_verified": 0,
+      "attempts": 20,
+      "proof_kinds": {},
+      "solved_sources": 0,
+      "source_PAR2_s": 288.141589,
+      "statuses": {
+        "E2E_OVER_CAP": 18,
+        "UNSAT_VERIFIED": 2
+      },
+      "strict_PAR2_s": 320.0,
+      "strict_verified": 0,
+      "verified": 2
+    },
+    "Kissat": {
+      "SAT_verified": 0,
+      "UNSAT_verified": 0,
+      "attempts": 20,
+      "proof_kinds": {},
+      "solved_sources": 0,
+      "source_PAR2_s": 320,
+      "statuses": {
+        "TIMEOUT": 20
+      },
+      "strict_PAR2_s": 320,
+      "strict_verified": 0,
+      "verified": 0
+    },
+    "X59_MATH5_VERIPB": {
+      "SAT_verified": 0,
+      "UNSAT_verified": 0,
+      "attempts": 20,
+      "proof_kinds": {},
+      "solved_sources": 0,
+      "source_PAR2_s": 288.139547,
+      "statuses": {
+        "E2E_OVER_CAP": 18,
+        "UNSAT_VERIFIED": 2
+      },
+      "strict_PAR2_s": 320,
+      "strict_verified": 0,
+      "verified": 2
+    }
+  },
+  "trials": 140
+}

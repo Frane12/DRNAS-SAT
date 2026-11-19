@@ -1,0 +1,183 @@
+{
+  "N": 67,
+  "critical": [],
+  "critical_count": 0,
+  "graph_verified_original_ids": [
+    20,
+    26,
+    32,
+    37,
+    41,
+    49,
+    55,
+    58
+  ],
+  "no_main_promotion": true,
+  "paired_family_bootstrap_strict": {
+    "GRAPH_ONLY": {
+      "families": 13,
+      "family_bootstrap95_s": [
+        -46.710861,
+        325.329703
+      ],
+      "losses": 1,
+      "reference": "Kissat",
+      "source_mean_total_saving_s": 92.872947,
+      "ties": 58,
+      "wins": 8
+    },
+    "GRAPH_PLUS_MATH5": {
+      "families": 13,
+      "family_bootstrap95_s": [
+        -0.224906,
+        356.740671
+      ],
+      "losses": 1,
+      "reference": "Kissat",
+      "source_mean_total_saving_s": 139.869327,
+      "ties": 56,
+      "wins": 10
+    },
+    "X59_MATH5_VERIPB": {
+      "families": 13,
+      "family_bootstrap95_s": [
+        -44.591731,
+        94.709948
+      ],
+      "losses": 2,
+      "reference": "Kissat",
+      "source_mean_total_saving_s": 16.647237,
+      "ties": 63,
+      "wins": 2
+    }
+  },
+  "reps": 2,
+  "retrospective_not_blind": true,
+  "status": "COMPLETE",
+  "strict_reference": "Kissat",
+  "totals": {
+    "CaDiCaL": {
+      "SAT_verified": 2,
+      "UNSAT_verified": 0,
+      "attempts": 134,
+      "certificate_kinds": {
+        "MODEL": 2
+      },
+      "graph_veripb": 0,
+      "math5_veripb": 0,
+      "statuses": {
+        "SAT_VERIFIED": 2,
+        "TIMEOUT": 132
+      },
+      "strict_PAR2_s": 2113.02903,
+      "strict_verified": 2,
+      "structural_PAR2_s": 2113.02903,
+      "unique_strict_sources": 1,
+      "verified": 2
+    },
+    "CryptoMiniSat": {
+      "SAT_verified": 2,
+      "UNSAT_verified": 0,
+      "attempts": 134,
+      "certificate_kinds": {
+        "MODEL": 2
+      },
+      "graph_veripb": 0,
+      "math5_veripb": 0,
+      "statuses": {
+        "RESOURCE_LIMIT": 2,
+        "SAT_VERIFIED": 2,
+        "TIMEOUT": 130
+      },
+      "strict_PAR2_s": 2113.348443,
+      "strict_verified": 2,
+      "structural_PAR2_s": 2113.348443,
+      "unique_strict_sources": 1,
+      "verified": 2
+    },
+    "GRAPH_ONLY": {
+      "SAT_verified": 0,
+      "UNSAT_verified": 16,
+      "attempts": 134,
+      "certificate_kinds": {
+        "VERIPB_GRAPH": 16
+      },
+      "graph_veripb": 16,
+      "math5_veripb": 0,
+      "statuses": {
+        "GRAPH_UNKNOWN_SAFE_FALLBACK_NOT_REQUESTED": 118,
+        "UNSAT_VERIFIED": 16
+      },
+      "strict_PAR2_s": 1897.38571,
+      "strict_verified": 16,
+      "structural_PAR2_s": 1897.38571,
+      "unique_strict_sources": 8,
+      "verified": 16
+    },
+    "GRAPH_PLUS_MATH5": {
+      "SAT_verified": 2,
+      "UNSAT_verified": 20,
+      "attempts": 134,
+      "certificate_kinds": {
+        "MODEL": 2,
+        "VERIPB_GRAPH": 16,
+        "VERIPB_MATH5": 4
+      },
+      "graph_veripb": 16,
+      "math5_veripb": 4,
+      "statuses": {
+        "E2E_OVER_CAP": 112,
+        "SAT_VERIFIED": 2,
+        "UNSAT_VERIFIED": 20
+      },
+      "strict_PAR2_s": 1803.39295,
+      "strict_verified": 22,
+      "structural_PAR2_s": 1803.39295,
+      "unique_strict_sources": 11,
+      "verified": 22
+    },
+    "Kissat": {
+      "SAT_verified": 2,
+      "UNSAT_verified": 2,
+      "attempts": 134,
+      "certificate_kinds": {
+        "DRAT": 2,
+        "MODEL": 2
+      },
+      "graph_veripb": 0,
+      "math5_veripb": 0,
+      "statuses": {
+        "SAT_VERIFIED": 2,
+        "TIMEOUT": 130,
+        "UNSAT_VERIFIED": 2
+      },
+      "strict_PAR2_s": 2083.131605,
+      "strict_verified": 4,
+      "structural_PAR2_s": 2083.131605,
+      "unique_strict_sources": 2,
+      "verified": 4
+    },
+    "X59_MATH5_VERIPB": {
+      "SAT_verified": 2,
+      "UNSAT_verified": 4,
+      "attempts": 134,
+      "certificate_kinds": {
+        "MODEL": 2,
+        "VERIPB_MATH5": 4
+      },
+      "graph_veripb": 0,
+      "math5_veripb": 4,
+      "statuses": {
+        "E2E_OVER_CAP": 128,
+        "SAT_VERIFIED": 2,
+        "UNSAT_VERIFIED": 4
+      },
+      "strict_PAR2_s": 2049.837132,
+      "strict_verified": 6,
+      "structural_PAR2_s": 2049.837132,
+      "unique_strict_sources": 3,
+      "verified": 6
+    }
+  },
+  "trials": 804
+}

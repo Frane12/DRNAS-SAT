@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="388" viewBox="0 0 760 388" role="img" aria-labelledby="title desc">
+<title id="title">A four-clique cannot use only three colors</title><desc id="desc">Triangle vertices A, B and C each use a distinct color. The center vertex is adjacent to all three and cannot share any of their colors.</desc>
+<rect x="0" y="0" width="760" height="388" rx="0" fill="#f7f4eb"/>
+<text x="32" y="43" font-family="Arial, sans-serif" font-size="16" fill="#4b6271" font-weight="700" text-anchor="start" letter-spacing="1.8">GRAPH COLORING</text>
+<text x="32" y="91" font-family="Arial, sans-serif" font-size="39" fill="#182e42" font-weight="700" text-anchor="start" >Four vertices, three colors</text>
+<path d="M156 141 L58 327" stroke="#536d79" stroke-width="4" fill="none" />
+<path d="M156 141 L254 327" stroke="#536d79" stroke-width="4" fill="none" />
+<path d="M156 141 L156 261" stroke="#536d79" stroke-width="4" fill="none" stroke-dasharray="7 6"/>
+<path d="M58 327 L254 327" stroke="#536d79" stroke-width="4" fill="none" />
+<path d="M58 327 L156 261" stroke="#536d79" stroke-width="4" fill="none" stroke-dasharray="7 6"/>
+<path d="M254 327 L156 261" stroke="#536d79" stroke-width="4" fill="none" stroke-dasharray="7 6"/>
+<circle cx="156" cy="141" r="21" fill="#ffbc67"/>
+<text x="156" y="148" font-family="Arial, sans-serif" font-size="22" fill="#182e42" font-weight="700" text-anchor="middle" >A</text>
+<circle cx="58" cy="327" r="21" fill="#75d5c4"/>
+<text x="58" y="334" font-family="Arial, sans-serif" font-size="22" fill="#182e42" font-weight="700" text-anchor="middle" >B</text>
+<circle cx="254" cy="327" r="21" fill="#93b9e7"/>
+<text x="254" y="334" font-family="Arial, sans-serif" font-size="22" fill="#182e42" font-weight="700" text-anchor="middle" >C</text>
+<circle cx="156" cy="261" r="21" fill="#20384a"/>
+<text x="156" y="268" font-family="Arial, sans-serif" font-size="22" fill="#f4f5ed" font-weight="700" text-anchor="middle" >?</text>
+<path d="M308 126 L308 348" stroke="#c5c9bd" stroke-width="1" fill="none" />
+<text x="340" y="163" font-family="Arial, sans-serif" font-size="23" fill="#182e42" font-weight="700" text-anchor="start" >A, B and C are neighbors.</text>
+<text x="340" y="197" font-family="Arial, sans-serif" font-size="22" fill="#4b6271" font-weight="400" text-anchor="start" >They use all three colors.</text>
+<text x="340" y="251" font-family="Arial, sans-serif" font-size="23" fill="#182e42" font-weight="700" text-anchor="start" >The center touches all three.</text>
+<text x="340" y="285" font-family="Arial, sans-serif" font-size="22" fill="#4b6271" font-weight="400" text-anchor="start" >It needs a fourth color.</text>
+<text x="340" y="341" font-family="Arial, sans-serif" font-size="23" fill="#12675d" font-weight="700" text-anchor="start" >K₄  →  at least 4 colors</text>
+</svg>

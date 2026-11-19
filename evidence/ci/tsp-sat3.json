@@ -1,0 +1,100 @@
+{
+  "cases": [
+    {
+      "cities": 5,
+      "held_karp_exact_audit_only": 151,
+      "name": "euclid5_new",
+      "one_tree_lower": 151,
+      "upper_from_two_opt": 151
+    },
+    {
+      "cities": 6,
+      "held_karp_exact_audit_only": 293,
+      "name": "euclid6_new",
+      "one_tree_lower": 293,
+      "upper_from_two_opt": 293
+    },
+    {
+      "cities": 7,
+      "held_karp_exact_audit_only": 262,
+      "name": "euclid7_new",
+      "one_tree_lower": 262,
+      "upper_from_two_opt": 262
+    },
+    {
+      "cities": 8,
+      "held_karp_exact_audit_only": 250,
+      "name": "euclid8_new",
+      "one_tree_lower": 250,
+      "upper_from_two_opt": 250
+    },
+    {
+      "cities": 9,
+      "held_karp_exact_audit_only": 271,
+      "name": "euclid9_new",
+      "one_tree_lower": 271,
+      "upper_from_two_opt": 277
+    }
+  ],
+  "limits": [
+    "Same previously used TSP-SAT2 seeds; not a source-disjoint blind benchmark",
+    "Exact Held-Karp DP used in AFTER-THE-FACT audit only",
+    "One-tree bound mathematical valid but is not a standard SAT certificate",
+    "Final optimality accepted ONLY with independently reverified DRAT/FRAT/VeriPB at U-1",
+    "CNF encoder independently tested, not formally machine-verified"
+  ],
+  "query_savings_vs_base": {
+    "one_tree": 34,
+    "one_tree_plus_symmetry": 34
+  },
+  "standard_proofs_reverified": 76,
+  "status": "COMPLETE",
+  "totals": {
+    "KISSAT_ONE_TREE_SYM": {
+      "feasible_only": 0,
+      "optimal_certified": 10,
+      "queries": 22,
+      "standard_proofs_rechecked": 10,
+      "strict_case_PAR2_s": 18.471558,
+      "total_wall_s": 18.471558,
+      "trials": 10
+    },
+    "SG_ONE_TREE_SYM": {
+      "feasible_only": 2,
+      "optimal_certified": 8,
+      "queries": 22,
+      "standard_proofs_rechecked": 8,
+      "strict_case_PAR2_s": 422.706198,
+      "total_wall_s": 43.064094,
+      "trials": 10
+    },
+    "X59_BASE": {
+      "feasible_only": 2,
+      "optimal_certified": 8,
+      "queries": 56,
+      "standard_proofs_rechecked": 42,
+      "strict_case_PAR2_s": 448.583184,
+      "total_wall_s": 56.795436,
+      "trials": 10
+    },
+    "X59_ONE_TREE": {
+      "feasible_only": 2,
+      "optimal_certified": 8,
+      "queries": 22,
+      "standard_proofs_rechecked": 8,
+      "strict_case_PAR2_s": 426.132467,
+      "total_wall_s": 39.199632,
+      "trials": 10
+    },
+    "X59_ONE_TREE_SYM": {
+      "feasible_only": 2,
+      "optimal_certified": 8,
+      "queries": 22,
+      "standard_proofs_rechecked": 8,
+      "strict_case_PAR2_s": 422.59668,
+      "total_wall_s": 42.934074,
+      "trials": 10
+    }
+  },
+  "trials": 50
+}

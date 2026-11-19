@@ -1,5 +1,7 @@
 # DRNAS — original SAT2025 clique-vs-coloring source analysis (2026-11-16)
 
+**Later evidence · 19 November 2026.** This diagnosis records the initial 0/20 test. The subsequent extension-proof replay on the same sources reached 20/20. [First test](../evidence/ci/graph-first10.json) · [Post-development replay](../evidence/ci/clique-color-replay10.json)
+
 **Status:** Complete original-source structural diagnosis; NO new benchmark and NO
 standard proof export for these 10 sources yet. Do not alter strict PAR2.
 

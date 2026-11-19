@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="424" viewBox="0 0 760 424" role="img" aria-labelledby="title desc">
+<title id="title">Total strict PAR2 on the mixed12 prospective pilot</title><desc id="desc">Kissat 206.63 s, CaDiCaL 207.02 s, DRNAS guard off 261.68 s, DRNAS guard on 262.25 s and CryptoMiniSat 264.93 s. All bars start at zero.</desc>
+<rect x="0" y="0" width="760" height="424" rx="0" fill="#f7f4eb"/>
+<text x="32" y="41" font-family="Arial, sans-serif" font-size="16" fill="#4b6271" font-weight="700" text-anchor="start" letter-spacing="1.8">MIXED12  /  12 FORMULAS × 2 RUNS</text>
+<text x="32" y="84" font-family="Arial, sans-serif" font-size="37" fill="#182e42" font-weight="700" text-anchor="start" >Cost of verified solving</text>
+<text x="32" y="119" font-family="Arial, sans-serif" font-size="22" fill="#4b6271" font-weight="400" text-anchor="start" >Total strict PAR2 in seconds · lower is better</text>
+<path d="M223 151 L223 363" stroke="#c5ccc5" stroke-width="1" fill="none" />
+<text x="223" y="390" font-family="Arial, sans-serif" font-size="17" fill="#4b6271" font-weight="400" text-anchor="middle" >0</text>
+<path d="M363 151 L363 363" stroke="#c5ccc5" stroke-width="1" fill="none" />
+<text x="363" y="390" font-family="Arial, sans-serif" font-size="17" fill="#4b6271" font-weight="400" text-anchor="middle" >100</text>
+<path d="M503 151 L503 363" stroke="#c5ccc5" stroke-width="1" fill="none" />
+<text x="503" y="390" font-family="Arial, sans-serif" font-size="17" fill="#4b6271" font-weight="400" text-anchor="middle" >200</text>
+<path d="M643 151 L643 363" stroke="#c5ccc5" stroke-width="1" fill="none" />
+<text x="643" y="390" font-family="Arial, sans-serif" font-size="17" fill="#4b6271" font-weight="400" text-anchor="middle" >300</text>
+<text x="32" y="176" font-family="Arial, sans-serif" font-size="20" fill="#182e42" font-weight="400" text-anchor="start" >Kissat</text>
+<rect x="223" y="159" width="289.29" height="19" rx="3" fill="#657b8a"/>
+<text x="720" y="176" font-family="monospace" font-size="21" fill="#182e42" font-weight="700" text-anchor="end" >206.63</text>
+<text x="32" y="219" font-family="Arial, sans-serif" font-size="20" fill="#182e42" font-weight="400" text-anchor="start" >CaDiCaL</text>
+<rect x="223" y="202" width="289.83" height="19" rx="3" fill="#657b8a"/>
+<text x="720" y="219" font-family="monospace" font-size="21" fill="#182e42" font-weight="700" text-anchor="end" >207.02</text>
+<text x="32" y="262" font-family="Arial, sans-serif" font-size="20" fill="#182e42" font-weight="400" text-anchor="start" >DRNAS · OFF</text>
+<rect x="223" y="245" width="366.36" height="19" rx="3" fill="#507c80"/>
+<text x="720" y="262" font-family="monospace" font-size="21" fill="#182e42" font-weight="700" text-anchor="end" >261.68</text>
+<text x="32" y="305" font-family="Arial, sans-serif" font-size="20" fill="#182e42" font-weight="700" text-anchor="start" >DRNAS · ON</text>
+<rect x="223" y="288" width="367.15" height="19" rx="3" fill="#057567"/>
+<text x="720" y="305" font-family="monospace" font-size="21" fill="#182e42" font-weight="700" text-anchor="end" >262.25</text>
+<text x="32" y="348" font-family="Arial, sans-serif" font-size="20" fill="#182e42" font-weight="400" text-anchor="start" >CryptoMiniSat</text>
+<rect x="223" y="331" width="370.9" height="19" rx="3" fill="#657b8a"/>
+<text x="720" y="348" font-family="monospace" font-size="21" fill="#182e42" font-weight="700" text-anchor="end" >264.93</text>
+</svg>

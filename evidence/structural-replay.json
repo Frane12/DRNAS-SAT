@@ -1,0 +1,117 @@
+{
+  "verifier": "VeriPB 3.0.2",
+  "binary_sha256": "d21a8d18e8842732fed9049ec16ade60cf5f5f6e64d468e8fbefda810b2b5144",
+  "checker_output": "s VERIFIED UNSATISFIABLE",
+  "verified_cases": [
+    {
+      "case": "real67-graph-20",
+      "cnf_sha256": "215c17e19c4e3ea0af8d68ee805df104a6867afc187518182a49933a575fd706",
+      "proof_sha256": "9aac42f14de013f60ae3a2def98ee426cdac5e100973ea104197c78e4a810327",
+      "proof_bytes": 116807,
+      "source_artifact": 14235800020,
+      "proof_artifact": 14235600394,
+      "proof_run": 43886450488,
+      "mirrored_example": null
+    },
+    {
+      "case": "real67-graph-26",
+      "cnf_sha256": "e65e8c63bfeb2a8719f6b203af072c81b6ec90828a6f13a81723f2abb7620036",
+      "proof_sha256": "9245d21eddb763f40d70eabf550f2211fd1857aa0a6c441541ad5f0a49b69312",
+      "proof_bytes": 18897,
+      "source_artifact": 14235800020,
+      "proof_artifact": 14235600394,
+      "proof_run": 43886450488,
+      "mirrored_example": null
+    },
+    {
+      "case": "real67-graph-32",
+      "cnf_sha256": "0381d9f31d721b71052f13a76314d187e55cc1dd6dabb54108231bc3f8f17b79",
+      "proof_sha256": "d5dfefc23d8c1447d2104a43b0b8b0d9abc9f8b7c0823c0ba4e56f97246337f4",
+      "proof_bytes": 133977,
+      "source_artifact": 14235800020,
+      "proof_artifact": 14235600394,
+      "proof_run": 43886450488,
+      "mirrored_example": null
+    },
+    {
+      "case": "real67-graph-37",
+      "cnf_sha256": "9da83fbc08d46ffc20cc9f5b7149d7f8059708930c1f52581f5c32fec0208773",
+      "proof_sha256": "881e46e922401ee0bde60c84b85af4f47497e671359e82ec6456727d23bcc1ef",
+      "proof_bytes": 65322,
+      "source_artifact": 14235800020,
+      "proof_artifact": 14235600394,
+      "proof_run": 43886450488,
+      "mirrored_example": null
+    },
+    {
+      "case": "real67-graph-41",
+      "cnf_sha256": "49d1259894f7db3d16bd11fc4100bc79a42fbe1be4e93f4420480a8746af3d48",
+      "proof_sha256": "11620452d206fafaf0ad9602b17b8916e4795a1d25749d17c3f56917292c07d4",
+      "proof_bytes": 145198,
+      "source_artifact": 14235800020,
+      "proof_artifact": 14235600394,
+      "proof_run": 43886450488,
+      "mirrored_example": null
+    },
+    {
+      "case": "real67-graph-49",
+      "cnf_sha256": "bd57ec95a31b82ce113810777fdea7403b11c7d98a6cb9e5e8a2ef3bfb12399f",
+      "proof_sha256": "7e52c8c725cf4c291095ca8a6a089f773d0f4f0cbd9d2c9e446172a92ff5a323",
+      "proof_bytes": 32632,
+      "source_artifact": 14235800020,
+      "proof_artifact": 14235600394,
+      "proof_run": 43886450488,
+      "mirrored_example": null
+    },
+    {
+      "case": "real67-graph-55",
+      "cnf_sha256": "69d4e0ad868e920920d214acaf0c37f52870655ecc8a6807fd1ee3e4dcaa91e0",
+      "proof_sha256": "230db202ac7d595635b33797675166f79582223be999886d0555ea7f3dc5437f",
+      "proof_bytes": 5841,
+      "source_artifact": 14235800020,
+      "proof_artifact": 14235600394,
+      "proof_run": 43886450488,
+      "mirrored_example": "graph-k11"
+    },
+    {
+      "case": "real67-graph-58",
+      "cnf_sha256": "839ebcc87716480c68cdc7cdb8ce673b26367fde9befc87d6a331720987cd1a4",
+      "proof_sha256": "dc3fc39889ba0390f322c93f5419c1dc6c6cdf5180ff1fe8df4636028d0ae606",
+      "proof_bytes": 531963,
+      "source_artifact": 14235800020,
+      "proof_artifact": 14235600394,
+      "proof_run": 43886450488,
+      "mirrored_example": null
+    },
+    {
+      "case": "xor234-grid-5",
+      "cnf_sha256": "79618e35c83016fd1a188eb63ed499c3d1d4c364f710c9c9a93eb7925054a9af",
+      "proof_sha256": "11d33121f14f21ccce7c6307808c087ce33d906404eb1d36893d2af047fbaa15",
+      "proof_bytes": 165156,
+      "source_artifact": 14311801800,
+      "proof_artifact": 14311881788,
+      "proof_run": 44046723180,
+      "mirrored_example": "xor234-grid5"
+    },
+    {
+      "case": "xor234-grid-6",
+      "cnf_sha256": "0b37c65f0c7cb2c9ed375d09a7ab3d77da34266a908f368e67186754fe9dbd37",
+      "proof_sha256": "4f17df4017784f94f6e4e4ac44399c46abb0e125b91cceee37bdf5e5f9c83f6e",
+      "proof_bytes": 1820569,
+      "source_artifact": 14311801800,
+      "proof_artifact": 14311877310,
+      "proof_run": 44046723180,
+      "mirrored_example": null
+    },
+    {
+      "case": "ipg7b-petersen",
+      "cnf_sha256": "c2fefeffc1f9644ffd6f85728106a21c82dfc01d0d021f32d4d73569cc2bfb70",
+      "proof_sha256": "0effb8837cb86333e8403ccc7ccc386fe1cb9fe49f8978462b89e431f859d455",
+      "proof_bytes": 16663,
+      "source_artifact": "research/ipg1_fixtures.py:petersen",
+      "proof_artifact": 14236193208,
+      "proof_run": 43890563613,
+      "mirrored_example": "ipg7b-petersen"
+    }
+  ]
+}

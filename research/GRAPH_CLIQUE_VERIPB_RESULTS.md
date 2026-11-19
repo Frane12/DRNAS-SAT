@@ -1,5 +1,7 @@
 # DRNAS GRAPH-CLIQUE VERIPB — 2026-11-16
 
+**CI follow-up · 19 November 2026.** The fixed-graph proofs were accepted on all eight originals. The complete real67 comparison now includes all 804 trials. [Eight proofs](../evidence/ci/fixed-graph8.json) · [Final paired scores](../evidence/ci/graph-real67.json)
+
 **Experimental branch:** \`experiment/drnas-graphclique-veripb-real67-20261116\`.
 No changes to main, any source-frozen reference binary or Android APK.
 
