@@ -1,0 +1,53 @@
+name: DRNAS SAT - mirror standard PCMAX proof evidence
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/pcmax-proof-mirror.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: drnas-sat-pcmax-proof-mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror-verified-pcmax:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout dedicated SAT repository
+        uses: actions/checkout@v4
+      - name: Install independently pinned VeriPB checker
+        shell: bash
+        run: |
+          cargo install veripb --version 3.0.2 --locked --root "$GITHUB_WORKSPACE/.veripb" --quiet
+          "$GITHUB_WORKSPACE/.veripb/bin/veripb" --version
+      - name: Fetch source run artifact and recheck all 11 accepted proofs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERIPB_BIN: ${{ github.workspace }}/.veripb/bin/veripb
+        run: |
+          python3 scripts/archive_verified_pcmax.py
+      - name: Commit independently rechecked source and proof files
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add evidence
+          if ! git diff --cached --quiet; then
+            git commit -m "Archive 11 source-frozen standard VeriPB PCMAX UNSAT proofs"
+            git push origin HEAD:main
+          fi
+      - name: Validate mirrored m14 proof SHA-256 and file presence
+        shell: bash
+        run: |
+          test -s evidence/pcmax-weighted2/05/weighted.pbp
+          echo "d52972eae8f2fee8ccc0d9397c31c28e7cd77cac858e3a9ef2187823e7b2741e  evidence/pcmax-weighted2/05/weighted.pbp" | sha256sum -c -
+          echo "a540b7d1aa098217bde5145b56f1f8e4898e9fedd73ea1ad99259ed43fa1e275  evidence/pcmax-weighted2/05/original.cnf" | sha256sum -c -
+          echo "DRNAS PCMAX evidence migrated"
