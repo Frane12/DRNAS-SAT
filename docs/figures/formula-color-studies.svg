@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="168" viewBox="0 0 560 168" role="img" aria-labelledby="title desc">
+<title id="title">Verified graph formulas in four experiments</title>
+<desc id="desc">One square per distinct CNF. Accepted sources are filled. Fixed-graph study 8 of 8, first holdout 0 of 10, replay on the same sources 10 of 10, other families 0 of 10.</desc>
+<rect x="0" y="0" width="560" height="168" rx="12" fill="#f8f6ef" stroke="none" stroke-width="1"/>
+<text x="17" y="38" text-anchor="start" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="17" fill="#152d40">Fixed graph</text>
+<rect x="158" y="22" width="19" height="19" rx="4" fill="#116a62" stroke="#116a62" stroke-width="1.7"/>
+<rect x="185" y="22" width="19" height="19" rx="4" fill="#116a62" stroke="#116a62" stroke-width="1.7"/>
+<rect x="212" y="22" width="19" height="19" rx="4" fill="#116a62" stroke="#116a62" stroke-width="1.7"/>
+<rect x="239" y="22" width="19" height="19" rx="4" fill="#116a62" stroke="#116a62" stroke-width="1.7"/>
+<rect x="266" y="22" width="19" height="19" rx="4" fill="#116a62" stroke="#116a62" stroke-width="1.7"/>
+<rect x="293" y="22" width="19" height="19" rx="4" fill="#116a62" stroke="#116a62" stroke-width="1.7"/>
+<rect x="320" y="22" width="19" height="19" rx="4" fill="#116a62" stroke="#116a62" stroke-width="1.7"/>
+<rect x="347" y="22" width="19" height="19" rx="4" fill="#116a62" stroke="#116a62" stroke-width="1.7"/>
+<text x="535" y="38" text-anchor="end" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="20" fill="#152d40">8 / 8</text>
+<text x="17" y="73" text-anchor="start" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="17" fill="#152d40">First test</text>
+<rect x="158" y="57" width="19" height="19" rx="4" fill="#f8f6ef" stroke="#859799" stroke-width="1.7"/>
+<rect x="185" y="57" width="19" height="19" rx="4" fill="#f8f6ef" stroke="#859799" stroke-width="1.7"/>
+<rect x="212" y="57" width="19" height="19" rx="4" fill="#f8f6ef" stroke="#859799" stroke-width="1.7"/>
+<rect x="239" y="57" width="19" height="19" rx="4" fill="#f8f6ef" stroke="#859799" stroke-width="1.7"/>
+<rect x="266" y="57" width="19" height="19" rx="4" fill="#f8f6ef" stroke="#859799" stroke-width="1.7"/>
+<rect x="293" y="57" width="19" height="19" rx="4" fill="#f8f6ef" stroke="#859799" stroke-width="1.7"/>
+<rect x="320" y="57" width="19" height="19" rx="4" fill="#f8f6ef" stroke="#859799" stroke-width="1.7"/>
+<rect x="347" y="57" width="19" height="19" rx="4" fill="#f8f6ef" stroke="#859799" stroke-width="1.7"/>
+<rect x="374" y="57" width="19" height="19" rx="4" fill="#f8f6ef" stroke="#859799" stroke-width="1.7"/>
+<rect x="401" y="57" width="19" height="19" rx="4" fill="#f8f6ef" stroke="#859799" stroke-width="1.7"/>
+<text x="535" y="73" text-anchor="end" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="20" fill="#152d40">0 / 10</text>
+<text x="17" y="108" text-anchor="start" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="17" fill="#152d40">Same CNFs</text>
+<rect x="158" y="92" width="19" height="19" rx="4" fill="#116a62" stroke="#116a62" stroke-width="1.7"/>
+<rect x="185" y="92" width="19" height="19" rx="4" fill="#116a62" stroke="#116a62" stroke-width="1.7"/>
+<rect x="212" y="92" width="19" height="19" rx="4" fill="#116a62" stroke="#116a62" stroke-width="1.7"/>
+<rect x="239" y="92" width="19" height="19" rx="4" fill="#116a62" stroke="#116a62" stroke-width="1.7"/>
+<rect x="266" y="92" width="19" height="19" rx="4" fill="#116a62" stroke="#116a62" stroke-width="1.7"/>
+<rect x="293" y="92" width="19" height="19" rx="4" fill="#116a62" stroke="#116a62" stroke-width="1.7"/>
+<rect x="320" y="92" width="19" height="19" rx="4" fill="#116a62" stroke="#116a62" stroke-width="1.7"/>
+<rect x="347" y="92" width="19" height="19" rx="4" fill="#116a62" stroke="#116a62" stroke-width="1.7"/>
+<rect x="374" y="92" width="19" height="19" rx="4" fill="#116a62" stroke="#116a62" stroke-width="1.7"/>
+<rect x="401" y="92" width="19" height="19" rx="4" fill="#116a62" stroke="#116a62" stroke-width="1.7"/>
+<text x="535" y="108" text-anchor="end" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="20" fill="#152d40">10 / 10</text>
+<text x="17" y="143" text-anchor="start" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="17" fill="#152d40">New families</text>
+<rect x="158" y="127" width="19" height="19" rx="4" fill="#f8f6ef" stroke="#859799" stroke-width="1.7"/>
+<rect x="185" y="127" width="19" height="19" rx="4" fill="#f8f6ef" stroke="#859799" stroke-width="1.7"/>
+<rect x="212" y="127" width="19" height="19" rx="4" fill="#f8f6ef" stroke="#859799" stroke-width="1.7"/>
+<rect x="239" y="127" width="19" height="19" rx="4" fill="#f8f6ef" stroke="#859799" stroke-width="1.7"/>
+<rect x="266" y="127" width="19" height="19" rx="4" fill="#f8f6ef" stroke="#859799" stroke-width="1.7"/>
+<rect x="293" y="127" width="19" height="19" rx="4" fill="#f8f6ef" stroke="#859799" stroke-width="1.7"/>
+<rect x="320" y="127" width="19" height="19" rx="4" fill="#f8f6ef" stroke="#859799" stroke-width="1.7"/>
+<rect x="347" y="127" width="19" height="19" rx="4" fill="#f8f6ef" stroke="#859799" stroke-width="1.7"/>
+<rect x="374" y="127" width="19" height="19" rx="4" fill="#f8f6ef" stroke="#859799" stroke-width="1.7"/>
+<rect x="401" y="127" width="19" height="19" rx="4" fill="#f8f6ef" stroke="#859799" stroke-width="1.7"/>
+<text x="535" y="143" text-anchor="end" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="20" fill="#152d40">0 / 10</text>
+</svg>

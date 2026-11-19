@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="151" viewBox="0 0 560 151" role="img" aria-labelledby="title desc">
+<title id="title">Certificate types in the graph and MATH5 arm</title>
+<desc id="desc">Sixteen graph proofs and four MATH5 proofs of unsatisfiability plus two satisfying models. Together they are 22 verified attempts among 134.</desc>
+<rect x="0" y="0" width="560" height="151" rx="12" fill="#f8f6ef" stroke="none" stroke-width="1"/>
+<text x="20" y="31" text-anchor="start" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="16" fill="#526879">GRAPH</text>
+<circle cx="28.00" cy="53.00" r="6" fill="#116a62" stroke="#116a62" stroke-width="2"/>
+<circle cx="46.00" cy="53.00" r="6" fill="#116a62" stroke="#116a62" stroke-width="2"/>
+<circle cx="64.00" cy="53.00" r="6" fill="#116a62" stroke="#116a62" stroke-width="2"/>
+<circle cx="82.00" cy="53.00" r="6" fill="#116a62" stroke="#116a62" stroke-width="2"/>
+<circle cx="100.00" cy="53.00" r="6" fill="#116a62" stroke="#116a62" stroke-width="2"/>
+<circle cx="118.00" cy="53.00" r="6" fill="#116a62" stroke="#116a62" stroke-width="2"/>
+<circle cx="136.00" cy="53.00" r="6" fill="#116a62" stroke="#116a62" stroke-width="2"/>
+<circle cx="154.00" cy="53.00" r="6" fill="#116a62" stroke="#116a62" stroke-width="2"/>
+<circle cx="28.00" cy="73.00" r="6" fill="#116a62" stroke="#116a62" stroke-width="2"/>
+<circle cx="46.00" cy="73.00" r="6" fill="#116a62" stroke="#116a62" stroke-width="2"/>
+<circle cx="64.00" cy="73.00" r="6" fill="#116a62" stroke="#116a62" stroke-width="2"/>
+<circle cx="82.00" cy="73.00" r="6" fill="#116a62" stroke="#116a62" stroke-width="2"/>
+<circle cx="100.00" cy="73.00" r="6" fill="#116a62" stroke="#116a62" stroke-width="2"/>
+<circle cx="118.00" cy="73.00" r="6" fill="#116a62" stroke="#116a62" stroke-width="2"/>
+<circle cx="136.00" cy="73.00" r="6" fill="#116a62" stroke="#116a62" stroke-width="2"/>
+<circle cx="154.00" cy="73.00" r="6" fill="#116a62" stroke="#116a62" stroke-width="2"/>
+<text x="221" y="31" text-anchor="start" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="16" fill="#526879">MATH5</text>
+<circle cx="229.00" cy="53.00" r="6" fill="#93662a" stroke="#93662a" stroke-width="2"/>
+<circle cx="247.00" cy="53.00" r="6" fill="#93662a" stroke="#93662a" stroke-width="2"/>
+<circle cx="265.00" cy="53.00" r="6" fill="#93662a" stroke="#93662a" stroke-width="2"/>
+<circle cx="283.00" cy="53.00" r="6" fill="#93662a" stroke="#93662a" stroke-width="2"/>
+<text x="419" y="31" text-anchor="start" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="16" fill="#526879">SAT</text>
+<circle cx="427.00" cy="53.00" r="6" fill="#547086" stroke="#547086" stroke-width="2"/>
+<circle cx="445.00" cy="53.00" r="6" fill="#547086" stroke="#547086" stroke-width="2"/>
+<line x1="21.00" y1="95.00" x2="536.00" y2="95.00" stroke="#ced5d0" stroke-width="1" stroke-linecap="round"/>
+<text x="23" y="133" text-anchor="start" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="30" fill="#152d40">16 + 4 + 2 = 22</text>
+<text x="536" y="132" text-anchor="end" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="25" fill="#116a62">22 / 134</text>
+</svg>
