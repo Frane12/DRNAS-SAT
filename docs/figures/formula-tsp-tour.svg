@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="210" viewBox="0 0 560 210" role="img" aria-labelledby="title desc">
+<title id="title">A five-city optimal tour</title>
+<desc id="desc">Cities drawn at the coordinates of euclid5_new. The closed tour 0, 4, 3, 2, 1, 0 has rounded edge lengths 13, 9, 42, 41 and 46. Its total is 151.</desc>
+<rect x="0" y="0" width="560" height="210" rx="12" fill="#f8f6ef" stroke="none" stroke-width="1"/>
+<line x1="186.75" y1="60.85" x2="218.70" y2="96.35" stroke="#116a62" stroke-width="3.5" stroke-linecap="round"/>
+<line x1="218.70" y1="96.35" x2="190.30" y2="107.00" stroke="#116a62" stroke-width="3.5" stroke-linecap="round"/>
+<line x1="190.30" y1="107.00" x2="58.95" y2="178.00" stroke="#116a62" stroke-width="3.5" stroke-linecap="round"/>
+<line x1="58.95" y1="178.00" x2="27.00" y2="36.00" stroke="#116a62" stroke-width="3.5" stroke-linecap="round"/>
+<line x1="27.00" y1="36.00" x2="186.75" y2="60.85" stroke="#116a62" stroke-width="3.5" stroke-linecap="round"/>
+<circle cx="186.75" cy="60.85" r="12" fill="#f6c57e" stroke="#116a62" stroke-width="2"/>
+<text x="186.75" y="66.85" text-anchor="middle" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="18" fill="#152d40">0</text>
+<circle cx="27.00" cy="36.00" r="12" fill="#c7e9df" stroke="#116a62" stroke-width="2"/>
+<text x="27.0" y="42.0" text-anchor="middle" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="18" fill="#152d40">1</text>
+<circle cx="58.95" cy="178.00" r="12" fill="#c7e9df" stroke="#116a62" stroke-width="2"/>
+<text x="58.95" y="184.0" text-anchor="middle" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="18" fill="#152d40">2</text>
+<circle cx="190.30" cy="107.00" r="12" fill="#c7e9df" stroke="#116a62" stroke-width="2"/>
+<text x="190.29999999999998" y="113.0" text-anchor="middle" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="18" fill="#152d40">3</text>
+<circle cx="218.70" cy="96.35" r="12" fill="#c7e9df" stroke="#116a62" stroke-width="2"/>
+<text x="218.7" y="102.35" text-anchor="middle" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="18" fill="#152d40">4</text>
+<line x1="251.00" y1="20.00" x2="251.00" y2="194.00" stroke="#ced5d0" stroke-width="1" stroke-linecap="round"/>
+<text x="275" y="52" text-anchor="start" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="20" fill="#152d40">0 → 4 → 3 → 2 → 1 → 0</text>
+<text x="275" y="94" text-anchor="start" font-family="Arial, DejaVu Sans, sans-serif" font-weight="400" font-size="21" fill="#526879">13 + 9 + 42 + 41 + 46</text>
+<text x="273" y="158" text-anchor="start" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="46" fill="#116a62">= 151</text>
+</svg>

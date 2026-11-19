@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="168" viewBox="0 0 560 168" role="img" aria-labelledby="title desc">
+<title id="title">A capacitated Hall witness</title>
+<desc id="desc">All three jobs A, B and C may use only two unit-capacity resources. A job subset of size three cannot fit in two places.</desc>
+<rect x="0" y="0" width="560" height="168" rx="12" fill="#f8f6ef" stroke="none" stroke-width="1"/>
+<line x1="51.00" y1="48.00" x2="89.00" y2="131.00" stroke="#8caaa6" stroke-width="2" stroke-linecap="round"/>
+<line x1="51.00" y1="48.00" x2="196.00" y2="131.00" stroke="#8caaa6" stroke-width="2" stroke-linecap="round"/>
+<line x1="143.00" y1="48.00" x2="89.00" y2="131.00" stroke="#8caaa6" stroke-width="2" stroke-linecap="round"/>
+<line x1="143.00" y1="48.00" x2="196.00" y2="131.00" stroke="#8caaa6" stroke-width="2" stroke-linecap="round"/>
+<line x1="235.00" y1="48.00" x2="89.00" y2="131.00" stroke="#8caaa6" stroke-width="2" stroke-linecap="round"/>
+<line x1="235.00" y1="48.00" x2="196.00" y2="131.00" stroke="#8caaa6" stroke-width="2" stroke-linecap="round"/>
+<circle cx="51.00" cy="40.00" r="17" fill="#c7e9df" stroke="#116a62" stroke-width="2"/>
+<text x="51" y="46" text-anchor="middle" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="18" fill="#152d40">A</text>
+<circle cx="143.00" cy="40.00" r="17" fill="#c7e9df" stroke="#116a62" stroke-width="2"/>
+<text x="143" y="46" text-anchor="middle" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="18" fill="#152d40">B</text>
+<circle cx="235.00" cy="40.00" r="17" fill="#c7e9df" stroke="#116a62" stroke-width="2"/>
+<text x="235" y="46" text-anchor="middle" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="18" fill="#152d40">C</text>
+<rect x="67" y="117" width="44" height="35" rx="4" fill="#fff1cf" stroke="#98764d" stroke-width="1.5"/>
+<text x="89" y="141" text-anchor="middle" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="20" fill="#152d40">1</text>
+<rect x="174" y="117" width="44" height="35" rx="4" fill="#fff1cf" stroke="#98764d" stroke-width="1.5"/>
+<text x="196" y="141" text-anchor="middle" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="20" fill="#152d40">2</text>
+<line x1="276.00" y1="20.00" x2="276.00" y2="149.00" stroke="#ced5d0" stroke-width="1" stroke-linecap="round"/>
+<text x="300" y="60" text-anchor="start" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="27" fill="#152d40">|S| = 3</text>
+<text x="300" y="100" text-anchor="start" font-family="Arial, DejaVu Sans, sans-serif" font-weight="400" font-size="25" fill="#526879">1 + 1 = 2</text>
+<text x="300" y="141" text-anchor="start" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="29" fill="#116a62">3 &gt; 2</text>
+</svg>

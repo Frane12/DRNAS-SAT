@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="169" viewBox="0 0 560 169" role="img" aria-labelledby="title desc">
+<title id="title">XOR equations and two unit clauses</title>
+<desc id="desc">Unit values x=0 and z=0 force y=0 in the first parity equation and y=1 in the second. No Boolean y satisfies both.</desc>
+<rect x="0" y="0" width="560" height="169" rx="12" fill="#f8f6ef" stroke="none" stroke-width="1"/>
+<circle cx="53.00" cy="47.00" r="17" fill="#f6c57e" stroke="#116a62" stroke-width="2"/>
+<text x="53" y="53" text-anchor="middle" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="18" fill="#152d40">x</text>
+<circle cx="53.00" cy="121.00" r="17" fill="#f6c57e" stroke="#116a62" stroke-width="2"/>
+<text x="53" y="127" text-anchor="middle" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="18" fill="#152d40">z</text>
+<text x="86" y="54" text-anchor="start" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="23" fill="#152d40">= 0</text>
+<text x="86" y="128" text-anchor="start" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="23" fill="#152d40">= 0</text>
+<rect x="153" y="28" width="146" height="38" rx="5" fill="#c7e9df" stroke="none" stroke-width="1"/>
+<text x="226" y="54" text-anchor="middle" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="20" fill="#152d40">x ⊕ y = 0</text>
+<line x1="309.00" y1="47.00" x2="340.00" y2="47.00" stroke="#116a62" stroke-width="2" stroke-linecap="round"/>
+<line x1="340.00" y1="47.00" x2="335.00" y2="43.00" stroke="#116a62" stroke-width="2" stroke-linecap="round"/>
+<line x1="340.00" y1="47.00" x2="335.00" y2="51.00" stroke="#116a62" stroke-width="2" stroke-linecap="round"/>
+<rect x="153" y="102" width="146" height="38" rx="5" fill="#c7e9df" stroke="none" stroke-width="1"/>
+<text x="226" y="128" text-anchor="middle" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="20" fill="#152d40">y ⊕ z = 1</text>
+<line x1="309.00" y1="121.00" x2="340.00" y2="121.00" stroke="#116a62" stroke-width="2" stroke-linecap="round"/>
+<line x1="340.00" y1="121.00" x2="335.00" y2="117.00" stroke="#116a62" stroke-width="2" stroke-linecap="round"/>
+<line x1="340.00" y1="121.00" x2="335.00" y2="125.00" stroke="#116a62" stroke-width="2" stroke-linecap="round"/>
+<text x="362" y="55" text-anchor="start" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="26" fill="#152d40">y = 0</text>
+<text x="362" y="129" text-anchor="start" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="26" fill="#152d40">y = 1</text>
+<line x1="467.00" y1="47.00" x2="480.00" y2="47.00" stroke="#526879" stroke-width="2" stroke-linecap="round"/>
+<line x1="480.00" y1="47.00" x2="480.00" y2="121.00" stroke="#526879" stroke-width="2" stroke-linecap="round"/>
+<line x1="467.00" y1="121.00" x2="480.00" y2="121.00" stroke="#526879" stroke-width="2" stroke-linecap="round"/>
+<text x="502" y="94" text-anchor="middle" font-family="Arial, DejaVu Sans, sans-serif" font-weight="700" font-size="31" fill="#116a62">⊥</text>
+</svg>
