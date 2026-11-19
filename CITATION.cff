@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: >-
+  If you use DRNAS SAT source code, independently verified certificates, or
+  experimental results in research, please cite the repository and the
+  particular experiment or commit.
+type: software
+title: "DRNAS SAT: Structural Mathematics and Proof-Certified SAT Research"
+authors:
+  - family-names: Drnas
+    given-names: Frane
+repository-code: "https://github.com/Frane12/DRNAS-SAT"
+url: "https://github.com/Frane12/DRNAS-SAT"
+date-released: 2026-11-19
+keywords:
+  - SAT
+  - UNSAT certificates
+  - VeriPB
+  - CDCL
+  - pseudo-Boolean reasoning
+  - structural SAT solving
