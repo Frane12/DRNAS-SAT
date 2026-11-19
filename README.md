@@ -20,7 +20,7 @@ DRNAS SAT explores proof-first Boolean satisfiability (SAT): detect mathematical
 | Experiment | Result and limitations | Original evidence |
 |---|---|---|
 | PCMAX Weighted VeriPB2, 2026-11-15 | 11 independently VeriPB-verified UNSAT cases among 20 retrospective source CNFs; 9 SAT-labeled controls returned UNKNOWN | [Run 43719601339](https://github.com/Frane12/AndroidGameTest/actions/runs/43719601339) |
-| PCMAX m14-3640-14524 | A 557,597-byte proof was accepted by VeriPB 3.0.2; weighted demand 31 > capacity 30 | [Proof artifact](https://github.com/Frane12/AndroidGameTest/actions/runs/43719601339/artifacts/14164325633) |
+| PCMAX m14-3640-14524 | A 557,597-byte proof was accepted by VeriPB 3.0.2; weighted demand 31 > capacity 30 | [Local standard proof](evidence/pcmax-weighted2/05/weighted.pbp) |
 | GRAPH-CLIQUE real67, 2026-11-16 | Graph plus MATH5: 22 verified outcomes in 134 attempts on 67 original CNFs × 2; retrospective, no secure general speedup | [Run 43886450488](https://github.com/Frane12/AndroidGameTest/actions/runs/43886450488) |
 | IPG5D | 9 source-recognized odd-wheel UNSAT cases with short standard cutting-plane VeriPB certificates | [Run 43868313721](https://github.com/Frane12/AndroidGameTest/actions/runs/43868313721) |
 | MATCH3 | 18 restricted Hall witnesses on generated original CNFs, independently project-checked; **not** standard VeriPB/DRAT | [Run 43862296099](https://github.com/Frane12/AndroidGameTest/actions/runs/43862296099) |
@@ -37,7 +37,7 @@ DRNAS SAT explores proof-first Boolean satisfiability (SAT): detect mathematical
 - **evidence/** — selected proof references and source provenance.
 - **third_party/** — dependencies retained with attribution.
 
-See [PCMAX documentation](README_PCMAX.md) and [source branch inventory](docs/SOURCE_REFS.csv) after migration.
+See [PCMAX documentation](README_PCMAX.md), the [independent proof registry](docs/VERIFIED_PROOF_REGISTRY.md) and the [source branch inventory](docs/SOURCE_REFS.csv).
 
 ## Verification policy
 
