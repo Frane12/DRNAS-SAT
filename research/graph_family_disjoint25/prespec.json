@@ -1,0 +1,144 @@
+{
+  "protocol": "DRNAS-GRAPH-FAMILY-DISJOINT25-SMALL-PRESPEC-V2",
+  "freeze_date": "2026-11-16",
+  "selection_basis": "A NEW separately preregistered source-only size-eligible graph family sample after previous 12-source freeze was ABORTED before any solver trial because compressed first CNF was 62,056,920 bytes exceeding 50MB. New selection uses original GBD family/id/isohash and resource eligibility ONLY, never solver outcomes.",
+  "selected_sources": 10,
+  "source_catalog": "https://benchmark-database.de/?context=cnf&track=main_2025",
+  "track": "main_2025",
+  "exclude_families_from_prior_studies": [
+    "graph-coloring",
+    "clique-coloring",
+    "coloring",
+    "coloring-clique",
+    "count"
+  ],
+  "old67_frozen_run": 43853390060,
+  "prior_unseen10_frozen_run": 43891106380,
+  "exclude_all_source_GBD_ids_and_isohashes_from_both_frozen_manifests": true,
+  "no_replacement_after_freeze_or_outcomes": true,
+  "download_failure_policy": "Fail closed, no substitutions",
+  "candidate_locked_before_any_evaluation": true,
+  "original_source_size_max_bytes": 110000000,
+  "archive_max_bytes": 50000000,
+  "arms": [
+    "CLIQUE_EXT_ONLY",
+    "CLIQUE_EXT_GRAPH_MATH5",
+    "GRAPH_MATH5",
+    "X59_MATH5_VERIPB",
+    "Kissat",
+    "CaDiCaL",
+    "CryptoMiniSat"
+  ],
+  "repetitions": 2,
+  "shards": 5,
+  "strict_cap_seconds": 8,
+  "strict_par2_penalty_seconds": 16,
+  "one_logical_cpu_per_trial": true,
+  "checked_standard_proofs": [
+    "VeriPB",
+    "DRAT",
+    "FRAT",
+    "SAT-original-model"
+  ],
+  "no_parallel_portfolio": true,
+  "no_main_promotion": true,
+  "holdout_scope": "New fixed 10-source 7-family selection, GBD/hash/isohash/family disjoint from 67+10 prior published development sets; prespecified before any solver run on this ten-source set. Chosen using size/resource policy after an aborted metadata-only first attempt, not untouched original 12-source preregistration.",
+  "records": [
+    {
+      "id": 0,
+      "family": "hamiltonian",
+      "author": "sterten",
+      "gbd_hash": "22df1827e3253fc824cc7ce806d75e0a",
+      "isohash": "b25da67a12ea21d8cd043341e6b1d7ae",
+      "filename": "x9-10070.sat.sanitized.cnf.xz",
+      "track": "main_2025"
+    },
+    {
+      "id": 1,
+      "family": "independent-set-reconfiguration",
+      "author": "froleyks",
+      "gbd_hash": "27570c6780aaade3dc771c6a12534fb8",
+      "isohash": "511b1dd93fc2d92e0279f97ba0d79bff",
+      "filename": "reconf10_22_queen20_3_8667.cnf.xz",
+      "track": "main_2025"
+    },
+    {
+      "id": 2,
+      "family": "independent-set-reconfiguration",
+      "author": "froleyks",
+      "gbd_hash": "c033577c6f5f9a1545537518af964305",
+      "isohash": "0622422811fae182963110ffd89884bf",
+      "filename": "reconf10_73_queen13_2.cnf.xz",
+      "track": "main_2025"
+    },
+    {
+      "id": 3,
+      "family": "independent-set",
+      "author": "manyem",
+      "gbd_hash": "2bdfcf23ac1829912a408402a540972a",
+      "isohash": "7e179d72460e6879adc03745e145449d",
+      "filename": "1-ET-256-K-65.sanitized.cnf.xz",
+      "track": "main_2025"
+    },
+    {
+      "id": 4,
+      "family": "independent-set",
+      "author": "manyem",
+      "gbd_hash": "f25a1df88f89c6bcbe2602fa7f6e816b",
+      "isohash": "14283863728934781080b1d3fb10c13b",
+      "filename": "1-TC-256-K-63.sanitized.cnf.xz",
+      "track": "main_2025"
+    },
+    {
+      "id": 5,
+      "family": "rooks",
+      "author": "manthey",
+      "gbd_hash": "062f58e44eb73f9274b57af5092cad90",
+      "isohash": "c781c6dee94f2379979b715e77f4225f",
+      "filename": "rook-51-0-0.cnf.xz",
+      "track": "main_2025"
+    },
+    {
+      "id": 6,
+      "family": "tseitin-formulas",
+      "author": "oertel",
+      "gbd_hash": "42f1311ce504db8cc0cb590a568da20a",
+      "isohash": "61a257c81b2f81cb419b631cfe821f59",
+      "filename": "tseitin_n188_d3.cnf.xz",
+      "track": "main_2025"
+    },
+    {
+      "id": 7,
+      "family": "ramsey-numbers",
+      "author": "anders",
+      "gbd_hash": "04648cef5bed430ab6429991fa9e107d",
+      "isohash": "61f452c5ca9fd747014f68675b6661a2",
+      "filename": "ramsey_3_6_19.normalised.cnf.xz",
+      "track": "main_2025"
+    },
+    {
+      "id": 8,
+      "family": "random-graph-xorsat",
+      "author": "jarvisalo",
+      "gbd_hash": "b5431f41e3264c64508c30da215c69c6",
+      "isohash": "2060892e420e27fbef312a8ded361bdd",
+      "filename": "mod2c-rand3bip-sat-250-3.shuffled-as.sat05-2535.cnf.xz",
+      "track": "main_2025"
+    },
+    {
+      "id": 9,
+      "family": "independent-set-reconfiguration",
+      "author": "froleyks",
+      "gbd_hash": "8733dfd02c923d69720500c9ec8ce36a",
+      "isohash": "b977b694c1b19e5e84cf471096f6ba80",
+      "filename": "reconf10_70_queen14_2.cnf.xz",
+      "track": "main_2025"
+    }
+  ],
+  "previous_frozen_abort": {
+    "branch": "experiment/drnas-graph-family-disjoint25-20261116",
+    "run_id": 43912555637,
+    "reason": "GBD graph-isomorphism source compressed 62,056,920 bytes exceeds 50,000,000 byte budget; no solver trials were executed",
+    "no_solver_outcomes_observed": true
+  }
+}

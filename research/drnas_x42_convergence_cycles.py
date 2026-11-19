@@ -1,0 +1,514 @@
+#!/usr/bin/env python3
+"""DRNAS X4.2: three trajectory cycles, independently scored by exact SAT oracle.
+
+Only for small n<=18. The observer never reads oracle truth, satisfying models
+or planted witness. It records complete *current decision/BCP trail* only in
+diagnostic mode. Ground truth is independently enumerated AFTER execution.
+
+This is a controlled diagnostic, not a general computable SAT-distance function.
+"""
+from __future__ import annotations
+import argparse
+from collections import Counter,defaultdict
+import hashlib
+import itertools
+import json
+import os
+from pathlib import Path
+import random
+import statistics
+import subprocess
+import tempfile
+import time
+import zipfile
+
+FAMILIES=("planted3","planted_xor","planted_2sat","php_unsat","sparse4","sparse3","community3","xor_ring","graph_k4_unsat","planted4_dense","xor_bridge","mixed_sparse_23","hub4_planted","modular2_3","ring3_planted","xor_fan")
+WINDOWS=((1,8),(9,16),(17,128))
+
+def emit(tag, obj):
+    print(tag+" "+json.dumps(obj,sort_keys=True,separators=(",",":")),flush=True)
+
+def build_case(family,i):
+    rng=random.Random(0x46020261113+100003*FAMILIES.index(family)+7919*i)
+    clauses=[]
+    n=18 if family in ("sparse4","sparse3","community3","xor_ring","graph_k4_unsat","planted4_dense","xor_bridge","mixed_sparse_23","hub4_planted","modular2_3","ring3_planted","xor_fan") else 12+(i%6)
+    target=[None]+[bool(rng.randrange(2)) for _ in range(n)]
+    def planted_clause(k):
+        vs=rng.sample(range(1,n+1),k)
+        signs=[v*rng.choice((-1,1)) for v in vs]
+        if not any((v>0)==target[abs(v)] for v in signs):
+            signs[rng.randrange(k)]*=-1
+        return signs
+    if family=="planted3":
+        clauses=[planted_clause(3) for _ in range(5*n)]
+    elif family=="planted_2sat":
+        clauses=[planted_clause(2) for _ in range(6*n)]
+    elif family in ("sparse4","sparse3"):
+        width=4 if family=="sparse4" else 3
+        clauses=[planted_clause(width) for _ in range(n)]
+        covered={abs(l) for c in clauses for l in c}
+        for v in range(1,n+1):
+            if v not in covered:
+                c=[v]+rng.sample([x for x in range(1,n+1) if x!=v],width-1)
+                c=[x*rng.choice((-1,1)) for x in c]
+                if not any((x>0)==target[abs(x)] for x in c):c[0]*=-1
+                clauses.append(c)
+    elif family=="community3":
+        # Planted 3-SAT with distinct, weakly bridged variable communities.
+        for g in range(3):
+            group=list(range(6*g+1,6*g+7))
+            for _ in range(18):
+                vs=rng.sample(group,3)
+                clause=[v*rng.choice((-1,1)) for v in vs]
+                if not any((x>0)==target[abs(x)] for x in clause):
+                    clause[rng.randrange(3)]*=-1
+                clauses.append(clause)
+        clauses.extend(planted_clause(3) for _ in range(2*n))
+    elif family=="xor_ring":
+        # A closed overlapping parity network, encoded exactly as CNF.
+        for v in range(1,n+1):
+            vs=(v,v%n+1,(v+1)%n+1)
+            required=sum(target[x] for x in vs)%2
+            for bits in itertools.product((0,1),repeat=3):
+                if sum(bits)%2!=required:
+                    clauses.append([(-x if b else x) for x,b in zip(vs,bits)])
+        clauses.extend(planted_clause(3) for _ in range(n))
+    elif family=="graph_k4_unsat":
+        # K4 cannot be properly 3-colored. Six auxiliary variables vary the CNF.
+        target=None
+        colors=3
+        node=lambda v,k:3*v+k+1
+        for v in range(4):
+            cols=[node(v,k) for k in range(colors)]
+            clauses.append(cols)
+            for a,b in itertools.combinations(cols,2):
+                clauses.append([-a,-b])
+        for v in range(4):
+            for w in range(v+1,4):
+                for k in range(colors):clauses.append([-node(v,k),-node(w,k)])
+        aux=[None]+[bool(rng.randrange(2)) for _ in range(6)]
+        for _ in range(30):
+            vs=rng.sample(range(13,19),3)
+            clause=[v*rng.choice((-1,1)) for v in vs]
+            if not any((x>0)==aux[abs(x)-12] for x in clause):
+                clause[0]*=-1
+            clauses.append(clause)
+    elif family=="planted4_dense":
+        clauses=[planted_clause(4) for _ in range(6*n)]
+        clauses.extend(planted_clause(3) for _ in range(2*n))
+    elif family=="xor_bridge":
+        # Two overlapping planted XOR chains linked by three-variable rows.
+        for v in range(1,n-1):
+            vs=(v,v+1,v+2)
+            rhs=sum(target[x] for x in vs)%2
+            for bits in itertools.product((0,1),repeat=3):
+                if sum(bits)%2!=rhs:
+                    clauses.append([(-x if b else x) for x,b in zip(vs,bits)])
+        for _ in range(4):
+            vs=rng.sample(range(1,n+1),3)
+            rhs=sum(target[x] for x in vs)%2
+            for bits in itertools.product((0,1),repeat=3):
+                if sum(bits)%2!=rhs:
+                    clauses.append([(-x if b else x) for x,b in zip(vs,bits)])
+        clauses.extend(planted_clause(3) for _ in range(n))
+    elif family=="mixed_sparse_23":
+        clauses=[planted_clause(2) for _ in range(2*n)]
+        clauses.extend(planted_clause(3) for _ in range(n))
+        clauses.extend(planted_clause(4) for _ in range(n//2))
+    elif family=="hub4_planted":
+        # Strongly connected variable hub and weaker periphery.
+        hubs=[1,2,3]
+        for _ in range(8*n):
+            vs=rng.sample(hubs,2)+rng.sample(range(4,n+1),2)
+            c=[x*rng.choice((-1,1)) for x in vs]
+            if not any((lit>0)==target[abs(lit)] for lit in c):
+                c[rng.randrange(4)]*=-1
+            clauses.append(c)
+    elif family=="modular2_3":
+        # Modules of three with mixed binary/ternary constraints and bridges.
+        for k in range(0,n,3):
+            module=[k+1,k+2,k+3]
+            for _ in range(13):
+                vs=rng.sample(module,rng.choice((2,3)))
+                c=[x*rng.choice((-1,1)) for x in vs]
+                if not any((lit>0)==target[abs(lit)] for lit in c):
+                    c[rng.randrange(len(c))]*=-1
+                clauses.append(c)
+        clauses.extend(planted_clause(3) for _ in range(3*n))
+    elif family=="ring3_planted":
+        for k in range(n):
+            vs=[k+1,(k+1)%n+1,(k+2)%n+1]
+            for _ in range(5):
+                c=[x*rng.choice((-1,1)) for x in vs]
+                if not any((lit>0)==target[abs(lit)] for lit in c):
+                    c[rng.randrange(3)]*=-1
+                clauses.append(c)
+        clauses.extend(planted_clause(3) for _ in range(n))
+    elif family=="xor_fan":
+        hub=1
+        for i in range(2,n):
+            vs=[hub,i,i+1]
+            rhs=sum(target[x] for x in vs)%2
+            for bits in itertools.product((0,1),repeat=3):
+                if sum(bits)%2!=rhs:
+                    clauses.append([(-x if bit else x) for x,bit in zip(vs,bits)])
+        clauses.extend(planted_clause(3) for _ in range(2*n))
+    elif family=="planted_xor":
+        for _ in range(n+4):
+            vs=rng.sample(range(1,n+1),3)
+            desired=sum(target[v] for v in vs)%2
+            for bits in itertools.product((0,1),repeat=3):
+                if sum(bits)%2!=desired:
+                    clauses.append([(-v if b else v) for v,b in zip(vs,bits)])
+        clauses.extend(planted_clause(3) for _ in range(n))
+    elif family=="php_unsat":
+        holes=3 if i%2 else 2
+        pigeons=holes+1
+        n=holes*pigeons
+        v=lambda p,h:p*holes+h+1
+        clauses.extend([[v(p,h) for h in range(holes)] for p in range(pigeons)])
+        for h in range(holes):
+            for p in range(pigeons):
+                for q in range(p+1,pigeons):
+                    clauses.append([-v(p,h),-v(q,h)])
+        for _ in range(3+i%7):
+            a,b=rng.sample(range(1,n+1),2)
+            clauses.append([a*rng.choice((-1,1)),b*rng.choice((-1,1))])
+        target=None
+    else:raise ValueError(family)
+    clean=sorted(set(tuple(sorted(set(c),key=lambda v:(abs(v),v<0))) for c in clauses))
+    if target is not None:
+        assert all(any((l>0)==target[abs(l)] for l in c) for c in clean)
+    return {"n":n,"clauses":[list(x) for x in clean],
+            "family":family,"base_id":i,"has_planted_witness":target is not None}
+
+def literal_masks(clauses):
+    result=[]
+    for clause in clauses:
+        positive,negative=0,0
+        for l in clause:
+            bit=1<<(abs(l)-1)
+            if l>0:positive|=bit
+            else:negative|=bit
+        if positive&negative:continue
+        result.append((positive,negative))
+    return result
+
+def exact_models(n,clauses):
+    # This exhaustive small-n oracle is independent of the native solver's
+    # watches, trail logic, CDCL heuristics, and internal SAT/UNSAT declaration.
+    masks=literal_masks(clauses)
+    output=[]
+    for bits in range(1<<n):
+        if all((bits&p)!=0 or (bits&neg)!=neg for p,neg in masks):
+            output.append(bits)
+    return output
+
+def permute(n,clauses,rng,cycle):
+    p=[0]+list(range(1,n+1))
+    if cycle:
+        target=list(range(1,n+1))
+        rng.shuffle(target)
+        p=[0]+target
+    newclauses=[[p[abs(l)]*(1 if l>0 else -1) for l in c] for c in clauses]
+    return newclauses,p
+
+def transform_model(mask,permutation):
+    result=0
+    for original in range(1,len(permutation)):
+        if mask>>(original-1)&1:
+            result|=1<<(permutation[original]-1)
+    return result
+
+def cnf_digest(n,clauses):
+    content=f"p cnf {n} {len(clauses)}\n"+"".join(
+        " ".join(map(str,c))+" 0\n" for c in clauses)
+    return hashlib.sha256(content.encode()).hexdigest()
+
+def original_shas_from_prior_cycles():
+    """Recreate the *prior* 48 source CNFs' three replay SHA values.
+
+    Prior cohort used the first six families, generator indices 0..7 and
+    same permuter. Fresh instances use index >=10000 and new generator seeds.
+    """
+    result=set()
+    for family in FAMILIES[:6]:
+        for index in range(8):
+            source=build_case(family,index)
+            for cycle in range(3):
+                modified,_=permute(source["n"],source["clauses"],
+                    random.Random(9900+index*71+FAMILIES.index(family)*13+cycle*147),cycle)
+                result.add(cnf_digest(source["n"],modified))
+    return result
+
+def write_dimacs(path,n,clauses):
+    content=f"p cnf {n} {len(clauses)}\n"+"".join(
+        " ".join(map(str,c))+" 0\n" for c in clauses)
+    path.write_text(content)
+    return hashlib.sha256(content.encode()).hexdigest()
+
+def measure(n,models,trail):
+    positive=0;negative=0
+    for l in trail:
+        bit=1<<(abs(l)-1)
+        if l==0 or abs(l)>n or ((positive|negative)&bit):
+            raise AssertionError("bad or duplicated native trail literal")
+        if l>0:positive|=bit
+        else:negative|=bit
+    known=positive|negative
+    free=n-len(trail)
+    good=0;min_flips=n+1
+    for bits in models:
+        if (bits&known)==positive:good+=1
+        flipped=((bits^positive)&known).bit_count()
+        if flipped<min_flips:min_flips=flipped
+    if not models:
+        return {"sat_completion_exists":False,"solution_count":0,
+                "conditional_completion_probability":None,
+                "min_hamming_flips_to_any_solution":None,
+                "assigned":len(trail)}
+    return {"sat_completion_exists":good>0,"solution_count":good,
+            "conditional_completion_probability":good/(1<<free),
+            "min_hamming_flips_to_any_solution":min_flips,
+            "assigned":len(trail)}
+
+def external_model_ok(n,clauses,stdout):
+    status=[x.strip() for x in stdout.splitlines() if x.startswith("s ")]
+    if status!=["s SATISFIABLE"]:return False
+    assignment={}
+    for line in stdout.splitlines():
+        if line.startswith("v "):
+            for piece in line[1:].split():
+                l=int(piece)
+                if l==0:continue
+                if abs(l)>n or abs(l) in assignment:return False
+                assignment[abs(l)]=l>0
+    if len(assignment)!=n:return False
+    return all(any(assignment[abs(l)]==(l>0) for l in c) for c in clauses)
+
+def analyze_run(source,cycle,binary,root,limit,base_models,archive=None):
+    n,clauses=source["n"],source["clauses"]
+    permuted,p=permute(n,clauses,random.Random(9900+source["base_id"]*71+
+                                             FAMILIES.index(source["family"])*13+cycle*147),cycle)
+    models=[transform_model(m,p) for m in base_models]
+    cnf=root/"input.cnf";trace=root/"trace.jsonl"
+    sha=write_dimacs(cnf,n,permuted)
+    if archive is not None:
+        member=f"{source['family']}/{source['base_id']}_cycle{cycle+1}_{sha[:12]}.cnf"
+        archive.writestr(member,cnf.read_bytes())
+    core_cmd=[str(binary.resolve()),str(cnf),"--mode","trace","--time",str(limit),
+              "--stats","--transitions",str(trace),"--trace-trail"]
+    started=time.monotonic()
+    p1=subprocess.run(core_cmd,capture_output=True,text=True,timeout=limit+1.0)
+    wall=time.monotonic()-started
+    if p1.returncode not in (0,10,20):
+        raise RuntimeError("X4 diagnostic solver crash "+str(p1.returncode)+" "+p1.stderr[-1200:])
+    status={0:"UNKNOWN",10:"SAT",20:"UNSAT"}[p1.returncode]
+    if status=="SAT":
+        if not models or not external_model_ok(n,permuted,p1.stdout):
+            raise AssertionError("unverified SAT original CNF")
+    if status=="UNSAT" and models:raise AssertionError("native false UNSAT")
+    if status=="UNKNOWN":
+        raise AssertionError("diagnostic did not finish; increase cap or reduce case")
+    if models and status!="SAT":raise AssertionError("missed SAT within cap")
+    if not models and status!="UNSAT":raise AssertionError("missed UNSAT within cap")
+    rows=[json.loads(x) for x in trace.read_text().splitlines()]
+    assert rows[0]["type"]=="meta" and rows[0]["observational_only"]
+    transitions=[x for x in rows[1:] if x["type"]=="transition"]
+    if len(transitions)>128:raise AssertionError("overlong diagnostic trace")
+    events=[]
+    for rec in transitions:
+        before=rec["before"];after=rec["after"]
+        t0=rec.get("trail_before");t1=rec.get("trail_after")
+        assert t0 is not None and t1 is not None
+        assert len(t0)==before["assigned"] and len(t1)==after["assigned"]
+        q0,q1=measure(n,models,t0),measure(n,models,t1)
+        # IMPORTANT: zero SAT completion means inconsistent partial trail,
+        # not a proof that the original SAT formula itself is unsatisfiable.
+        delta=(q1["conditional_completion_probability"]-q0["conditional_completion_probability"]
+               if models else None)
+        classification="UNSAT_UNDEFINED"
+        if delta is not None:
+            classification=("toward" if delta>1e-12 else
+                            "away" if delta < -1e-12 else "flat")
+        events.append({"decision":after["decisions"],"delta_p":delta,
+            "direction":classification,
+            "exact_probability_before":q0["conditional_completion_probability"],
+            "exact_probability_after":q1["conditional_completion_probability"],
+            "satisfying_completion_exists_after":q1["sat_completion_exists"],
+            "min_flips_before":q0["min_hamming_flips_to_any_solution"],
+            "min_flips_after":q1["min_hamming_flips_to_any_solution"],
+            "sampled_delta_satisfied":rec["structure"]["delta_satisfied"],
+            "delta_conflicts":after["conflicts"]-before["conflicts"],
+            "unit_propagations":rec["logic"]["unit_propagations_under_assumptions"]})
+    if status=="SAT" and not models:raise AssertionError("oracle says no SAT solution")
+    windows=[]
+    for lo,hi in WINDOWS:
+        subset=[x for x in events if lo<=x["decision"]<=hi]
+        directions=Counter(x["direction"] for x in subset)
+        diffs=[x["delta_p"] for x in subset if x["delta_p"] is not None]
+        windows.append({"window":f"decisions_{lo}_{hi}","samples":len(subset),
+            "toward":directions["toward"],"away":directions["away"],
+            "flat":directions["flat"],"mean_exact_probability_change":(
+                round(statistics.mean(diffs),8) if diffs else None),
+            "branch_incompatible_count":sum(
+                x["satisfying_completion_exists_after"] is False for x in subset)})
+    return {"family":source["family"],"base_id":source["base_id"],
+        "cycle":cycle,"sha256":sha,"nvars":n,"oracle_solution_count":len(models),
+        "status":status,"oracle_independently_verified":True,
+        "native_wall_s":round(wall,6),"transitions":len(events),
+        "path":events,"windows":windows}
+
+def main():
+    parser=argparse.ArgumentParser()
+    parser.add_argument("--binary",type=Path,default=Path("build/drnas-x42"))
+    parser.add_argument("--out",type=Path,default=Path("x42_convergence"))
+    parser.add_argument("--per-family",type=int,default=8)
+    parser.add_argument("--cycles",type=int,default=3)
+    parser.add_argument("--cap",type=float,default=1.5)
+    parser.add_argument("--offset",type=int,default=0)
+    parser.add_argument("--exclude-prior",action="store_true")
+    args=parser.parse_args()
+    if args.per_family<3 or args.cycles!=3 or args.cap<0.2 or args.offset<0:
+        raise ValueError("expect at least 3 per family and exactly 3 search cycles")
+    args.out.mkdir(parents=True,exist_ok=False)
+    all_rows=[]
+    previously_used=original_shas_from_prior_cycles() if args.exclude_prior else set()
+    if args.exclude_prior and args.offset<10000:
+        raise ValueError("fresh holdout needs generator index offset >=10000")
+    with tempfile.TemporaryDirectory(prefix="x42-") as td, zipfile.ZipFile(
+        args.out/"fresh_sources_and_replays.zip","w",compression=zipfile.ZIP_DEFLATED,
+        compresslevel=6) as archive:
+        root=Path(td)
+        for family in FAMILIES:
+            for i in range(args.offset,args.offset+args.per_family):
+                case=build_case(family,i)
+                models=exact_models(case["n"],case["clauses"])
+                if case["has_planted_witness"] and not models:raise AssertionError("planted SAT missing")
+                if family in ("php_unsat","graph_k4_unsat") and models:raise AssertionError("constructed UNSAT cohort not UNSAT")
+                for cycle in range(args.cycles):
+                    row=analyze_run(case,cycle,args.binary,root,args.cap,models,archive)
+                    if row["sha256"] in previously_used:
+                        raise AssertionError("fresh source SHA repeats previous 48-case cohort")
+                    all_rows.append(row)
+                    emit("X42_CYCLE",{"family":family,"id":i,"cycle":cycle,
+                        "status":row["status"],"transitions":row["transitions"],
+                        "toward":sum(x["toward"] for x in row["windows"]),
+                        "away":sum(x["away"] for x in row["windows"]),
+                        "flat":sum(x["flat"] for x in row["windows"]),
+                        "incompatible_branch_steps":sum(x["branch_incompatible_count"]
+                                                         for x in row["windows"])})
+    if len({x["sha256"] for x in all_rows})!=len(all_rows):
+        raise AssertionError("duplicate permutation cycles")
+    (args.out/"source_manifest.json").write_text(json.dumps({
+        "generator_offset":args.offset,
+        "original_source_count":len(FAMILIES)*args.per_family,
+        "replay_count":len(all_rows),
+        "source_archive":"fresh_sources_and_replays.zip",
+        "replay_sha256":[{"family":r["family"],"source_id":r["base_id"],
+                          "cycle":r["cycle"]+1,"sha256":r["sha256"]}
+                         for r in all_rows],
+        "no_sha_overlap_with_previous_cohort":args.exclude_prior,
+        "original_sat_oracle":"exhaustive enumeration, n<=18",
+        "cycles_not_independent_source_instances":True
+    },indent=2,sort_keys=True)+"\n")
+    (args.out/"trajectories.jsonl").write_text(
+        "".join(json.dumps(row,sort_keys=True)+"\n" for row in all_rows))
+    by_cycle={}
+    for cycle in range(args.cycles):
+        rows=[r for r in all_rows if r["cycle"]==cycle]
+        events=[ev for r in rows if r["status"]=="SAT" for ev in r["path"]]
+        counter=Counter(e["direction"] for e in events)
+        samples=sum(r["transitions"] for r in rows)
+        by_cycle[str(cycle+1)]={"runs":len(rows),"sat_verified":sum(r["status"]=="SAT" for r in rows),
+            "unsat_exhaustive_oracle":sum(r["status"]=="UNSAT" for r in rows),
+            "sampled_steps":samples,
+            "toward":counter["toward"],"away":counter["away"],"flat":counter["flat"],
+            "branch_incompatible":sum(
+                e["satisfying_completion_exists_after"] is False for e in events)}
+    window_summary=[]
+    for k,(lo,hi) in enumerate(WINDOWS):
+        w=[r["windows"][k] for r in all_rows if r["status"]=="SAT"]
+        window_summary.append({"decision_window":f"{lo}-{hi}",
+            "observations":sum(x["samples"] for x in w),
+            "toward":sum(x["toward"] for x in w),
+            "away":sum(x["away"] for x in w),
+            "flat":sum(x["flat"] for x in w)})
+    sat_events=[e for r in all_rows if r["status"]=="SAT" for e in r["path"]]
+    comparisons=[e for e in sat_events if e["delta_p"] is not None and e["delta_p"]!=0
+                 and e["sampled_delta_satisfied"]!=0]
+    agrees=sum((e["delta_p"]>0)==(e["sampled_delta_satisfied"]>0) for e in comparisons)
+    family_summary={}
+    for family in FAMILIES:
+        selected=[r for r in all_rows if r["family"]==family]
+        direction=Counter(e["direction"] for r in selected if r["status"]=="SAT" for e in r["path"])
+        family_summary[family]={
+            "distinct_formulas":args.per_family,
+            "runs":len(selected),
+            "verified_sat":sum(r["status"]=="SAT" for r in selected),
+            "exhaustive_unsat":sum(r["status"]=="UNSAT" for r in selected),
+            "toward":direction["toward"],"away":direction["away"],"flat":direction["flat"]
+        }
+    # The cheap signal is observed AFTER an action and is NOT a before-action
+    # prediction. Bootstrap by mathematical source, not by correlated steps.
+    by_source=defaultdict(list)
+    for row in all_rows:
+        if row["status"]!="SAT":continue
+        for e in row["path"]:
+            if e["delta_p"] is not None and abs(e["delta_p"])>1e-12 and e["sampled_delta_satisfied"]!=0:
+                by_source[(row["family"],row["base_id"])].append((
+                    int((e["delta_p"]>0)==(e["sampled_delta_satisfied"]>0)),
+                    int(e["delta_p"]>0)))
+    eligible=[v for values in by_source.values() for v in values]
+    if eligible:
+        observed_agreement=sum(x[0] for x in eligible)/len(eligible)
+        always_toward=sum(x[1] for x in eligible)/len(eligible)
+        rng=random.Random(20261113)
+        source_groups=list(by_source.values())
+        differences=[]
+        for _ in range(1500):
+            sampled=[source_groups[rng.randrange(len(source_groups))] for _ in source_groups]
+            flat=[x for group in sampled for x in group]
+            differences.append((sum(x[0] for x in flat)-sum(x[1] for x in flat))/len(flat))
+        differences.sort()
+        negative_proxy=sum(e["sampled_delta_satisfied"]<0 for e in sat_events)
+        signal_audit={
+            "eligible_nonflat_events":len(eligible),
+            "negative_satisfied_clause_proxy_events":negative_proxy,
+            "positive_or_zero_proxy_cannot_detect_away":negative_proxy==0,
+            "post_action_proxy_accuracy":round(observed_agreement,5),
+            "always_toward_accuracy":round(always_toward,5),
+            "paired_difference_proxy_minus_naive":round(observed_agreement-always_toward,5),
+            "formula_cluster_bootstrap_95pct_difference":[round(differences[37],5),round(differences[1462],5)],
+            "post_action_observation_not_a_pre_action_prediction":True,
+            "source_cluster_n":len(source_groups)
+        }
+    else:
+        signal_audit={"eligible_nonflat_events":0,"status":"no assessable signal"}
+    report={"protocol":"X4.2 fresh small-CNF retrospective search-direction diagnostic",
+        "independent_CNF_sources":len(FAMILIES)*args.per_family,
+        "3_isomorphic_replay_cycles":True,
+        "fresh_source_generator_offset":args.offset,
+        "overlap_with_prior_48_source_cycles":0 if args.exclude_prior else None,
+        "new_mathematical_families":["community3","xor_ring","graph_k4_unsat"],
+        "family_summary":family_summary,
+        "proxy_heldout_sign_audit":signal_audit,
+        "replays_are_not_independent_formulas":True,
+        "runs":len(all_rows),"verified_sat":sum(r["status"]=="SAT" for r in all_rows),
+        "exhaustively_checked_unsat":sum(r["status"]=="UNSAT" for r in all_rows),
+        "cycle_summary":by_cycle,"decision_windows":window_summary,
+        "structural_proxy_direction_agreement":{
+            "eligible_nonflat_events":len(comparisons),"same_sign":agrees,
+            "agreement_fraction":round(agrees/len(comparisons),5) if comparisons else None},
+        "important_limits":[
+            "Minimum Hamming flips and random-completion probabilities use exponential offline oracle enumeration.",
+            "These quantities are not generally computable cheaply for large SAT instances.",
+            "An episode with zero compatible solutions may later recover by CDCL backtracking.",
+            "CNF satisfiability is invariant across cycles; cycles change representation, not logical truth.",
+            "Retrospective observations do not measure causal utility of alternative actions."
+        ]}
+    (args.out/"summary.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\n")
+    emit("X42_FINAL",report)
+
+if __name__=="__main__":
+    main()

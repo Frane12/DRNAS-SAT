@@ -1,0 +1,5 @@
+LTM6 one retry after confirmed generated C++ broken string literal.
+Fix: research/drnas_ltm6_build.py emits std::endl, no embedded C++ newline literal.
+Generator preflight: a86df80b0079ff35faf25b3d60af241c6772f2a5.
+Offline 10 formula SHA-pinned synthetic cohort x 2 reps x BASE/LTM5/LTM6.
+Request exactly one isolated CI run; no APK builds or other workflows.

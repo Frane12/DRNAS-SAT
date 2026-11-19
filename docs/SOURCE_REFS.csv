@@ -1,0 +1,9 @@
+branch,sha,mode
+experiment/drnas-xorlin-cdcl1-prospective-mixed12b-20261117,b27dc6ff80536dce4b401aeae2c42f11423ab606,baseline
+experiment/drnas-ipg7b-original-source-configbridge-20261116,acdab810a2d7d2fdbcb913232eb2f2e6cde9494f,missing-files-only
+experiment/drnas-match3-flow-hall-poly1-20261116,10e43b15c2e858adaf13ea3a31f962023269630b,missing-files-only
+experiment/drnas-ipg5c-source-onehot-general-20261116,067c0c82bea37555b529e7d8a25da204f07bb92f,missing-files-only
+experiment/drnas-pcmax-veripb-weighted2-20261115,954d53074f5b976b7f3e7b6e9dd9d414f1fdbc5c,missing-files-only
+experiment/drnas-graphclique-veripb-real67-20261116,475b00bef241cc93f2d26d37c64b60aeb67ccea8,missing-files-only
+experiment/drnas-math5-veripb-real67-20261116,aacff3fd1c87033aabce887ada2e55e5a5374dc7,missing-files-only
+experiment/drnas-xor234-grid-veripb-20261117,d94dc9fe6b0a983fa8f6152d4751d3c70b394e1a,missing-files-only
