@@ -1,0 +1,112 @@
+[
+  {
+    "index": 0,
+    "source_name": "pcmax-scheduling-m11-1517-6802-UNSAT.sanitized.cnf",
+    "original_sha256": "c55ab8fe2c9e10f0579f806802bc32d04913f12cd6ce28e6662b8d59d114c174",
+    "proof_sha256": "4f5ac009132c94c95f6c928829095858b74d467f1fb9c5c00408c10706f52e91",
+    "proof_bytes": 181816,
+    "demand": 16,
+    "capacity": 15,
+    "veripb_3_0_2": "VERIFIED_UNSAT"
+  },
+  {
+    "index": 2,
+    "source_name": "pcmax-scheduling-m13-1655-9604-UNSAT.sanitized.cnf",
+    "original_sha256": "a13f835135bbc3b9f719b513abab7c313e61a72df30049373725193232ebbbfd",
+    "proof_sha256": "b9ded385f18329058d3bf42582a28d09c4835b087a6c6a70c8bf4e999edc78d3",
+    "proof_bytes": 323657,
+    "demand": 105,
+    "capacity": 104,
+    "veripb_3_0_2": "VERIFIED_UNSAT"
+  },
+  {
+    "index": 3,
+    "source_name": "pcmax-scheduling-m13-2011-12813-UNSAT.sanitized.cnf",
+    "original_sha256": "1270004fd247f55c6dc67c9f8d6ecf2628ea7144ed71d3ac1c581c59161d8d55",
+    "proof_sha256": "2c209be5cf0602f8b79938eeea17ded6c208312c834669cfcb5c84bcd988a305",
+    "proof_bytes": 468252,
+    "demand": 10000,
+    "capacity": 9945,
+    "veripb_3_0_2": "VERIFIED_UNSAT"
+  },
+  {
+    "index": 4,
+    "source_name": "pcmax-scheduling-m13-2826-11437-UNSAT.sanitized.cnf",
+    "original_sha256": "8f021c21f0c01046afb149778240a50ba4234d581c48fc075fe69f6314e944e2",
+    "proof_sha256": "e9ebdd7e61386559f5e2703848d80450ccf90c792ba25932d83d3c204e3373ca",
+    "proof_bytes": 761975,
+    "demand": 10000,
+    "capacity": 9971,
+    "veripb_3_0_2": "VERIFIED_UNSAT"
+  },
+  {
+    "index": 5,
+    "source_name": "pcmax-scheduling-m14-3640-14524-UNSAT.sanitized.cnf",
+    "original_sha256": "a540b7d1aa098217bde5145b56f1f8e4898e9fedd73ea1ad99259ed43fa1e275",
+    "proof_sha256": "d52972eae8f2fee8ccc0d9397c31c28e7cd77cac858e3a9ef2187823e7b2741e",
+    "proof_bytes": 557597,
+    "demand": 31,
+    "capacity": 30,
+    "veripb_3_0_2": "VERIFIED_UNSAT"
+  },
+  {
+    "index": 7,
+    "source_name": "pcmax-scheduling-m19-10199-62102-UNSAT.sanitized.cnf",
+    "original_sha256": "a96a2b429de5a560f42e114e990da71caeb8191f056a47f419a4bbd93d83bbad",
+    "proof_sha256": "deadbde8329256c1b2b47b44c018a37c365e6fc7901d084688d89b889a499982",
+    "proof_bytes": 2586374,
+    "demand": 1002,
+    "capacity": 997,
+    "veripb_3_0_2": "VERIFIED_UNSAT"
+  },
+  {
+    "index": 8,
+    "source_name": "pcmax-scheduling-m19-2974-16501-UNSAT.sanitized.cnf",
+    "original_sha256": "0ffb4d4caba517f75bf54fd62154e5931c16747fca234fc77c776488e7e6314f",
+    "proof_sha256": "03ad627175ff6db0d0f2add312c26495eb1ec8e1b4f78841066beb945ca7310e",
+    "proof_bytes": 754483,
+    "demand": 9996,
+    "capacity": 9895,
+    "veripb_3_0_2": "VERIFIED_UNSAT"
+  },
+  {
+    "index": 9,
+    "source_name": "pcmax-scheduling-m20-3726-23254-UNSAT.sanitized.cnf",
+    "original_sha256": "e74acd6725c38cf2f1347afb5c62206ef7c4bf76c97f45b5abfcf18ea4480ade",
+    "proof_sha256": "4566bbca7bef0401ca7db2272ad6118441e7987533a9e0e9381305aedabee61d",
+    "proof_bytes": 1008699,
+    "demand": 1002,
+    "capacity": 988,
+    "veripb_3_0_2": "VERIFIED_UNSAT"
+  },
+  {
+    "index": 10,
+    "source_name": "pcmax-scheduling-m20-4135-27005-UNSAT.sanitized.cnf",
+    "original_sha256": "cf68074a07348e696d56ae179eb900c894ad294ec1175c850d4a18ad33e91af2",
+    "proof_sha256": "03a0a3ac43f277553979fa01e45739efc0be2d5a2b9d2cbdab017ea2a30f34a6",
+    "proof_bytes": 929189,
+    "demand": 42,
+    "capacity": 41,
+    "veripb_3_0_2": "VERIFIED_UNSAT"
+  },
+  {
+    "index": 14,
+    "source_name": "pcmax-scheduling-m26-6398-62377-UNSAT.sanitized.cnf",
+    "original_sha256": "86550b7f3a692f7c6f671a7a4a12bb4e745cdc87038c4d1c75eed2d51f2db150",
+    "proof_sha256": "3b08452c4408eda1deb3ce38336fb2b59319b59b80f865e510bf95259068eddf",
+    "proof_bytes": 1902153,
+    "demand": 10001,
+    "capacity": 9927,
+    "veripb_3_0_2": "VERIFIED_UNSAT"
+  },
+  {
+    "index": 15,
+    "source_name": "pcmax-scheduling-m30-14113-167638-UNSAT.sanitized.cnf",
+    "original_sha256": "7cc73d81dbac7c8680cb7c5f6805e6e4d6aa101e5466771d5ce7aacee78d6472",
+    "proof_sha256": "6172f499f1479a922e05267f0fcd118c1db0420f01ec506decf9cfff7549137e",
+    "proof_bytes": 2465305,
+    "demand": 998,
+    "capacity": 990,
+    "veripb_3_0_2": "VERIFIED_UNSAT"
+  }
+]

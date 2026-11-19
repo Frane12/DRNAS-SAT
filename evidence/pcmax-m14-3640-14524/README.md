@@ -7,3 +7,5 @@ Weighted demand 31 > capacity 30. This is not 31 literal jobs.
 Verified source run: https://github.com/Frane12/AndroidGameTest/actions/runs/43719601339
 Proof artifact: https://github.com/Frane12/AndroidGameTest/actions/runs/43719601339/artifacts/14164325633
 The 2024 PCMAX publication already reported this instance UNSAT.
+
+The exact original and standard proof are now mirrored in ../pcmax-weighted2/05/ and independently rechecked.
