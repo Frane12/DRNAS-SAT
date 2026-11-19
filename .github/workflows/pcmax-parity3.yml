@@ -1,0 +1,66 @@
+name: DRNAS MATH-PARITY3 isolated VeriPB + original PCMAX audit
+
+on:
+  push:
+    branches:
+      - 'experiment/pcmax-parity3-*'
+    paths:
+      - 'research/pcmax_parity3/**'
+      - '.github/workflows/pcmax-parity3.yml'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate fresh exact-fill CNF and source-level RUP/VeriPB
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_parity3/emit.py
+
+      - name: Check archived m14 original structurally and audit GF2 span
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_parity3/analyze_original.py | tee research/pcmax_parity3/original_m14_parity_audit.log
+          python3 research/pcmax_capacity/check_capacity.py \
+            evidence/pcmax-weighted2/05/original.cnf evidence/pcmax-weighted2/05/capacity.json
+
+      - name: Install independent VeriPB 3.0.2 checker
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version
+
+      - name: Independently verify new generated source-level parity refutation
+        run: |
+          set -euo pipefail
+          veripb --cnf research/pcmax_parity3/source_exactfill.cnf \
+            research/pcmax_parity3/proof.pbp 2>&1 | tee research/pcmax_parity3/veripb_generated.log
+          grep -Fx 's VERIFIED UNSATISFIABLE' research/pcmax_parity3/veripb_generated.log
+
+      - name: Independently re-verify unchanged archived original m14 weighted proof
+        run: |
+          set -euo pipefail
+          veripb --cnf evidence/pcmax-weighted2/05/original.cnf \
+            evidence/pcmax-weighted2/05/weighted.pbp 2>&1 | tee research/pcmax_parity3/veripb_original_m14.log
+          grep -Fx 's VERIFIED UNSATISFIABLE' research/pcmax_parity3/veripb_original_m14.log
+
+      - name: Preserve inputs, proof, and audit logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: math-parity3-source-audit
+          if-no-files-found: warn
+          path: |
+            research/pcmax_parity3/manifest.json
+            research/pcmax_parity3/source_exactfill.cnf
+            research/pcmax_parity3/proof.drup
+            research/pcmax_parity3/proof.pbp
+            research/pcmax_parity3/original_m14_parity_audit.log
+            research/pcmax_parity3/veripb_generated.log
+            research/pcmax_parity3/veripb_original_m14.log
