@@ -1,0 +1,50 @@
+name: DRNAS HYBRID9 proof complexity and DRAT audit
+on:
+  push:
+    branches:
+      - experiment/hybrid9-three-theory-proof-audit-20261120
+    paths:
+      - research/hybrid9/**
+      - .github/workflows/drnas-hybrid9-proof-audit.yml
+permissions:
+  contents: read
+jobs:
+  verify-graph:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Checkout isolated branch
+        uses: actions/checkout@v4
+      - name: Generate pinned source CNFs and ordinary resolution refutations
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 research/hybrid9/ci_external.py /tmp/hybrid9 | tee /tmp/hybrid9-source-audit.log
+          grep -q SAT_MODEL_VERIFIED /tmp/hybrid9-source-audit.log
+      - name: Build independent upstream DRAT-trim
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --quiet https://github.com/marijnheule/drat-trim.git /tmp/drat-trim
+          git -C /tmp/drat-trim checkout --quiet 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+          cc -O2 /tmp/drat-trim/drat-trim.c -o /tmp/drat-trim/drat-trim
+      - name: Externally verify full original-source DRUP proofs
+        shell: bash
+        run: |
+          set -euo pipefail
+          for n in 4 6 8; do
+            /tmp/drat-trim/drat-trim "/tmp/hybrid9/graph$n.cnf" "/tmp/hybrid9/graph$n.drup" -f | tee "/tmp/hybrid9/drat$n.log"
+            grep -q 's VERIFIED' "/tmp/hybrid9/drat$n.log"
+            echo "EXTERNAL_VERIFIED graph=$n"
+          done
+      - name: Reject UNSAT proof on independently model-checked SAT control
+        shell: bash
+        run: |
+          set -euo pipefail
+          if /tmp/drat-trim/drat-trim /tmp/hybrid9/graph6-sat.cnf /tmp/hybrid9/graph6.drup -f > /tmp/hybrid9/sat-negative.log 2>&1; then
+            if grep -q 's VERIFIED' /tmp/hybrid9/sat-negative.log; then
+              echo 'ERROR: unsound proof accepted on SAT control' >&2
+              exit 1
+            fi
+          fi
+          echo "NEGATIVE_CONTROL_REJECTED"
