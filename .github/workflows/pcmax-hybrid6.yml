@@ -27,6 +27,40 @@ jobs:
           set -euo pipefail
           python3 research/pcmax_hybrid5/test.py | tee hybrid5-retrospective.log
           grep -Fx 'ALL_TESTS_PASS' hybrid5-retrospective.log
+      - name: Independently audit product-state RUP compiler
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid6/proof_test.py | tee hybrid6-rup-tests.log
+          grep -Fx 'ALL_PRODUCT_RUP_TESTS_PASS' hybrid6-rup-tests.log
+
+      - name: Generate frozen source CNFs and product-state RUP files
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid5/emit.py --out hybrid6-h5-source
+          python3 research/pcmax_hybrid6/proof.py --cnf hybrid6-h5-source/source.cnf \
+            --certificate hybrid6-h5-source/certificate.json --out hybrid6-h5-proof \
+            | tee hybrid6-h5-manifest.log
+          python3 research/pcmax_hybrid3/emit.py --kind fano --out hybrid6-fano-source
+          python3 research/pcmax_hybrid6/proof.py --cnf hybrid6-fano-source/source.cnf \
+            --certificate hybrid6-fano-source/certificate.json --out hybrid6-fano-proof \
+            | tee hybrid6-fano-manifest.log
+
+      - name: Independently install VeriPB 3.0.2
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version
+
+      - name: Officially verify BOTH product-state UNSAT proofs
+        run: |
+          set -euo pipefail
+          veripb --cnf hybrid6-h5-source/source.cnf hybrid6-h5-proof/proof.pbp \
+            2>&1 | tee hybrid6-veripb-h5.log
+          grep -Fx 's VERIFIED UNSATISFIABLE' hybrid6-veripb-h5.log
+          veripb --cnf hybrid6-fano-source/source.cnf hybrid6-fano-proof/proof.pbp \
+            2>&1 | tee hybrid6-veripb-fano.log
+          grep -Fx 's VERIFIED UNSATISFIABLE' hybrid6-veripb-fano.log
+
       - name: Preserve auditable test output
         if: always()
         uses: actions/upload-artifact@v4
@@ -36,3 +70,12 @@ jobs:
           path: |
             hybrid6-symbolic-tests.log
             hybrid5-retrospective.log
+            hybrid6-rup-tests.log
+            hybrid6-h5-source/
+            hybrid6-h5-proof/
+            hybrid6-fano-source/
+            hybrid6-fano-proof/
+            hybrid6-h5-manifest.log
+            hybrid6-fano-manifest.log
+            hybrid6-veripb-h5.log
+            hybrid6-veripb-fano.log
