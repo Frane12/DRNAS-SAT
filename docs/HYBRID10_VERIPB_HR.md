@@ -2,12 +2,12 @@
 
 **Date:** 2026-11-20  
 **Authors:** Frane Drnas and OpenAI assistant (GPT-6)  
-**Status:** experimental, isolated branch; production \`main\` unchanged.  
+**Status:** experimental, isolated branch; production `main` unchanged.  
 **Result:** independent VeriPB 3.0.2 accepted all 17 tested UNSAT certificates (seven baseline/scale sizes, four variable permutations and six new connected cubic topologies). These are **synthetic restricted-family instances, not a blind benchmark**.
 
 ## Izvorna matematička ideja
 
-Neka CNF sadrži n logičkih izbora x_i. Izvorni pozitivni ALO i svi parovi \`(~x_i or ~x_j)\` dokazuju:
+Neka CNF sadrži n logičkih izbora x_i. Izvorni pozitivni ALO i svi parovi `(~x_i or ~x_j)` dokazuju:
 
 \[
 \sum_{i=1}^{n}x_i =1.
@@ -54,7 +54,7 @@ Broj koraka je linearan. To **ne tvrdi linearne bajtove**, jer s rastom n raste 
 
 ## Neovisni standardni rezultati
 
-**Vanjski provjerivač**: VeriPB 3.0.2, pokrenut iz GitHub Actions, s izlazom \`s VERIFIED UNSATISFIABLE\`.
+**Vanjski provjerivač**: VeriPB 3.0.2, pokrenut iz GitHub Actions, s izlazom `s VERIFIED UNSATISFIABLE`.
 
 | Izvor CNF | n | VeriPB koraci | Dokaz (B) | Rezultat |
 |---|---:|---:|---:|---|
@@ -70,18 +70,18 @@ Broj koraka je linearan. To **ne tvrdi linearne bajtove**, jer s rastom n raste 
 
 **Audit:** [GitHub Actions 44742547146](https://github.com/Frane12/DRNAS-SAT/actions/runs/44742547146). Prvotni test: [44741272484](https://github.com/Frane12/DRNAS-SAT/actions/runs/44741272484). Prošireni test: [44742007608](https://github.com/Frane12/DRNAS-SAT/actions/runs/44742007608).
 
-**Kontrole:** SAT model na modificiranim grafovima; odbijanje izostavljenog AMO para, 2-SAT veze ili XOR klauzule; te vraćanje \`UNKNOWN\` na četiri originalne, nepodržane DRNAS formule: XOR234 Grid, Petersen PCMAX, Graph K11 i PCMAX m14. Nijedan od tih \`UNKNOWN\` statusa ne govori je li formula SAT.
+**Kontrole:** SAT model na modificiranim grafovima; odbijanje izostavljenog AMO para, 2-SAT veze ili XOR klauzule; te vraćanje `UNKNOWN` na četiri originalne, nepodržane DRNAS formule: XOR234 Grid, Petersen PCMAX, Graph K11 i PCMAX m14. Nijedan od tih `UNKNOWN` statusa ne govori je li formula SAT.
 
 ## Reprodukcija
 
 Datoteke na ovoj grani:
-- \`research/hybrid10/emit_veripb_three_theory.py\` — detektor, generator RED/RUP/CP certifikata.
-- \`research/hybrid10/generate_cases.py\` — izvorni HYBRID-9 ulazi vezani SHA-256 kontrolom.
-- \`research/hybrid10/make_extended.py\` — dodatne veličine, permutacije, SAT kontrola.
-- \`research/hybrid10/graph_topology.py\` — povezani 3-regularni grafovi različite topologije.
-- \`.github/workflows/drnas-hybrid10-audit.yml\` — vanjski VeriPB 3.0.2 audit.
+- `research/hybrid10/emit_veripb_three_theory.py` — detektor, generator RED/RUP/CP certifikata.
+- `research/hybrid10/generate_cases.py` — izvorni HYBRID-9 ulazi vezani SHA-256 kontrolom.
+- `research/hybrid10/make_extended.py` — dodatne veličine, permutacije, SAT kontrola.
+- `research/hybrid10/graph_topology.py` — povezani 3-regularni grafovi različite topologije.
+- `.github/workflows/drnas-hybrid10-audit.yml` — vanjski VeriPB 3.0.2 audit.
 
-Na GitHubu otvorite workflow logove radi potpunih statusa, izvornog SHA-256 i rezultata. Lokalni generator piše \`EMITTED_UNCHECKED\` dok neovisni VeriPB potvrdi certifikat.
+Na GitHubu otvorite workflow logove radi potpunih statusa, izvornog SHA-256 i rezultata. Lokalni generator piše `EMITTED_UNCHECKED` dok neovisni VeriPB potvrdi certifikat.
 
 ## Znanstvene granice
 
