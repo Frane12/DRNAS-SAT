@@ -82,3 +82,35 @@ jobs:
             test ! -f "/tmp/h10extended/$name.pbp"
             echo "NEGATIVE_REJECTED $name"
           done
+
+      - name: Verify distinct 3-regular graph topologies without generator labels
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 research/hybrid10/graph_topology.py /tmp/h10cubic | tee /tmp/h10cubic-generate.log
+          grep -q CUBIC_SAT_MODEL_VERIFIED /tmp/h10cubic-generate.log
+          for src in /tmp/h10cubic/cubic*seed*.cnf; do
+            stem=$(echo "$src" | sed 's/\.cnf$//')
+            python3 research/hybrid10/emit_veripb_three_theory.py --cnf "$src" --output "$stem.pbp" --meta "$stem.json"
+            veripb --cnf "$src" "$stem.pbp" | tee "$stem.log"
+            grep -q 's VERIFIED UNSATISFIABLE' "$stem.log"
+            python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));n=d["one_hot_size"];s=sum(d["steps"].values());assert s==52*n+3;print("TOPOLOGY_VERIFIED",sys.argv[1],"n",n,"steps",s,"bytes",d["proof_bytes"])' "$stem.json"
+          done
+          if python3 research/hybrid10/emit_veripb_three_theory.py --cnf /tmp/h10cubic/cubic12_sat_control.cnf --output /tmp/h10cubic/false.pbp; then
+            echo 'UNSOUND: SAT control erroneously accepted' >&2
+            exit 1
+          fi
+          test ! -f /tmp/h10cubic/false.pbp
+          echo CUBIC_SAT_CONTROL_REJECTED
+      - name: Reject out-of-family original DRNAS SAT formulas
+        shell: bash
+        run: |
+          set -euo pipefail
+          for input in evidence/xor234-grid5/original.cnf evidence/ipg7b-petersen/original.cnf evidence/graph-k11/original.cnf evidence/pcmax-weighted2/05/original.cnf; do
+            if python3 research/hybrid10/emit_veripb_three_theory.py --cnf "$input" --output /tmp/out-of-family.pbp; then
+              echo "OUT_OF_FAMILY_FALSE_HIT $input" >&2
+              exit 1
+            fi
+            test ! -f /tmp/out-of-family.pbp
+            echo "OUT_OF_FAMILY_UNKNOWN $input"
+          done
