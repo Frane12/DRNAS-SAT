@@ -27,7 +27,7 @@ jobs:
             python3 research/hybrid11/emit_veripb_indirect.py --cnf "$stem.cnf" --output "$stem.pbp" --meta "$stem.meta.json" | tee "$stem.emit.log"
             veripb --cnf "$stem.cnf" "$stem.pbp" | tee "$stem.veripb.log"
             grep -q 's VERIFIED UNSATISFIABLE' "$stem.veripb.log"
-            python3 -c 'import json,sys,hashlib;s=json.load(open(sys.argv[1]));p=json.load(open(sys.argv[2]));h=hashlib.sha256(open(sys.argv[3],"rb").read()).hexdigest();assert s["source_sha256"]==p["source_sha256"]==h;assert p["negative_links"]>0;assert p["source_xor3_rows"]>0;assert p["matched_equivalences"]==s["vertices"];print("EXTERNAL_VERIFIED",s["vertices"],s["structure"],"split",s["source_gate_splits"],"xor3",p["source_xor3_rows"],"xor4",p["source_xor4_rows"],"steps",sum(p["steps"].values()),"bytes",p["proof_bytes"])' "$stem.source.json" "$stem.meta.json" "$stem.cnf"
+            python3 -c 'import json,sys,hashlib;s=json.loads(open(sys.argv[1]).read().split(" ",1)[1]);p=json.load(open(sys.argv[2]));h=hashlib.sha256(open(sys.argv[3],"rb").read()).hexdigest();assert s["source_sha256"]==p["source_sha256"]==h;assert p["negative_links"]>0;assert p["source_xor3_rows"]>0;assert p["matched_equivalences"]==s["vertices"];print("EXTERNAL_VERIFIED",s["vertices"],s["structure"],"split",s["source_gate_splits"],"xor3",p["source_xor3_rows"],"xor4",p["source_xor4_rows"],"steps",sum(p["steps"].values()),"bytes",p["proof_bytes"])' "$stem.source.json" "$stem.meta.json" "$stem.cnf"
           done <<EOF
           4 101 split
           6 202 split
