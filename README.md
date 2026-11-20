@@ -4,7 +4,7 @@
 
 Can a solver explain why a schedule is impossible before it tries every assignment? DRNAS SAT looks for mathematical structure in a Boolean formula and turns it into a proof that a separate program can check. This repository contains the C++ solvers, the proof generators, the original inputs for selected cases, and experiments that show where the approach succeeds or runs out of time.
 
-[Hrvatski uvod](docs/UVOD_HR.md) · [Illustrated formulas](#illustrated-formulas) · [Verify a proof](#verify-a-proof) · [Experimental results](#experimental-results) · [Source audit](docs/SOURCE_AUDIT.md)
+[Hrvatski uvod](docs/UVOD_HR.md) · [Fano experiment](#seven-jobs-in-triples) · [Illustrated formulas](#illustrated-formulas) · [Verify a proof](#verify-a-proof) · [Experimental results](#experimental-results) · [Source audit](docs/SOURCE_AUDIT.md)
 
 ## A schedule that cannot fit
 
@@ -17,6 +17,27 @@ Write $W$ for the proof weight of the selected assignments. The left bound comes
 $$31 = 11(2)+9(1)  \le W \le  2(0)+3(1)+6(2)+3(5) = 30.$$
 
 Akram and Schreiber reported m14 as UNSAT in 2024. The contribution documented here is a structural derivation from the original CNF and a 557,597-byte certificate that anyone can replay. The same method produced accepted proofs on **11 of 20** retrospective PCMAX formulas. It returned **UNKNOWN on all nine SAT-labeled controls**. [Original benchmark paper, Table I](https://dominikschreiber.de/papers/2024-isc-pcmax.pdf) · [All 20 outcomes](evidence/pcmax-weighted2/summary.json) · [Proof registry](docs/VERIFIED_PROOF_REGISTRY.md)
+
+## Seven jobs in triples
+
+In the generated MATH-HYBRID3 experiment, seven jobs must each go to exactly one of three machines. A machine may sit idle or take one of the seven triples in the Fano plane. Each line in the diagram, including the circle, joins three jobs.
+
+![Seven jobs form a Fano plane. The three highlighted lines meet at job 0. On the number line, seven falls between the multiples of three at six and nine.](docs/figures/fano-mod3.svg)
+
+Imagine giving each machine one of the three highlighted triples. Job 0 would appear three times and every other job once. All seven counts are odd, so checking parity alone misses the repeated job. Counting in threes settles the question for **every** choice of triples. Each machine takes 0 or 3 jobs, so the total must be 0, 3, 6 or 9. It must also be exactly **7**. [Construction and derivation](https://github.com/Frane12/DRNAS-SAT/blob/aad2fb20f5f68bcfec42490dc928ae0a58db74fa/research/pcmax_hybrid3/THEOREM.md)
+
+On 20 November 2026, VeriPB 3.0.2 accepted two reverse unit propagation (RUP) proofs for this same CNF with 135 variables and 253 clauses. The first took **3,280 proof steps**. Ending a branch as soon as one machine had no legal way to complete its load reduced the proof to **175 steps**. [Compact proof generator](https://github.com/Frane12/DRNAS-SAT/blob/aad2fb20f5f68bcfec42490dc928ae0a58db74fa/research/pcmax_hybrid3/emit_compact.py) · [Independent check of both proofs](https://github.com/Frane12/DRNAS-SAT/actions/runs/44699265702/job/136163392115)
+
+<details>
+<summary><strong>What changes with six jobs? A 31-step proof</strong></summary>
+
+In a second generated experiment, MATH-HYBRID4, two machines must cover six jobs. Three jobs on each machine give the right total. But the two triples must also be disjoint. Each cell below counts the jobs shared by a pair of allowed triples. A valid schedule needs a zero. Every cell contains at least one.
+
+![The seven allowed triples are listed beside their intersection matrix. Every pair shares at least one job.](docs/figures/exact-cover-overlap.svg)
+
+VeriPB accepted a **31-step RUP proof**. Adding the complement of one triple gave a SAT control with a model that satisfied all 146 control clauses. [Allowed triples and derivation](https://github.com/Frane12/DRNAS-SAT/blob/5784445ebce127f4010f7ae1283ec685451369c1/research/pcmax_hybrid4/THEOREM.md) · [Proof and control checks](https://github.com/Frane12/DRNAS-SAT/actions/runs/44701505078/job/136170741240)
+
+</details>
 
 ## Why the graph encoding matters
 
