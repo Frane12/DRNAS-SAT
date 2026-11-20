@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="480" viewBox="0 0 1120 480" role="img" aria-labelledby="flow-title flow-desc">
+<title id="flow-title">DRNAS SAT proof-aware pipeline from original source CNF to independent proof verification</title>
+<desc id="flow-desc">Original CNF is checked for exact-one groups and BDD transitions. Weighted root capacity, symbolic symmetry product, and restricted-group Hall bounds may derive a structural contradiction. Only when a source-based proof is emitted and accepted by independent VeriPB is the result called verified UNSAT. An unsupported or capped detector returns UNKNOWN.</desc>
+<rect width="1120" height="480" fill="#f8f6ef"/>
+<rect x="0.5" y="0.5" width="1119" height="479" fill="none" stroke="#d5ddd9"/>
+<rect x="0" y="0" width="8" height="480" fill="#14695f"/>
+<text x="31" y="38" font-family="Arial, sans-serif" font-size="14" fill="#14695f" font-weight="700" letter-spacing="1.6">DRNAS SAT  /  PROOF-AWARE REASONING</text>
+<text x="31" y="82" font-family="Arial, sans-serif" font-size="30" fill="#142d3d" font-weight="700">From original clauses to independently checked proofs</text>
+<text x="31" y="112" font-family="Arial, sans-serif" font-size="15" fill="#567077">Verified source implications first. No UNSAT claim from an unchecked heuristic.</text>
+<g font-family="Arial, sans-serif">
+<rect x="30" y="156" width="202" height="94" rx="12" fill="#17374b"/>
+<text x="131" y="192" font-size="21" text-anchor="middle" fill="#ffffff" font-weight="700">Original CNF</text>
+<text x="131" y="219" font-size="15" text-anchor="middle" fill="#b8d8df">DIMACS + SHA-256</text>
+<path d="M232 202 H258" stroke="#14695f" stroke-width="3"/>
+<path d="M251 195 L259 202 L251 209" fill="none" stroke="#14695f" stroke-width="3"/>
+<rect x="263" y="156" width="210" height="94" rx="12" fill="#dff0ea" stroke="#a6cbbf"/>
+<text x="368" y="188" font-size="18" fill="#163d40" text-anchor="middle" font-weight="700">Source-clause audit</text>
+<text x="368" y="212" font-size="14" fill="#365e60" text-anchor="middle">groups · BDD edges · roots</text>
+<text x="368" y="232" font-size="13" fill="#365e60" text-anchor="middle">reject unsupported claims</text>
+<path d="M473 202 H498" stroke="#14695f" stroke-width="3"/>
+<path d="M491 195 L499 202 L491 209" fill="none" stroke="#14695f" stroke-width="3"/>
+<rect x="504" y="156" width="234" height="94" rx="12" fill="#dff0ea" stroke="#a6cbbf"/>
+<text x="621" y="187" font-size="18" fill="#163d40" font-weight="700" text-anchor="middle">Structural math</text>
+<text x="621" y="210" font-size="14" fill="#365e60" text-anchor="middle">H9 weighted capacity</text>
+<text x="621" y="231" font-size="14" fill="#365e60" text-anchor="middle">H8 symmetry · H10 Hall cuts</text>
+<path d="M738 202 H762" stroke="#14695f" stroke-width="3"/>
+<path d="M755 195 L763 202 L755 209" fill="none" stroke="#14695f" stroke-width="3"/>
+<rect x="768" y="156" width="140" height="94" rx="12" fill="#17374b"/>
+<text x="838" y="189" font-size="17" fill="#fff" font-weight="700" text-anchor="middle">Proof emitter</text>
+<text x="838" y="213" font-size="14" fill="#b8d8df" text-anchor="middle">RUP / PB lines</text>
+<path d="M908 202 H932" stroke="#14695f" stroke-width="3"/>
+<path d="M925 195 L933 202 L925 209" fill="none" stroke="#14695f" stroke-width="3"/>
+<rect x="938" y="156" width="152" height="94" rx="12" fill="#14695f"/>
+<text x="1014" y="187" font-size="17" fill="#fff" font-weight="700" text-anchor="middle">Independent</text>
+<text x="1014" y="210" font-size="17" fill="#fff" font-weight="700" text-anchor="middle">VeriPB</text>
+<text x="1014" y="233" font-size="14" fill="#d7f5e9" text-anchor="middle">accept / reject</text>
+</g>
+<path d="M620 250 V296" stroke="#a66a44" stroke-dasharray="5 5" stroke-width="2.5"/>
+<path d="M614 287 L620 298 L626 287" stroke="#a66a44" fill="none" stroke-width="2.5"/>
+<rect x="398" y="307" width="450" height="55" rx="9" fill="#fff0e2" stroke="#e0b492"/>
+<text x="623" y="329" font-family="Arial, sans-serif" font-size="17" font-weight="700" text-anchor="middle" fill="#7f4b2b">No structural witness / budget exhausted</text>
+<text x="623" y="350" font-family="Arial, sans-serif" font-size="15" text-anchor="middle" fill="#7f4b2b">UNKNOWN (or fall back to a general solver)</text>
+<path d="M30 394 H1090" stroke="#d0dcd7"/>
+<text x="32" y="422" font-family="Arial, sans-serif" font-size="15" fill="#304b53" font-weight="700">What the evidence supports</text>
+<text x="32" y="445" font-family="Arial, sans-serif" font-size="14" fill="#496970">Archived PCMAX: 11 verified weighted refutations · HYBRID10: synthetic Hall 3 &gt; 2 verified with VeriPB</text>
+<text x="32" y="464" font-family="Arial, sans-serif" font-size="13" fill="#74888f">Other hybrid prototypes may produce structural UNSAT or UNKNOWN without a new standard proof.</text>
+</svg>
