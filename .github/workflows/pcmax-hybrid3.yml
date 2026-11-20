@@ -1,0 +1,56 @@
+name: DRNAS MATH-HYBRID3 Fano MOD3 vs all weighted GF2
+
+on:
+  push:
+    branches:
+      - 'experiment/pcmax-hybrid3-*'
+    paths:
+      - 'research/pcmax_hybrid3/**'
+      - '.github/workflows/pcmax-hybrid3.yml'
+  workflow_dispatch:
+
+jobs:
+  fano-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fresh generated original-to-experiment Fano CNF and RUP proof
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid3/emit.py --kind fano --out hybrid3-fano
+          python3 research/pcmax_hybrid3/emit.py --kind sat-control --out hybrid3-control
+      - name: Source structure, modular contradiction, and SAT tamper controls
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid3/check.py \
+            --cnf hybrid3-fano/source.cnf --certificate hybrid3-fano/certificate.json \
+            | tee hybrid3-fano-check.json
+          grep -q 'UNSAT_MODULAR_STRUCTURAL_CERTIFICATE_VERIFIED' hybrid3-fano-check.json
+          python3 research/pcmax_hybrid3/test.py | tee hybrid3-tests.log
+          grep -Fx 'ALL_TESTS_PASS' hybrid3-tests.log
+      - name: Independently install VeriPB 3.0.2
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version
+      - name: Independent source-CNF UNSAT proof validation
+        run: |
+          set -euo pipefail
+          veripb --cnf hybrid3-fano/source.cnf hybrid3-fano/proof.pbp \
+            2>&1 | tee hybrid3-veripb.log
+          grep -Fx 's VERIFIED UNSATISFIABLE' hybrid3-veripb.log
+      - name: Archive original source, certificate, proof, and audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pcmax-hybrid3-fano-veripb-evidence
+          if-no-files-found: warn
+          path: |
+            hybrid3-fano/
+            hybrid3-control/
+            hybrid3-fano-check.json
+            hybrid3-tests.log
+            hybrid3-veripb.log
