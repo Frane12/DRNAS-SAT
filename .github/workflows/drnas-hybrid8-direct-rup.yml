@@ -1,0 +1,74 @@
+name: DRNAS HYBRID8 direct mathematical RUP audit
+on:
+  push:
+    branches:
+      - experiment/hybrid8-linear-drup-20261120
+    paths:
+      - research/hybrid8/**
+      - .github/workflows/drnas-hybrid8-direct-rup.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  certified-direct-rup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Checkout isolated research branch
+        uses: actions/checkout@v4
+      - name: Build pinned upstream DRAT-trim
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q https://github.com/marijnheule/drat-trim.git /tmp/drat-trim
+          git -C /tmp/drat-trim checkout -q 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+          cc -O2 /tmp/drat-trim/drat-trim.c -o /tmp/drat-trim/drat-trim
+          git -C /tmp/drat-trim rev-parse HEAD
+      - name: Pin and certify mathematically compiled RUP proofs
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd research/hybrid8
+          printf '%s  %s\n' \
+            'c29b2e5aa5ed1e71fbaef528cbfa492877f977ddce757edfae690c34603af09b' 'k4_unsat.cnf' \
+            '200c42c8e4bb5ce5d8b57efcfbed7da0351431e6d36975d9ce8c9c86376b6f0e' 'k4_compiled.drup' \
+            '44777e08e9726c46a7faeafa61ed8e69bd66f772e79fb100ec1d1b5253fdeb6e' 'k12_unsat.cnf' \
+            '7c84b76d6e79323028f55d1f87706d9f0c2bd2a7940f4043c969d72cd34d6f10' 'k12_compiled.drup' \
+            '577018c08523a9838c15ea1c6a15ae9295c434bc0d109ed3acfaf2c143b4bd0a' 'k64_unsat.cnf' \
+            '7bbd07398851a3cd2cf3c3365a80ccb454ee28a0d35e1fcf5e6bea43118ebf33' 'k64_compiled.drup' \
+            | sha256sum -c -
+          for k in 4 12 64; do
+            lines=$(wc -l < k${k}_compiled.drup)
+            expected=$((6*k-9))
+            test "$lines" -eq "$expected"
+            /tmp/drat-trim/drat-trim k${k}_unsat.cnf k${k}_compiled.drup -f | tee /tmp/hybrid8-k${k}.log
+            grep -q 's VERIFIED' /tmp/hybrid8-k${k}.log
+            echo "HYBRID8_EXTERNAL_VERIFIED k=$k steps=$lines"
+          done
+      - name: Explicit SAT counterexample rejects the same proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          src=Path('research/hybrid8/k4_unsat.cnf')
+          rows=src.read_text().splitlines()
+          assert rows[-2:] == ['20 -8 0','-20 8 0']
+          rows[-2:] = ['20 8 0','-20 -8 0']
+          Path('/tmp/k4-sat-control.cnf').write_text('\n'.join(rows)+'\n')
+          n=20
+          vals={v:False for v in range(1,n+1)}
+          for v in [1,5,9,10,11,12,13,14,15,16,17,19]:vals[v]=True
+          # The chosen assignment satisfies each bridge and XOR chain.
+          clauses=[list(map(int,line.split()))[:-1] for line in rows[1:]]
+          if not all(any(vals[abs(lit)]==(lit>0) for lit in c) for c in clauses):
+            raise AssertionError('SAT control model is invalid')
+          print('SAT_CONTROL_MODEL_VERIFIED')
+          PY
+          if /tmp/drat-trim/drat-trim /tmp/k4-sat-control.cnf research/hybrid8/k4_compiled.drup -f > /tmp/hybrid8-negative.log 2>&1; then
+            if grep -q 's VERIFIED' /tmp/hybrid8-negative.log; then
+              echo 'UNSOUND: proof accepted on SAT control' >&2
+              exit 1
+            fi
+          fi
+          echo 'HYBRID8_SAT_NEGATIVE_REJECTED'
