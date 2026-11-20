@@ -1,0 +1,33 @@
+name: DRNAS MATH-HYBRID7 sparse projection on original PCMAX
+
+on:
+  push:
+    branches:
+      - 'experiment/pcmax-hybrid7-*'
+    paths:
+      - 'research/pcmax_hybrid7/**'
+      - '.github/workflows/pcmax-hybrid7.yml'
+  workflow_dispatch:
+
+jobs:
+  source-sparse-transfer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify all 11 actual original PCMAX source CNFs and transfer sparse product
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid7/test.py 2>&1 | tee hybrid7-test.log
+          grep -Fx 'ALL_SAFETY_TESTS_PASS' hybrid7-test.log
+      - name: Preserve per-original statuses and source auditable logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pcmax-hybrid7-original11-sparse-audit
+          if-no-files-found: warn
+          path: |
+            hybrid7-test.log
+            hybrid7-transfer.json
