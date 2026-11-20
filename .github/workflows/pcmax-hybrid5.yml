@@ -1,0 +1,65 @@
+name: DRNAS MATH-HYBRID5 three-machine global configuration compatibility
+
+on:
+  push:
+    branches:
+      - 'experiment/pcmax-hybrid5-*'
+    paths:
+      - 'research/pcmax_hybrid5/**'
+      - '.github/workflows/pcmax-hybrid5.yml'
+  workflow_dispatch:
+
+jobs:
+  global3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate new source-CNF proof and satisfiable control
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid5/emit.py --out hybrid5-unsat | tee hybrid5-manifest.log
+          python3 research/pcmax_hybrid5/emit.py --out hybrid5-sat --control | tee hybrid5-control.log
+
+      - name: Independently audit original source clauses, witnesses and each RUP step
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid5/check.py \
+            --cnf hybrid5-unsat/source.cnf \
+            --certificate hybrid5-unsat/certificate.json \
+            --drup hybrid5-unsat/proof.drup | tee hybrid5-audit.json
+          grep -q '"status": "UNSAT_GLOBAL3_COMPATIBILITY_CONFIRMED"' hybrid5-audit.json
+          grep -q '"status": "ALL_RUP_STEPS_CHECKED"' hybrid5-audit.json
+          python3 research/pcmax_hybrid5/test.py | tee hybrid5-tests.log
+          grep -Fx 'ALL_TESTS_PASS' hybrid5-tests.log
+
+      - name: Install independent VeriPB 3.0.2
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version
+
+      - name: Externally check 301-step refutation against unchanged generated CNF
+        run: |
+          set -euo pipefail
+          veripb --cnf hybrid5-unsat/source.cnf hybrid5-unsat/proof.pbp \
+            2>&1 | tee hybrid5-veripb.log
+          grep -Fx 's VERIFIED UNSATISFIABLE' hybrid5-veripb.log
+
+      - name: Save exact source, witness, control, proof and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pcmax-hybrid5-global3-source-veripb-evidence
+          if-no-files-found: warn
+          path: |
+            hybrid5-unsat/
+            hybrid5-sat/
+            hybrid5-manifest.log
+            hybrid5-control.log
+            hybrid5-audit.json
+            hybrid5-tests.log
+            hybrid5-veripb.log
