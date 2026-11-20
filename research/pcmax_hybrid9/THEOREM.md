@@ -87,9 +87,9 @@ original, it independently calculates the root capacity and compares
 it to the existing source-checked machine capacities and demand.
 
 Because these 11 cases are already known UNSAT with weighted witnesses,
-all should produce a root cut without entering product expansion.
-That confirms correct integration but does not demonstrate transfer
-to NEW or unseen cases. The next useful experiment needs source-frozen
+they provide an integration check rather than a blind test of new
+reasoning. All eleven produced an immediate root cut; no generalization
+to new instances is established by this result. The next useful experiment needs source-frozen
 new cases where the root gap is non-positive but conditional cuts can
 eliminate product states without proof leakage.
 
@@ -100,3 +100,48 @@ algorithm. The number of BDD nodes and reachable quotient multisets
 can be exponential in the original CNF input size or number of
 machines. Detecting the right structure and weights can also be hard.
 Constant-size BDD classes are a limited, structured tractable regime.
+
+
+## Verified implementation results (20 November 2026)
+
+GitHub Actions:
+https://github.com/Frane12/DRNAS-SAT/actions/runs/44711793978
+
+The original archived source-CNF/check-capacity checker and the
+new independent class-wise weighted BDD DP agreed EXACTLY on
+the combined machine bound in all 11 frozen cases:
+
+| Case | Weighted demand D | Machine capacity C | States examined |
+|---|---:|---:|---:|
+| 00 | 16 | 15 | 1 |
+| 02 | 105 | 104 | 1 |
+| 03 | 10000 | 9945 | 1 |
+| 04 | 10000 | 9971 | 1 |
+| 05 | 31 | 30 | 1 |
+| 07 | 1002 | 997 | 1 |
+| 08 | 9996 | 9895 | 1 |
+| 09 | 1002 | 988 | 1 |
+| 10 | 42 | 41 | 1 |
+| 14 | 10001 | 9927 | 1 |
+| 15 | 998 | 990 | 1 |
+
+The old proofs were already independently accepted by VeriPB 3.0.2,
+and this test rechecked their source-backed structural certificates.
+NO NEW standard proof file was emitted by HYBRID9.
+
+Additional synthetic source-backed controls:
+- 10 machines capacity 1, 11 jobs: immediate root cut
+  with capacity 10 < demand 11 (one state rather than 11 in HYBRID8).
+- Same 10 machines, 10 jobs: returns UNKNOWN_ABSTRACT_COMPATIBLE.
+- HYBRID5 UNSAT: 19 states, root weighted bound = demand, so
+  UNSAT from the product (not a root cut).
+- Fano UNSAT: 11 states and 1 conditional capacity cut, versus
+  12 states in the HYBRID8 reference.
+- HYBRID5 and Fano SAT controls: both UNKNOWN without false UNSAT.
+- Source-edge tampering and zero/invalid weights: rejected.
+
+The Fano reduction 12 to 11 states is a valid but small
+practical gain, not a claim of asymptotic superiority.
+The main remaining challenge is to find source-frozen
+nontrivial formulas where the root does NOT separate but
+conditional weighted cuts noticeably shrink the state space.
