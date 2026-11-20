@@ -286,7 +286,7 @@ def quotient(source,cert,max_states=3000,max_seconds=12):
                         }
         if not nxt_layer:
             return {
-                "status":"UNSAT_SOURCE_SYMMETRY_PRODUCT",
+                "status":"UNSAT_SOURCE_WEIGHTED_SYMMETRY_PRODUCT",
                 "processed_groups":i+1,
                 "machine_count":machine_count,
                 "structural_classes":len(classes),
@@ -308,7 +308,7 @@ def quotient(source,cert,max_states=3000,max_seconds=12):
                for group in state):
             accepted+=1
     status=("UNKNOWN_ABSTRACT_COMPATIBLE" if accepted else
-            "UNSAT_SOURCE_SYMMETRY_PRODUCT")
+            "UNSAT_SOURCE_WEIGHTED_SYMMETRY_PRODUCT")
     return {
         "status":status,
         "processed_groups":n,
