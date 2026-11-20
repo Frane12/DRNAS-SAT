@@ -4,6 +4,21 @@ Može li se svaki posao dodijeliti jednom od strojeva tako da svi završe do pet
 
 DRNAS SAT istražuje kada iz same strukture formule možemo izvesti takav dokaz. Istraživanje vodi Frane Drnas. [Naslovnica na engleskom](../README.md) · [Pokus s Fanovom ravninom](#sedam-poslova-u-trojkama) · [Slikovite formule](#slikovite-formule) · [Izvorni kod](../src) · [Pregled izvora i eksperimenata](SOURCE_AUDIT.md)
 
+## Novo u istraživanju · HYBRID6–10 (20. studenoga 2026.)
+
+Povezali smo **simboličke BDD produkte**, **simetriju strojeva**, **ponderirane kapacitete** i **Hallove rezove za ograničene skupine poslova**. Sve su to zasad odvojeni eksperimentalni moduli na GitHub granama. Nije riječ o tvrdnji da su već ugrađeni u glavni C++ solver ili da smo riješili problem P = NP.
+
+| Modul | Provjereni rezultat | Što taj rezultat stvarno znači |
+|---|---|---|
+| **HYBRID6** | VeriPB je prihvatio **401-koračni** dokaz za generirani problem s devet poslova i **233-koračni** dokaz za generiranu Fanovu formulu. | **Sintetičke formule, vanjski verificirani dokazi.** [GitHub test](https://github.com/Frane12/DRNAS-SAT/actions/runs/44706409863) |
+| **HYBRID7 i 8** | Na izvornom PCMAX skupu HYBRID7 je završio s **0/11 novih rješenja** uz granicu 1.000 stanja; HYBRID8 s **0/6** uz granicu 3.000. Zaseban sintetički problem sa simetričnim strojevima HYBRID8 je riješio u **11 stanja**. | **Stvarna ograničenja i uspjeh na konstruiranom primjeru**, bez novog vanjskog dokaza iz HYBRID8. [H7](https://github.com/Frane12/DRNAS-SAT/actions/runs/44708615859) · [H8](https://github.com/Frane12/DRNAS-SAT/actions/runs/44709857869) |
+| **HYBRID9** | Za svih **11 arhiviranih, ranije dokazanih PCMAX UNSAT formula** rekonstruirane su iste ponderirane granice, uz rez u početnom stanju. | **Potvrda integracije**, ne novo otkriće niti dokaz ubrzanja nad Kissatom. [GitHub test](https://github.com/Frane12/DRNAS-SAT/actions/runs/44711793978) |
+| **HYBRID10** | Na generiranom problemu ukupni kapacitet i potražnja jednaki su **10**, ali tri posla mogu na samo dva jedinično kapacitirana stroja: **3 > 2**. VeriPB je prihvatio dokaz veličine **5.742 bajta** na izvornoj sintetičkoj CNF formuli s **272 varijable i 662 klauzule**. | **Sintetički, vanjski verificiran UNSAT.** Zadovoljiva kontrola smanjena je s **27 na 11** dosegnutih stanja, bez pogrešnog proglašavanja UNSAT. [Dokaz i logovi](https://github.com/Frane12/DRNAS-SAT/actions/runs/44713058817) |
+
+![Na dvama različitim sintetičkim primjerima ponderirani i Hallovi rezovi smanjili su broj pregledanih produktnih stanja.](figures/hybrid-state-comparisons.svg)
+
+**Grafovi prikazuju različite generirane formule.** Nisu mjerenja ubrzanja na istim stvarnim PCMAX ulazima. Za opću CNF formulu BDD i dalje može imati eksponencijalno mnogo stanja. [Detaljan dnevnik matematičkih metoda, dokaza i provjera](HYBRID_RESEARCH_UPDATE_2026-11-20.md).
+
 ## Kako se 31 i 30 pojave iz stvarne formule?
 
 ![Težinska potražnja od 31 nadilazi ukupni težinski kapacitet od 30.](figures/pcmax-capacity.svg)
@@ -165,6 +180,12 @@ Svaka metoda imala je 24 pokušaja. Uspješan pokušaj plaća svoje vrijeme do k
 $$\mathrm{PAR2}_{\rm zbroj}=\sum_{i\in V}t_i+2T(24-|V|)=6{,}250680+16\cdot16=262{,}250680\ \mathrm{s}.$$
 
 Od ukupnog rezultata **256 sekundi** potječe iz kazni za 16 pokušaja. Tako se na istom grafu vidi i cijena neriješenih formula. [Svi rezultati za mixed12](../evidence/ci/xorlin-mixed12.json)
+
+## Put od izvorne formule do dokaza
+
+![Od izvorne CNF formule i provjerene BDD strukture, preko matematičkih rezova i generatora dokaza, do neovisnog VeriPB provjerivača.](figures/proof-aware-pipeline.svg)
+
+Strukturni modul može zaključiti UNSAT ili vratiti **UNKNOWN**. Za vanjski verificiran UNSAT nije dovoljan samo zaključak našeg koda: dokaz moraju prihvatiti neovisni provjerivači kao što je VeriPB. U novom HYBRID10 takva potvrda postoji za **generirani Hallov primjer**, dok su prethodni dokazi na stvarnim PCMAX formulama zasebno arhivirani i potvrđeni.
 
 ## Sam provjeri dokaz
 
