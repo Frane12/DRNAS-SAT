@@ -2,7 +2,7 @@
 
 Može li se svaki posao dodijeliti jednom od strojeva tako da svi završe do petka? Takvo se pitanje može zapisati nizom uvjeta. Primjerice, posao mora dobiti stroj, a svaki stroj ima granicu opterećenja. Kada uvjete zapišemo kao Booleovu formulu, SAT solver traži raspored koji zadovoljava sve uvjete. Jedan valjan raspored dovoljan je za odgovor **SAT**. Za **UNSAT** treba obrazložiti zašto svaki mogući raspored krši barem jedan uvjet.
 
-DRNAS SAT istražuje kada iz same strukture formule možemo izvesti takav dokaz. Istraživanje vodi Frane Drnas. [Naslovnica na engleskom](../README.md) · [Slikovite formule](#slikovite-formule) · [Izvorni kod](../src) · [Pregled izvora i eksperimenata](SOURCE_AUDIT.md)
+DRNAS SAT istražuje kada iz same strukture formule možemo izvesti takav dokaz. Istraživanje vodi Frane Drnas. [Naslovnica na engleskom](../README.md) · [Pokus s Fanovom ravninom](#sedam-poslova-u-trojkama) · [Slikovite formule](#slikovite-formule) · [Izvorni kod](../src) · [Pregled izvora i eksperimenata](SOURCE_AUDIT.md)
 
 ## Kako se 31 i 30 pojave iz stvarne formule?
 
@@ -15,6 +15,27 @@ Označimo s $W$ ukupnu dokaznu težinu dodijeljenih poslova iz odabranih skupina
 $$31 = 11(2)+9(1)  \le W \le  2(0)+3(1)+6(2)+3(5) = 30.$$
 
 Akram i Schreiber objavili su ishod m14 još 2024. Ovdje se može proučiti drukčiji put do njega, sve do pojedinih klauzula i formalnog certifikata od 557.597 bajtova. Na 20 već proučavanih PCMAX formula VeriPB je prihvatio 11 dokaza. Preostalih devet bile su kontrole označene kao SAT. Strukturni modul na svih je devet vratio UNKNOWN. [Tablica I izvornog rada](https://dominikschreiber.de/papers/2024-isc-pcmax.pdf) · [Registar svih 11 dokaza](VERIFIED_PROOF_REGISTRY.md)
+
+## Sedam poslova u trojkama
+
+U pokusu MATH-HYBRID3 generirali smo formulu u kojoj svaki od sedam poslova mora pripasti točno jednom od tri stroja. Stroj može ostati prazan ili preuzeti jednu od sedam trojki prikazanih u Fanovoj ravnini. Svaka crta na slici, uključujući kružnicu, spaja tri posla.
+
+![Sedam poslova u Fanovoj ravnini. Tri istaknuta pravca prolaze kroz posao 0. Na brojevnom pravcu sedam pada između višekratnika broja tri, šest i devet.](figures/fano-mod3.svg)
+
+Zamisli da svakom stroju dodijelimo po jednu od tri istaknute trojke. Posao 0 pojavio bi se triput, a svaki drugi posao jednom. Svaki se posao pojavljuje neparan broj puta pa sama provjera pariteta propušta ponavljanje. Brojanje po tri daje proturječje za **svaki** izbor trojki. Svaki stroj prima 0 ili 3 posla pa zbroj mora biti 0, 3, 6 ili 9. Istodobno mora biti točno **7**. [Konstrukcija i izvod](https://github.com/Frane12/DRNAS-SAT/blob/aad2fb20f5f68bcfec42490dc928ae0a58db74fa/research/pcmax_hybrid3/THEOREM.md)
+
+VeriPB 3.0.2 prihvatio je 20. studenoga 2026. dva RUP dokaza za istu formulu sa 135 varijabli i 253 klauzule. Prvi je imao **3.280 dokaznih koraka**. Kad granu prekinemo čim za jedan stroj više nema dopuštene dopune, dokaz se skrati na **175 koraka**. [Generator kraćeg dokaza](https://github.com/Frane12/DRNAS-SAT/blob/aad2fb20f5f68bcfec42490dc928ae0a58db74fa/research/pcmax_hybrid3/emit_compact.py) · [Neovisna provjera obaju dokaza](https://github.com/Frane12/DRNAS-SAT/actions/runs/44699265702/job/136163392115)
+
+<details>
+<summary><strong>A što ako imamo šest poslova? Dokaz u 31 koraku</strong></summary>
+
+U drugom generiranom pokusu, MATH-HYBRID4, dva stroja trebaju preuzeti šest poslova. Po tri posla na svakom stroju daju točan zbroj. No trojke moraju biti i disjunktne, odnosno ne smiju dijeliti nijedan posao. Svako polje matrice pokazuje koliko je poslova zajedničko dvjema dopuštenim trojkama. Za valjan raspored treba nam nula. U svakom je polju barem jedan.
+
+![Sedam dopuštenih trojki uz matricu njihovih presjeka. Svaki par dijeli barem jedan posao.](figures/exact-cover-overlap.svg)
+
+VeriPB je prihvatio **RUP dokaz u 31 koraku**. Kad smo dodali trojku koja je točna dopuna jedne postojeće trojke, dobili smo provjerenu SAT dodjelu koja zadovoljava svih 146 klauzula kontrolne formule. [Dopuštene trojke i izvod](https://github.com/Frane12/DRNAS-SAT/blob/5784445ebce127f4010f7ae1283ec685451369c1/research/pcmax_hybrid4/THEOREM.md) · [Provjera dokaza i SAT kontrole](https://github.com/Frane12/DRNAS-SAT/actions/runs/44701505078/job/136170741240)
+
+</details>
 
 ## Što smo naučili iz bojanja grafova?
 

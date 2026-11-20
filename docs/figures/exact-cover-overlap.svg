@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="478" height="251" viewBox="0 0 478 251" role="img" aria-labelledby="title desc">
+  <title id="title">Allowed job triples and their pairwise overlaps</title>
+  <desc id="desc">The list gives the jobs in each of the seven triples. Cell i,j counts the jobs shared by those two triples. The diagonal is three and every other cell is one or two.</desc>
+  <rect x="0.5" y="0.5" width="477" height="250" rx="12" fill="#f8f6ef" stroke="#d8ded8"/>
+  <path d="M163 16 V235" stroke="#cbd4cf"/>
+  <g font-family="Arial, DejaVu Sans, sans-serif" font-size="17" fill="#152d40">
+    <text x="29" y="59" font-weight="700">E0</text>
+    <text x="67" y="59">{0, 1, 5}</text>
+    <text x="29" y="87" font-weight="700">E1</text>
+    <text x="67" y="87">{0, 2, 3}</text>
+    <text x="29" y="115" font-weight="700">E2</text>
+    <text x="67" y="115">{0, 2, 4}</text>
+    <text x="29" y="143" font-weight="700">E3</text>
+    <text x="67" y="143">{1, 3, 4}</text>
+    <text x="29" y="171" font-weight="700">E4</text>
+    <text x="67" y="171">{1, 2, 5}</text>
+    <text x="29" y="199" font-weight="700">E5</text>
+    <text x="67" y="199">{0, 3, 5}</text>
+    <text x="29" y="227" font-weight="700">E6</text>
+    <text x="67" y="227">{1, 2, 3}</text>
+  </g>
+  <g font-family="Arial, DejaVu Sans, sans-serif" font-size="16" font-weight="700" text-anchor="middle" fill="#526879">
+    <text x="234" y="30">E0</text>
+    <text x="269" y="30">E1</text>
+    <text x="304" y="30">E2</text>
+    <text x="339" y="30">E3</text>
+    <text x="374" y="30">E4</text>
+    <text x="409" y="30">E5</text>
+    <text x="444" y="30">E6</text>
+    <text x="199" y="59" fill="#526879">E0</text>
+    <g data-pair="0 0" data-overlap="3"><rect x="219" y="41" width="30" height="24" rx="4" fill="#116a62"/><text x="234" y="59" fill="#fff">3</text></g>
+    <g data-pair="0 1" data-overlap="1"><rect x="254" y="41" width="30" height="24" rx="4" fill="#e0eee8"/><text x="269" y="59" fill="#152d40">1</text></g>
+    <g data-pair="0 2" data-overlap="1"><rect x="289" y="41" width="30" height="24" rx="4" fill="#e0eee8"/><text x="304" y="59" fill="#152d40">1</text></g>
+    <g data-pair="0 3" data-overlap="1"><rect x="324" y="41" width="30" height="24" rx="4" fill="#e0eee8"/><text x="339" y="59" fill="#152d40">1</text></g>
+    <g data-pair="0 4" data-overlap="2"><rect x="359" y="41" width="30" height="24" rx="4" fill="#aed7ca"/><text x="374" y="59" fill="#152d40">2</text></g>
+    <g data-pair="0 5" data-overlap="2"><rect x="394" y="41" width="30" height="24" rx="4" fill="#aed7ca"/><text x="409" y="59" fill="#152d40">2</text></g>
+    <g data-pair="0 6" data-overlap="1"><rect x="429" y="41" width="30" height="24" rx="4" fill="#e0eee8"/><text x="444" y="59" fill="#152d40">1</text></g>
+    <text x="199" y="87" fill="#526879">E1</text>
+    <g data-pair="1 0" data-overlap="1"><rect x="219" y="69" width="30" height="24" rx="4" fill="#e0eee8"/><text x="234" y="87" fill="#152d40">1</text></g>
+    <g data-pair="1 1" data-overlap="3"><rect x="254" y="69" width="30" height="24" rx="4" fill="#116a62"/><text x="269" y="87" fill="#fff">3</text></g>
+    <g data-pair="1 2" data-overlap="2"><rect x="289" y="69" width="30" height="24" rx="4" fill="#aed7ca"/><text x="304" y="87" fill="#152d40">2</text></g>
+    <g data-pair="1 3" data-overlap="1"><rect x="324" y="69" width="30" height="24" rx="4" fill="#e0eee8"/><text x="339" y="87" fill="#152d40">1</text></g>
+    <g data-pair="1 4" data-overlap="1"><rect x="359" y="69" width="30" height="24" rx="4" fill="#e0eee8"/><text x="374" y="87" fill="#152d40">1</text></g>
+    <g data-pair="1 5" data-overlap="2"><rect x="394" y="69" width="30" height="24" rx="4" fill="#aed7ca"/><text x="409" y="87" fill="#152d40">2</text></g>
+    <g data-pair="1 6" data-overlap="2"><rect x="429" y="69" width="30" height="24" rx="4" fill="#aed7ca"/><text x="444" y="87" fill="#152d40">2</text></g>
+    <text x="199" y="115" fill="#526879">E2</text>
+    <g data-pair="2 0" data-overlap="1"><rect x="219" y="97" width="30" height="24" rx="4" fill="#e0eee8"/><text x="234" y="115" fill="#152d40">1</text></g>
+    <g data-pair="2 1" data-overlap="2"><rect x="254" y="97" width="30" height="24" rx="4" fill="#aed7ca"/><text x="269" y="115" fill="#152d40">2</text></g>
+    <g data-pair="2 2" data-overlap="3"><rect x="289" y="97" width="30" height="24" rx="4" fill="#116a62"/><text x="304" y="115" fill="#fff">3</text></g>
+    <g data-pair="2 3" data-overlap="1"><rect x="324" y="97" width="30" height="24" rx="4" fill="#e0eee8"/><text x="339" y="115" fill="#152d40">1</text></g>
+    <g data-pair="2 4" data-overlap="1"><rect x="359" y="97" width="30" height="24" rx="4" fill="#e0eee8"/><text x="374" y="115" fill="#152d40">1</text></g>
+    <g data-pair="2 5" data-overlap="1"><rect x="394" y="97" width="30" height="24" rx="4" fill="#e0eee8"/><text x="409" y="115" fill="#152d40">1</text></g>
+    <g data-pair="2 6" data-overlap="1"><rect x="429" y="97" width="30" height="24" rx="4" fill="#e0eee8"/><text x="444" y="115" fill="#152d40">1</text></g>
+    <text x="199" y="143" fill="#526879">E3</text>
+    <g data-pair="3 0" data-overlap="1"><rect x="219" y="125" width="30" height="24" rx="4" fill="#e0eee8"/><text x="234" y="143" fill="#152d40">1</text></g>
+    <g data-pair="3 1" data-overlap="1"><rect x="254" y="125" width="30" height="24" rx="4" fill="#e0eee8"/><text x="269" y="143" fill="#152d40">1</text></g>
+    <g data-pair="3 2" data-overlap="1"><rect x="289" y="125" width="30" height="24" rx="4" fill="#e0eee8"/><text x="304" y="143" fill="#152d40">1</text></g>
+    <g data-pair="3 3" data-overlap="3"><rect x="324" y="125" width="30" height="24" rx="4" fill="#116a62"/><text x="339" y="143" fill="#fff">3</text></g>
+    <g data-pair="3 4" data-overlap="1"><rect x="359" y="125" width="30" height="24" rx="4" fill="#e0eee8"/><text x="374" y="143" fill="#152d40">1</text></g>
+    <g data-pair="3 5" data-overlap="1"><rect x="394" y="125" width="30" height="24" rx="4" fill="#e0eee8"/><text x="409" y="143" fill="#152d40">1</text></g>
+    <g data-pair="3 6" data-overlap="2"><rect x="429" y="125" width="30" height="24" rx="4" fill="#aed7ca"/><text x="444" y="143" fill="#152d40">2</text></g>
+    <text x="199" y="171" fill="#526879">E4</text>
+    <g data-pair="4 0" data-overlap="2"><rect x="219" y="153" width="30" height="24" rx="4" fill="#aed7ca"/><text x="234" y="171" fill="#152d40">2</text></g>
+    <g data-pair="4 1" data-overlap="1"><rect x="254" y="153" width="30" height="24" rx="4" fill="#e0eee8"/><text x="269" y="171" fill="#152d40">1</text></g>
+    <g data-pair="4 2" data-overlap="1"><rect x="289" y="153" width="30" height="24" rx="4" fill="#e0eee8"/><text x="304" y="171" fill="#152d40">1</text></g>
+    <g data-pair="4 3" data-overlap="1"><rect x="324" y="153" width="30" height="24" rx="4" fill="#e0eee8"/><text x="339" y="171" fill="#152d40">1</text></g>
+    <g data-pair="4 4" data-overlap="3"><rect x="359" y="153" width="30" height="24" rx="4" fill="#116a62"/><text x="374" y="171" fill="#fff">3</text></g>
+    <g data-pair="4 5" data-overlap="1"><rect x="394" y="153" width="30" height="24" rx="4" fill="#e0eee8"/><text x="409" y="171" fill="#152d40">1</text></g>
+    <g data-pair="4 6" data-overlap="2"><rect x="429" y="153" width="30" height="24" rx="4" fill="#aed7ca"/><text x="444" y="171" fill="#152d40">2</text></g>
+    <text x="199" y="199" fill="#526879">E5</text>
+    <g data-pair="5 0" data-overlap="2"><rect x="219" y="181" width="30" height="24" rx="4" fill="#aed7ca"/><text x="234" y="199" fill="#152d40">2</text></g>
+    <g data-pair="5 1" data-overlap="2"><rect x="254" y="181" width="30" height="24" rx="4" fill="#aed7ca"/><text x="269" y="199" fill="#152d40">2</text></g>
+    <g data-pair="5 2" data-overlap="1"><rect x="289" y="181" width="30" height="24" rx="4" fill="#e0eee8"/><text x="304" y="199" fill="#152d40">1</text></g>
+    <g data-pair="5 3" data-overlap="1"><rect x="324" y="181" width="30" height="24" rx="4" fill="#e0eee8"/><text x="339" y="199" fill="#152d40">1</text></g>
+    <g data-pair="5 4" data-overlap="1"><rect x="359" y="181" width="30" height="24" rx="4" fill="#e0eee8"/><text x="374" y="199" fill="#152d40">1</text></g>
+    <g data-pair="5 5" data-overlap="3"><rect x="394" y="181" width="30" height="24" rx="4" fill="#116a62"/><text x="409" y="199" fill="#fff">3</text></g>
+    <g data-pair="5 6" data-overlap="1"><rect x="429" y="181" width="30" height="24" rx="4" fill="#e0eee8"/><text x="444" y="199" fill="#152d40">1</text></g>
+    <text x="199" y="227" fill="#526879">E6</text>
+    <g data-pair="6 0" data-overlap="1"><rect x="219" y="209" width="30" height="24" rx="4" fill="#e0eee8"/><text x="234" y="227" fill="#152d40">1</text></g>
+    <g data-pair="6 1" data-overlap="2"><rect x="254" y="209" width="30" height="24" rx="4" fill="#aed7ca"/><text x="269" y="227" fill="#152d40">2</text></g>
+    <g data-pair="6 2" data-overlap="1"><rect x="289" y="209" width="30" height="24" rx="4" fill="#e0eee8"/><text x="304" y="227" fill="#152d40">1</text></g>
+    <g data-pair="6 3" data-overlap="2"><rect x="324" y="209" width="30" height="24" rx="4" fill="#aed7ca"/><text x="339" y="227" fill="#152d40">2</text></g>
+    <g data-pair="6 4" data-overlap="2"><rect x="359" y="209" width="30" height="24" rx="4" fill="#aed7ca"/><text x="374" y="227" fill="#152d40">2</text></g>
+    <g data-pair="6 5" data-overlap="1"><rect x="394" y="209" width="30" height="24" rx="4" fill="#e0eee8"/><text x="409" y="227" fill="#152d40">1</text></g>
+    <g data-pair="6 6" data-overlap="3"><rect x="429" y="209" width="30" height="24" rx="4" fill="#116a62"/><text x="444" y="227" fill="#fff">3</text></g>
+  </g>
+</svg>
