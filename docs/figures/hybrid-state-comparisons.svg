@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="575" viewBox="0 0 1100 575" role="img" aria-labelledby="chart-title chart-desc">
+<title id="chart-title">Two source-checked synthetic examples where BDD pruning reduced reachable search states</title>
+<desc id="chart-desc">Panel A: ten capacity-one machines and eleven jobs: HYBRID8 11 states versus HYBRID9 1 state, UNSAT. Panel B: separate satisfiable control with ten machines and two jobs restricted to two machines: HYBRID8 27 states versus HYBRID10 11 states, both return UNKNOWN. Different test instances, not real PCMAX benchmark speed comparisons.</desc>
+<rect width="1100" height="575" fill="#11273b"/>
+<rect width="8" height="575" fill="#6ce4cd"/>
+<text x="39" y="48" font-family="Arial, sans-serif" font-size="16" fill="#6ce4cd" font-weight="700" letter-spacing="2">DRNAS SAT  /  STRUCTURAL EXPERIMENTS</text>
+<text x="39" y="94" font-family="Arial, sans-serif" font-size="35" fill="#f5f6ed" font-weight="700">Fewer reachable search states</text>
+<text x="40" y="126" font-family="Arial, sans-serif" font-size="16" fill="#b9ccd3">Two different synthetic source-CNF examples · counts are visited product states</text>
+<rect x="36" y="157" width="505" height="329" rx="15" fill="#1b3548" stroke="#3a5463"/>
+<rect x="558" y="157" width="505" height="329" rx="15" fill="#1b3548" stroke="#3a5463"/>
+<text x="59" y="193" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#6ce4cd" letter-spacing="1.4">A  /  ROOT WEIGHTED CUT</text>
+<text x="59" y="226" font-family="Arial, sans-serif" font-size="19" font-weight="700" fill="#f5f6ed">11 jobs · 10 machines · UNSAT</text>
+<text x="59" y="252" font-family="Arial, sans-serif" font-size="14" fill="#b9ccd3">One job per machine; total demand 11, capacity 10</text>
+<text x="59" y="310" font-family="Arial, sans-serif" font-size="17" fill="#e1ebeb">HYBRID8</text>
+<rect x="177" y="290" width="297" height="29" rx="6" fill="#8ea4b2"/>
+<text x="486" y="311" font-family="monospace" font-size="20" fill="#f5f6ed" font-weight="700">11</text>
+<text x="59" y="369" font-family="Arial, sans-serif" font-size="17" fill="#e1ebeb">HYBRID9</text>
+<rect x="177" y="349" width="27" height="29" rx="6" fill="#6ce4cd"/>
+<text x="220" y="371" font-family="monospace" font-size="20" fill="#6ce4cd" font-weight="700">1</text>
+<text x="59" y="426" font-family="Arial, sans-serif" font-size="23" font-weight="700" fill="#6ce4cd">Immediate UNSAT at root</text>
+<text x="59" y="455" font-family="Arial, sans-serif" font-size="14" fill="#b9ccd3">No new benchmark discovery</text>
+<text x="582" y="193" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#6ce4cd" letter-spacing="1.4">B  /  RESTRICTED-GROUP HALL CUT</text>
+<text x="582" y="226" font-family="Arial, sans-serif" font-size="19" font-weight="700" fill="#f5f6ed">10 jobs · restricted SAT control</text>
+<text x="582" y="252" font-family="Arial, sans-serif" font-size="14" fill="#b9ccd3">Two jobs restricted to two capacity-one machines</text>
+<text x="582" y="310" font-family="Arial, sans-serif" font-size="17" fill="#e1ebeb">HYBRID8</text>
+<rect x="700" y="290" width="297" height="29" rx="6" fill="#8ea4b2"/>
+<text x="1009" y="311" font-family="monospace" font-size="20" fill="#f5f6ed" font-weight="700">27</text>
+<text x="582" y="369" font-family="Arial, sans-serif" font-size="17" fill="#e1ebeb">HYBRID10</text>
+<rect x="700" y="349" width="121" height="29" rx="6" fill="#6ce4cd"/>
+<text x="834" y="371" font-family="monospace" font-size="20" fill="#6ce4cd" font-weight="700">11</text>
+<text x="582" y="426" font-family="Arial, sans-serif" font-size="23" font-weight="700" fill="#6ce4cd">7 partial states pruned</text>
+<text x="582" y="455" font-family="Arial, sans-serif" font-size="14" fill="#b9ccd3">Returned UNKNOWN, not a false UNSAT</text>
+<path d="M40 516 H1060" stroke="#446275" stroke-width="1"/>
+<text x="40" y="538" font-family="Arial, sans-serif" font-size="14" fill="#b9ccd3">Source-backed structural tests · GitHub Actions: HYBRID8, HYBRID9, HYBRID10</text>
+<text x="40" y="559" font-family="Arial, sans-serif" font-size="13" fill="#95aeb9">These are different generated examples; no general SAT complexity or real-benchmark speedup is implied.</text>
+</svg>
