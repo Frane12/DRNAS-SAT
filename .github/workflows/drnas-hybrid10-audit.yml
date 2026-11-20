@@ -1,0 +1,62 @@
+name: DRNAS HYBRID10 independent VeriPB three-theory audit
+on:
+  push:
+    branches:
+      - experiment/hybrid10-veripb-three-theory-20261120
+    paths:
+      - research/hybrid10/**
+      - .github/workflows/drnas-hybrid10-audit.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  veripb-source-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate exactly pinned hybrid9 graph inputs
+        run: python3 research/hybrid10/generate_cases.py /tmp/hybrid10
+      - name: Install independent official VeriPB 3.0.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --help | head -12
+      - name: Source-bound hybrid proof generation and strict external verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          for n in 4 6 8; do
+            python3 research/hybrid10/emit_veripb_three_theory.py --cnf "/tmp/hybrid10/graph$n.cnf" --output "/tmp/hybrid10/graph$n.pbp" --meta "/tmp/hybrid10/graph$n.json"
+            veripb --cnf "/tmp/hybrid10/graph$n.cnf" "/tmp/hybrid10/graph$n.pbp" | tee "/tmp/hybrid10/graph$n-veripb.log"
+            grep -q 's VERIFIED UNSATISFIABLE' "/tmp/hybrid10/graph$n-veripb.log"
+            echo "EXTERNALLY_VERIFIED n=$n"
+          done
+      - name: Fail closed on source mutations and SAT controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 research/hybrid10/emit_veripb_three_theory.py --cnf /tmp/hybrid10/graph6-sat.cnf --output /tmp/hybrid10/bad.pbp && exit 1 || status=$?
+          test "$status" -eq 2
+          test ! -f /tmp/hybrid10/bad.pbp
+          python3 - <<'PY'
+          from pathlib import Path
+          orig=Path('/tmp/hybrid10/graph6.cnf').read_text()
+          rows=orig.splitlines()
+          for key,check in [('amo',lambda s:s=='-1 -2 0'),('equality',lambda s:s=='-14 1 0')]:
+              new=rows.copy()
+              idx=next(i for i,s in enumerate(new) if check(s))
+              del new[idx]
+              parts=new[0].split();parts[3]=str(int(parts[3])-1)
+              new[0]=' '.join(parts)
+              Path('/tmp/hybrid10/removed-'+key+'.cnf').write_text('\n'.join(new)+'\n')
+          PY
+          for mode in amo equality; do
+            if python3 research/hybrid10/emit_veripb_three_theory.py --cnf "/tmp/hybrid10/removed-$mode.cnf" --output "/tmp/hybrid10/removed-$mode.pbp"; then
+              echo "INVALID: mutated source accepted" >&2
+              exit 1
+            fi
+            test ! -f "/tmp/hybrid10/removed-$mode.pbp"
+            echo "SOURCE_MUTATION_REJECTED $mode"
+          done
