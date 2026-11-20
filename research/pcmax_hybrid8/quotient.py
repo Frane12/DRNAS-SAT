@@ -165,8 +165,8 @@ def quotient(source,cert,max_states=3000,max_seconds=12):
                     if valid:
                         nxt_layer.add(tuple(per_class))
                     valid=True
-                    if visited+len(nxt_layer)>max_states or
-                       time.perf_counter()-start>max_seconds:
+                    if (visited+len(nxt_layer)>max_states or
+                        time.perf_counter()-start>max_seconds):
                         return {
                             "status":"UNKNOWN_RESOURCE_LIMIT",
                             "processed_groups":i+1,
