@@ -140,7 +140,7 @@ def quotient(source,cert,max_states=3000,max_seconds=12):
     if len(w)!=n or any(type(x)!=int or x<1 for x in w):
         raise Unsupported("invalid positive integer group weights")
     capacities=weighted_bounds(classes,canon,cert["machines"],meta["machines"],w)
-    remaining=[sum(w[i:]) for i in range(n+1)]
+    demand_suffix=[sum(w[i:]) for i in range(n+1)]
     require_limits=type(max_states)==int and max_states>0 and max_seconds>0
     if not require_limits:
         raise Unsupported("invalid state/time limits")
@@ -196,14 +196,14 @@ def quotient(source,cert,max_states=3000,max_seconds=12):
         return total
 
     root_bound=state_capacity(initial,0)
-    if root_bound is None or root_bound<remaining[0]:
+    if root_bound is None or root_bound<demand_suffix[0]:
         return {
             "status":"UNSAT_SOURCE_WEIGHTED_ROOT_CUT",
             "processed_groups":0,
             "machine_count":machine_count,
             "structural_classes":len(classes),
             "root_capacity":root_bound,
-            "required_demand":remaining[0],
+            "required_demand":demand_suffix[0],
             "product_states":1,
             "cut_states":1,
             "source_sha256":cert["source_sha256"],
@@ -265,7 +265,7 @@ def quotient(source,cert,max_states=3000,max_seconds=12):
                     if valid:
                         candidate=tuple(per_class)
                         upper=state_capacity(candidate,i+1)
-                        if upper is None or upper<remaining[i+1]:
+                        if upper is None or upper<demand_suffix[i+1]:
                             cut_states+=1
                         else:
                             nxt_layer.add(candidate)
@@ -282,7 +282,7 @@ def quotient(source,cert,max_states=3000,max_seconds=12):
                             "max_states":max_states,
                             "cut_states":cut_states,
                             "root_capacity":root_bound,
-                            "required_demand":remaining[0],
+                            "required_demand":demand_suffix[0],
                         }
         if not nxt_layer:
             return {
@@ -297,7 +297,7 @@ def quotient(source,cert,max_states=3000,max_seconds=12):
                 "external_veripb_proof":"NOT_EMITTED",
                 "cut_states":cut_states,
                 "root_capacity":root_bound,
-                "required_demand":remaining[0]
+                "required_demand":demand_suffix[0]
             }
         visited+=len(nxt_layer)
         maximum=max(maximum,len(nxt_layer))
@@ -324,7 +324,7 @@ def quotient(source,cert,max_states=3000,max_seconds=12):
         "external_veripb_proof":"NOT_EMITTED",
         "cut_states":cut_states,
         "root_capacity":root_bound,
-        "required_demand":remaining[0],
+        "required_demand":demand_suffix[0],
     }
 
 if __name__=="__main__":
