@@ -1,0 +1,50 @@
+name: HYBRID5 DRAT-trim audit (experiment only)
+
+on:
+  push:
+    branches:
+      - experiment/hybrid5-ipg7b-drat-audit-20261120
+    paths:
+      - research/hybrid5/ipg7b-weighted-trimmed.drup
+      - .github/workflows/drnas-hybrid5-drat.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify-ipg7b:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout isolated research branch
+        uses: actions/checkout@v4
+      - name: Install independent DRAT-trim
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          if ! sudo apt-get install -y drat-trim; then
+            git clone --depth 1 https://github.com/marijnheule/drat-trim.git /tmp/drat-trim
+            cc -O2 /tmp/drat-trim/drat-trim.c -o /usr/local/bin/drat-trim
+          fi
+          command -v drat-trim
+      - name: Check original CNF and pinned proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s  %s\n' '414528905beec316e58b8c81f3e5592534eb18fbad97eceb6da5ab73577217ce' 'research/hybrid5/ipg7b-weighted-trimmed.drup' | sha256sum -c -
+          grep '^p cnf 45 300' evidence/ipg7b-petersen/original.cnf
+          drat-trim evidence/ipg7b-petersen/original.cnf research/hybrid5/ipg7b-weighted-trimmed.drup -f | tee drat-valid.log
+          grep -qi 'VERIFIED' drat-valid.log
+      - name: Negative control on weakened SAT formula
+        shell: bash
+        run: |
+          set -euo pipefail
+          awk 'BEGIN {i=0} /^c/ {next} /^p cnf/ {print "p cnf 45 60";next} {if (++i<=60) print}' evidence/ipg7b-petersen/original.cnf > /tmp/ipg7b-jobs-only.cnf
+          if drat-trim /tmp/ipg7b-jobs-only.cnf research/hybrid5/ipg7b-weighted-trimmed.drup -f > /tmp/drat-invalid.log 2>&1; then
+            if grep -qi 'VERIFIED' /tmp/drat-invalid.log; then
+              echo 'ERROR: weaker SAT source unexpectedly verified' >&2
+              exit 1
+            fi
+          fi
+          echo 'Negative control not verified, as required'
