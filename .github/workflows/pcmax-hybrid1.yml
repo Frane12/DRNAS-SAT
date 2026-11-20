@@ -1,0 +1,48 @@
+name: DRNAS PCMAX HYBRID1 source-verified GF2 conditioned capacities
+
+on:
+  push:
+    branches:
+      - 'experiment/pcmax-hybrid1-*'
+    paths:
+      - 'research/pcmax_hybrid1/**'
+      - '.github/workflows/pcmax-hybrid1.yml'
+  workflow_dispatch:
+
+jobs:
+  structural-hybrid:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python source-level proof audit and negative controls
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid1/test.py 2>&1 | tee hybrid1-test.log
+          grep -Fx 'ALL_TESTS_PASS' hybrid1-test.log
+      - name: Generate stable artifact on an independent invocation
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid1/emit.py --out hybrid1-generated
+          python3 research/pcmax_hybrid1/check.py \
+            --cnf hybrid1-generated/source_atmost.cnf \
+            --certificate hybrid1-generated/certificate.json \
+            --expect UNSAT | tee hybrid1-structural.json
+      - name: Recheck archived original m14 VeriPB proof
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_capacity/check_capacity.py \
+            evidence/pcmax-weighted2/05/original.cnf \
+            evidence/pcmax-weighted2/05/capacity.json
+      - name: Preserve result, source and witness
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pcmax-hybrid1-structural-audit
+          if-no-files-found: warn
+          path: |
+            hybrid1-generated/
+            hybrid1-test.log
+            hybrid1-structural.json
