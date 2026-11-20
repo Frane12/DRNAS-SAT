@@ -1,0 +1,59 @@
+name: DRNAS HYBRID6 multi-theory source + DRAT audit
+
+on:
+  push:
+    branches:
+      - experiment/hybrid6-mixed-proof-audit-20261120
+    paths:
+      - research/hybrid6/**
+      - .github/workflows/drnas-hybrid6-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hybrid6-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Independently verify source-bound XOR, clique and mixed witnesses
+        run: python3 research/hybrid6/verify_source.py
+      - name: Verify explicit SAT model for mixed control
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          source=Path('research/hybrid6/mixed8-sat-control.cnf').read_text()
+          clauses=[[int(x) for x in l.split()[:-1]] for l in source.splitlines() if l and l[0] not in 'cp']
+          values={i:(i==1 or i>=9) for i in range(1,15)}
+          assert len(clauses)==55
+          assert all(any(values[abs(l)]==(l>0) for l in clause) for clause in clauses)
+          print('SAT_CONTROL_MODEL_VERIFIED')
+          PY
+      - name: Install independent upstream DRAT-trim
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/marijnheule/drat-trim.git /tmp/drat-trim
+          cc -O2 /tmp/drat-trim/drat-trim.c -o /tmp/drat-trim/drat-trim
+          git -C /tmp/drat-trim rev-parse HEAD
+      - name: Verify source DRUP refutation with DRAT-trim
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s  %s\n' 'c2c24181302f46592034e61416ea5aed3019845d1e7ea3da43103a75e6e1c66f' 'research/hybrid6/mixed8-unsat.drup' | sha256sum -c -
+          /tmp/drat-trim/drat-trim research/hybrid6/mixed8-unsat.cnf research/hybrid6/mixed8-unsat.drup -f | tee /tmp/hybrid6-valid.log
+          grep -q 's VERIFIED' /tmp/hybrid6-valid.log
+      - name: Negative control - same proof must fail SAT formula
+        shell: bash
+        run: |
+          set -euo pipefail
+          if /tmp/drat-trim/drat-trim research/hybrid6/mixed8-sat-control.cnf research/hybrid6/mixed8-unsat.drup -f > /tmp/hybrid6-invalid.log 2>&1; then
+            if grep -q 's VERIFIED' /tmp/hybrid6-invalid.log; then
+              echo 'UNSOUND: proof accepted for SAT control' >&2
+              exit 1
+            fi
+          fi
+          echo 'SAT control proof REJECTED as required'
