@@ -60,3 +60,25 @@ jobs:
             test ! -f "/tmp/hybrid10/removed-$mode.pbp"
             echo "SOURCE_MUTATION_REJECTED $mode"
           done
+
+      - name: Extended source scaling, shuffled clauses and independent VeriPB
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 research/hybrid10/make_extended.py /tmp/h10extended | tee /tmp/h10-extended-sources.log
+          grep -q SAT12_EXPLICIT_MODEL_VERIFIED /tmp/h10-extended-sources.log
+          for input in /tmp/h10extended/graph*.cnf /tmp/h10extended/perm*.cnf; do
+            stem=$(echo "$input" | sed 's/\.cnf$//')
+            python3 research/hybrid10/emit_veripb_three_theory.py --cnf "$input" --output "$stem.pbp" --meta "$stem.json"
+            veripb --cnf "$input" "$stem.pbp" | tee "$stem.log"
+            grep -q 's VERIFIED UNSATISFIABLE' "$stem.log"
+            python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));n=d["one_hot_size"];s=sum(d["steps"].values());assert s==52*n+3,(n,s);print("EXTERNALLY_VERIFIED",sys.argv[1],"n",n,"steps",s,"bytes",d["proof_bytes"])' "$stem.json"
+          done
+          for name in sat12 missing_xor_clause; do
+            if python3 research/hybrid10/emit_veripb_three_theory.py --cnf "/tmp/h10extended/$name.cnf" --output "/tmp/h10extended/$name.pbp"; then
+              echo "UNSOUND: proof generator accepted SAT / modified source" >&2
+              exit 1
+            fi
+            test ! -f "/tmp/h10extended/$name.pbp"
+            echo "NEGATIVE_REJECTED $name"
+          done
