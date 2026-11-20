@@ -67,7 +67,7 @@ def emit_atmost(folder,n,capacity):
     source=(f'c New symbolic-product regression, 3 machines cap={capacity}, '
             f'jobs={n}; NOT original PCMAX\n'
             f'p cnf {nextv-1} {len(clauses)}\n'
-            +''.join(' '.join(map(str,c))+' 0\n' for c in clauses)
+            +''.join(' '.join(map(str,c))+' 0\n' for c in clauses))
     blob=source.encode('ascii')
     cert={'source_sha256':hashlib.sha256(blob).hexdigest(),
           'groups':groups,'machines':machines,
