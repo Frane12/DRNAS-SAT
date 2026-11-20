@@ -1,0 +1,33 @@
+name: DRNAS MATH-HYBRID10 weighted Hall subset pruning
+
+on:
+  push:
+    branches:
+      - 'experiment/pcmax-hybrid10-*'
+    paths:
+      - 'research/pcmax_hybrid10/**'
+      - '.github/workflows/pcmax-hybrid10.yml'
+  workflow_dispatch:
+
+jobs:
+  hall-source-proof-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test Hall root non-gap, conditional pruning, and original CNF controls
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid10/test.py 2>&1 | tee hybrid10-tests.log
+          grep -Fx 'ALL_HYBRID10_TESTS_PASS' hybrid10-tests.log
+      - name: Preserve source-backed audit outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pcmax-hybrid10-hall-subset-audit
+          if-no-files-found: warn
+          path: |
+            hybrid10-tests.log
+            hybrid10-results.json
