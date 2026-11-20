@@ -5,7 +5,14 @@ The separate proof generator receives only the CNF file, no graph labels.
 from pathlib import Path
 from itertools import product
 from random import Random
-from make_extended import shuffled
+def shuffled(n,C,seed):
+    rng=Random(seed)
+    order=list(range(1,n+1));rng.shuffle(order)
+    ren={i:order[i-1] for i in range(1,n+1)}
+    out=[tuple((1 if lit>0 else -1)*ren[abs(lit)] for lit in c) for c in C]
+    out=[tuple(rng.sample(c,len(c))) for c in out]
+    rng.shuffle(out)
+    return out
 import sys,hashlib
 
 def cubic(n,seed):
