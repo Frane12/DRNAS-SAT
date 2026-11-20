@@ -2,7 +2,7 @@
 
 Može li se svaki posao dodijeliti jednom od strojeva tako da svi završe do petka? Takvo se pitanje može zapisati nizom uvjeta. Primjerice, posao mora dobiti stroj, a svaki stroj ima granicu opterećenja. Kada uvjete zapišemo kao Booleovu formulu, SAT solver traži raspored koji zadovoljava sve uvjete. Jedan valjan raspored dovoljan je za odgovor **SAT**. Za **UNSAT** treba obrazložiti zašto svaki mogući raspored krši barem jedan uvjet.
 
-DRNAS SAT istražuje kada iz same strukture formule možemo izvesti takav dokaz. Istraživanje vodi Frane Drnas. [Naslovnica na engleskom](../README.md) · [Pokus s Fanovom ravninom](#sedam-poslova-u-trojkama) · [Slikovite formule](#slikovite-formule) · [Izvorni kod](../src) · [Pregled izvora i eksperimenata](SOURCE_AUDIT.md)
+DRNAS SAT istražuje kada iz same strukture formule možemo izvesti takav dokaz. Istraživanje vodi Frane Drnas. [Naslovnica na engleskom](../README.md) · [Novi HYBRID6–10 rezultati](#novo-u-istraživanju--hybrid610-20-studenoga-2026) · [Pokus s Fanovom ravninom](#sedam-poslova-u-trojkama) · [Slikovite formule](#slikovite-formule) · [Izvorni kod](../src) · [Pregled izvora i eksperimenata](SOURCE_AUDIT.md)
 
 ## Novo u istraživanju · HYBRID6–10 (20. studenoga 2026.)
 
