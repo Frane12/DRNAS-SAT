@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from quotient import quotient
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"pcmax_hybrid7"))
 from sparse import sparse_product, Unsupported
 
 ROOT=Path(__file__).resolve().parents[2]
