@@ -174,22 +174,21 @@ def sparse_product(source, cert, max_states=2500, max_seconds=15.0):
     # auxiliary selector until a selected group selector/terminal.
     # Any model's actual source BDD path remains represented.
     normalized=[]
-    for j,g in enumerate(machines):
-        nodes=g["nodes"]
-        stop={v for v in g["selected"].values()}
-        f=g["f"]
+    def make_closure(nodes,stop,false_terminal):
         @lru_cache(maxsize=None)
-        def closure_one(q,nodes=nodes,stop=stop,f=f):
-            if q==f:
+        def work(q):
+            if q==false_terminal:
                 return frozenset()
             if q not in nodes:
                 return frozenset((q,))
             x,lo,hi=nodes[q]
             if x in stop:
                 return frozenset((q,))
-            return closure_one(lo) | closure_one(hi)
-        # recursive function is safe on source-validated DAGs
-        normalized.append(closure_one)
+            return work(lo) | work(hi)
+        return work
+    for g in machines:
+        normalized.append(make_closure(g["nodes"],
+                                       set(g["selected"].values()),g["f"]))
 
     @lru_cache(maxsize=300000)
     def advance(j,front,i,chosen):
