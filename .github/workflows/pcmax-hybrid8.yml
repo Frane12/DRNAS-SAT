@@ -1,0 +1,33 @@
+name: DRNAS MATH-HYBRID8 source-BDD symmetry quotient
+
+on:
+  push:
+    branches:
+      - 'experiment/pcmax-hybrid8-*'
+    paths:
+      - 'research/pcmax_hybrid8/**'
+      - '.github/workflows/pcmax-hybrid8.yml'
+  workflow_dispatch:
+
+jobs:
+  quotient:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Quotient symmetric BDDs and independently audit original source clauses
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid8/test.py 2>&1 | tee hybrid8-tests.log
+          grep -Fx 'ALL_SYMMETRY_TESTS_PASS' hybrid8-tests.log
+      - name: Preserve checked source-transfer outcomes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pcmax-hybrid8-symmetry-quotient-audit
+          if-no-files-found: warn
+          path: |
+            hybrid8-tests.log
+            hybrid8-transfer.json
