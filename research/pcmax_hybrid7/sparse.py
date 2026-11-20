@@ -241,8 +241,8 @@ def sparse_product(source, cert, max_states=2500, max_seconds=15.0):
                           for j in range(m))
                 if all(nxt):
                     next_layer.add(nxt)
-                if total+len(next_layer)>max_states or
-                   time.perf_counter()-now>max_seconds:
+                if (total+len(next_layer)>max_states or
+                    time.perf_counter()-now>max_seconds):
                     return {
                         "status":"UNKNOWN_RESOURCE_LIMIT",
                         "processed_groups":i+1,
