@@ -58,7 +58,7 @@ jobs:
           Path('/tmp/k4-sat-control.cnf').write_text('\n'.join(rows)+'\n')
           n=20
           vals={v:False for v in range(1,n+1)}
-          for v in [1,5,9,10,11,12,13,14,15,16,17,19]:vals[v]=True
+          for v in [1,5,9,10,17,18,19,20]:vals[v]=True
           # The chosen assignment satisfies each bridge and XOR chain.
           clauses=[list(map(int,line.split()))[:-1] for line in rows[1:]]
           if not all(any(vals[abs(lit)]==(lit>0) for lit in c) for c in clauses):
