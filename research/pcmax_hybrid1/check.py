@@ -100,10 +100,15 @@ def machine_caps(machine,clauses,nvars,weights,parity_vars):
         f"false claimed machine caps {machine['claimed_parity_capacities']} != {cap}")
     return cap,states,set(order),{q:row for q,row in nodes.items()}
 
-def accepted(pattern,machine):
+def accepted(pattern,machine,groups):
     """Test any given selector assignment against the certified graph."""
     order=machine['variable_order']
-    enabled={order[i] for i in pattern}
+    selected=set(pattern)
+    enabled=set()
+    for i, group in enumerate(groups):
+        members=set(group)&set(order)
+        req(len(members)==1,'fractional group is not uniquely mapped to machine')
+        if i in selected: enabled.update(members)
     rows={q:(x,l,h) for q,x,l,h in machine['transitions']}
     q=machine['root']
     while q in rows:
@@ -180,11 +185,11 @@ def check(cnf_data,cert):
                 for i in p),"bad fractional pattern")
             for i in p:count[i]+=1
             for m in machines:
-                req(accepted(p,m),"fractional pattern rejected by source BDD")
+                req(accepted(p,m,groups),"fractional pattern rejected by source BDD")
         req(all(v==2 for v in count),"fractional witness fails to cover each group")
     result={
         "status":"STRUCTURAL_HYBRID_UNSAT_CHECKED"
-            if improved is not None and demand>improved else "INCONCLUSIVE",
+            if improved is None or demand>improved else "INCONCLUSIVE",
         "cnf_sha256":cert['source_sha256'],
         "source_variables":nvars,"source_clauses":nclauses,
         "exact_one_groups":len(groups),
