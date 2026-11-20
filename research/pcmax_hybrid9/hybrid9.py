@@ -74,8 +74,7 @@ def weighted_bounds(canonical_classes, canon, raw_machines, checked_machines, we
     """
     from functools import lru_cache
     from bisect import bisect_left
-    descriptions=[]
-    for c in canonical_classes:
+    def build_one(c):
         representative=c["members"][0]
         raw=raw_machines[representative]
         check=checked_machines[representative]
@@ -127,8 +126,8 @@ def weighted_bounds(canonical_classes, canon, raw_machines, checked_machines, we
                             if p<r and g>=i)
                 options.append(remainder+skipped)
             return max(options) if options else None
-        descriptions.append(front_capacity)
-    return descriptions
+        return front_capacity
+    return [build_one(c) for c in canonical_classes]
 
 def quotient(source,cert,max_states=3000,max_seconds=12):
     start=time.perf_counter()
