@@ -1,0 +1,33 @@
+name: DRNAS MATH-HYBRID9 source weighted-cut symmetry product
+
+on:
+  push:
+    branches:
+      - 'experiment/pcmax-hybrid9-*'
+    paths:
+      - 'research/pcmax_hybrid9/**'
+      - '.github/workflows/pcmax-hybrid9.yml'
+  workflow_dispatch:
+
+jobs:
+  weighted-source-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit exact BDD weighted cuts and original PCMAX root capacities
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid9/test.py 2>&1 | tee hybrid9-tests.log
+          grep -Fx 'ALL_HYBRID9_TESTS_PASS' hybrid9-tests.log
+      - name: Save original per-instance results and audit logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pcmax-hybrid9-weighted-cut-audit
+          if-no-files-found: warn
+          path: |
+            hybrid9-tests.log
+            hybrid9-transfer.json
