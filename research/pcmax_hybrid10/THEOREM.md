@@ -111,3 +111,48 @@ Next step: compile source-verified local weighted
 subset bounds into standard VeriPB inequalities and
 test on frozen prospective, family-disjoint CNFs where
 ordinary root capacity cannot already prove UNSAT.
+
+
+## Verified GitHub evidence — 20 November 2026
+
+GitHub Actions:
+https://github.com/Frane12/DRNAS-SAT/actions/runs/44713058817
+
+All source-level checks and SAT-safe tests passed. The **same untouched
+generated source CNF** has SHA256
+
+    a0a88d2f80a5500e882604e2fc3de3a1bac629d209363dc628e6a212e001d409
+
+and contains **272 variables and 662 original clauses**. The selected
+restricted-job subset consists of 3 exact-one groups, 6 selectors,
+two eligible capacity-one machines and eight other machines.
+The capacity structural checker verifies demand 3 and
+machine bounds (1,1,0,0,0,0,0,0,0,0), summing to 2.
+
+The existing source-based weighted PB compiler generated a 5742-byte
+VeriPB 3.0 proof with 38 state lemmas and 113 cutting-planes steps
+(emitter accounting). An independent VeriPB 3.0.2 invocation returned
+the exact line
+
+    s VERIFIED UNSATISFIABLE
+
+against this **original generated source CNF**, without rewriting
+the DIMACS input for validation. This is a standard proof of UNSAT
+for the new SYNTHETIC Hall instance, NOT a previously unseen real
+PCMAX benchmark or a new standard proof for any archived original.
+
+The simultaneously checked SAT-possible counterpart has only
+two restricted jobs. On this case the baseline symmetry product
+visits 27 states, while the Hall-enhanced product visits 11
+and discards 7 branches using conditional capacity cuts.
+Both return UNKNOWN rather than a false UNSAT.
+
+Additional original-CNF regression checks 00, 05, 09, 14 preserve
+their already-known weighted source capacities and UNSAT results.
+The experiment does not establish new correctness or speed
+against Kissat/CaDiCaL on unseen benchmarks, nor solve
+the worst-case exponential state-space problem.
+
+**Next proof research:** standard-proof compilation of dynamically
+derived Hall cuts on cases where the *root* Hall condition is
+insufficient; then prospective blind family-disjoint validation.
