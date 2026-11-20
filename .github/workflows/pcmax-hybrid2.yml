@@ -1,0 +1,38 @@
+name: DRNAS MATH-HYBRID2 GF2 rank and k-parity theorem audit
+
+on:
+  push:
+    branches:
+      - 'experiment/pcmax-hybrid2-*'
+    paths:
+      - 'research/pcmax_hybrid2/**'
+      - '.github/workflows/pcmax-hybrid2.yml'
+  workflow_dispatch:
+
+jobs:
+  theorem-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit source clauses, BDD-kparity max-plus bounds and affine theorem
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid2/analyze.py | tee hybrid2-theorem.json
+          grep -q '"status": "ALL_TESTS_PASS"' hybrid2-theorem.json
+      - name: Re-run hybrid1 positive, negative and SAT controls
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid1/test.py | tee hybrid1-retrospective.log
+          grep -Fx 'ALL_TESTS_PASS' hybrid1-retrospective.log
+      - name: Upload exact audit output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pcmax-hybrid2-affine-rank-audit
+          if-no-files-found: warn
+          path: |
+            hybrid2-theorem.json
+            hybrid1-retrospective.log
