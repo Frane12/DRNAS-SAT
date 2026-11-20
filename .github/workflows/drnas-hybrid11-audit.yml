@@ -1,0 +1,81 @@
+name: DRNAS HYBRID11 indirect XOR signed 2SAT VeriPB audit
+on:
+  push:
+    branches:
+      - experiment/hybrid11-indirect-xor-20261120
+    paths:
+      - research/hybrid11/**
+      - .github/workflows/drnas-hybrid11-audit.yml
+permissions:
+  contents: read
+jobs:
+  source-proof-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install VeriPB 3.0.2 independent checker
+        run: cargo install veripb --version 3.0.2 --locked
+      - name: Indirect and mixed source-CNF proofs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/h11
+          while read -r n seed structure; do
+            stem="/tmp/h11/indirect-$n-$seed-$structure"
+            python3 research/hybrid11/generate_indirect.py --n "$n" --seed "$seed" --structure "$structure" --noise --output "$stem.cnf" | tee "$stem.source.json"
+            python3 research/hybrid11/emit_veripb_indirect.py --cnf "$stem.cnf" --output "$stem.pbp" --meta "$stem.meta.json" | tee "$stem.emit.log"
+            veripb --cnf "$stem.cnf" "$stem.pbp" | tee "$stem.veripb.log"
+            grep -q 's VERIFIED UNSATISFIABLE' "$stem.veripb.log"
+            python3 -c 'import json,sys,hashlib;s=json.load(open(sys.argv[1]));p=json.load(open(sys.argv[2]));h=hashlib.sha256(open(sys.argv[3],"rb").read()).hexdigest();assert s["source_sha256"]==p["source_sha256"]==h;assert p["negative_links"]>0;assert p["source_xor3_rows"]>0;assert p["matched_equivalences"]==s["vertices"];print("EXTERNAL_VERIFIED",s["vertices"],s["structure"],"split",s["source_gate_splits"],"xor3",p["source_xor3_rows"],"xor4",p["source_xor4_rows"],"steps",sum(p["steps"].values()),"bytes",p["proof_bytes"])' "$stem.source.json" "$stem.meta.json" "$stem.cnf"
+          done <<EOF
+          4 101 split
+          6 202 split
+          8 303 split
+          8 404 mixed
+          12 505 mixed
+          16 606 split
+          20 707 mixed
+          32 808 split
+          EOF
+      - name: Renumber and shuffle original CNF while preserving proofs
+        shell: bash
+        run: |
+          set -euo pipefail
+          for entry in "12 44 split" "16 99 mixed" "20 120 split"; do
+            read -r n seed structure <<<"$entry"
+            stem="/tmp/h11/perm-$n-$seed"
+            python3 research/hybrid11/generate_indirect.py --n "$n" --seed "$seed" --structure "$structure" --noise --permute --output "$stem.cnf" | tee "$stem.source.json"
+            python3 research/hybrid11/emit_veripb_indirect.py --cnf "$stem.cnf" --output "$stem.pbp" --meta "$stem.meta.json"
+            veripb --cnf "$stem.cnf" "$stem.pbp" | tee "$stem.veripb.log"
+            grep -q 's VERIFIED UNSATISFIABLE' "$stem.veripb.log"
+            echo "EXTERNAL_VERIFIED_PERMUTED n=$n structure=$structure"
+          done
+      - name: Model checked SAT controls and deliberately missing source premises
+        shell: bash
+        run: |
+          set -euo pipefail
+          for entry in "12 101 split sat" "16 202 mixed sat" "12 101 split missing_gate" "12 101 split broken_link" "12 101 split missing_amo"; do
+            read -r n seed structure mode <<<"$entry"
+            stem="/tmp/h11/control-$n-$structure-$mode"
+            python3 research/hybrid11/generate_indirect.py --n "$n" --seed "$seed" --structure "$structure" --mode "$mode" --output "$stem.cnf" | tee "$stem.source.json"
+            if [[ "$mode" == "sat" ]]; then grep -q '"sat_model_verified": true' "$stem.source.json"; fi
+            if python3 research/hybrid11/emit_veripb_indirect.py --cnf "$stem.cnf" --output "$stem.pbp"; then
+              echo "UNSOUND: generator produced UNSAT proof for control mode=$mode" >&2
+              exit 1
+            fi
+            test ! -e "$stem.pbp"
+            echo "CONTROL_UNKNOWN mode=$mode"
+          done
+      - name: Confirm no unsupported original DRNAS CNF is falsely reported
+        shell: bash
+        run: |
+          set -euo pipefail
+          for input in evidence/xor234-grid5/original.cnf evidence/ipg7b-petersen/original.cnf evidence/graph-k11/original.cnf evidence/pcmax-weighted2/05/original.cnf; do
+            if python3 research/hybrid11/emit_veripb_indirect.py --cnf "$input" --output /tmp/h11/unsupported.pbp; then
+              echo "FALSE_POSITIVE: $input" >&2
+              exit 1
+            fi
+            test ! -e /tmp/h11/unsupported.pbp
+            echo "ORIGINAL_UNKNOWN $input"
+          done
