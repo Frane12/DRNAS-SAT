@@ -109,3 +109,62 @@ If the symmetry quotient works, it should be coupled with the
 independently checked weighted PCMAX bounds to prune high-cost
 global states. That hybrid is still a restricted structural
 algorithm, and original CNF-size asymptotics remain open.
+
+
+## 6. Verified CI outcome — 20 Nov 2026
+
+GitHub Actions:
+https://github.com/Frane12/DRNAS-SAT/actions/runs/44709857869
+
+**Synthetic source-checked controls, NOT real holdout:**
+
+| Test | Symmetry quotient states | Structural outcome |
+|---|---:|---|
+| 10 identical machines, 11 jobs, cap 1 | 11 | UNSAT_SOURCE_SYMMETRY_PRODUCT |
+| Same machines, 10 jobs | 11 | UNKNOWN_ABSTRACT_COMPATIBLE (SAT-possible control) |
+| HYBRID5 synthetic 3-machine UNSAT | 19 | UNSAT_SOURCE_SYMMETRY_PRODUCT |
+| HYBRID5 SAT control | 25 | UNKNOWN_ABSTRACT_COMPATIBLE |
+| Fano synthetic UNSAT | 12 | UNSAT_SOURCE_SYMMETRY_PRODUCT |
+| Fano SAT control | 10 | UNKNOWN_ABSTRACT_COMPATIBLE |
+
+On the 10-machine 11-job UNSAT, the unquotiented sparse
+product hit the 500-state limit at 501 states and returned
+UNKNOWN_RESOURCE_LIMIT; the quotient needed only 11 total
+states to derive a structural UNSAT. Bad SHA and corrupted
+BDD source transition controls were rejected.
+
+**Original PCMAX source-CNF transfer, bounded to 3000 states:**
+
+| Archived case | Machines | Distinct strict DAG structures | Outcome |
+|---|---:|---:|---|
+| 00 | 11 | 6 | UNKNOWN_RESOURCE_LIMIT |
+| 05 | 14 | 13 | UNKNOWN_RESOURCE_LIMIT |
+| 09 | 20 | 13 | UNKNOWN_RESOURCE_LIMIT |
+| 10 | 20 | 12 | UNKNOWN_RESOURCE_LIMIT |
+| 14 | 26 | 20 | UNKNOWN_RESOURCE_LIMIT |
+| 15 | 30 | 20 | UNKNOWN_RESOURCE_LIMIT |
+
+All six original CNFs are already archived, separately
+verified UNSAT cases via PCMAX weighted source-capacity proofs.
+HYBRID8 has NOT supplied a new successful proof on them.
+The results do show that the implementation can safely
+read their original source-backed sparse BDD structures
+and identify duplicate structural machine types.
+
+**External proof-system status:** HYBRID8 currently emits a
+source-audited *structural* UNSAT judgment on synthetic
+controls; no new VeriPB/DRAT/RUP output from its symmetry
+quotient is implemented or externally checked. The older
+HYBRID5 and Fano VeriPB proofs were produced by other
+routines and must not be attributed to this new quotient.
+
+## 7. Honest next barrier
+
+A bounded product-state reduction by symmetry solves many
+identical-machine examples efficiently, but the source
+PCMAX real instances still have too many distinct local
+automata or too many reachable class-multisets. The next
+real experiment should combine sound upper-capacity cuts
+and symmetry state grouping, with frozen reference proofs
+and resource caps, rather than escalating benchmark budgets
+indefinitely or extrapolating to P=NP.
