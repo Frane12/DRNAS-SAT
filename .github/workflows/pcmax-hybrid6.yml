@@ -1,0 +1,38 @@
+name: DRNAS MATH-HYBRID6 source-BDD symbolic product
+
+on:
+  push:
+    branches:
+      - 'experiment/pcmax-hybrid6-*'
+    paths:
+      - 'research/pcmax_hybrid6/**'
+      - '.github/workflows/pcmax-hybrid6.yml'
+  workflow_dispatch:
+
+jobs:
+  symbolic-product:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test genuine source-backed product without local pattern enumeration
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid6/test.py 2>&1 | tee hybrid6-symbolic-tests.log
+          grep -Fx 'ALL_SYMBOLIC_TESTS_PASS' hybrid6-symbolic-tests.log
+      - name: Check previous baseline UNSAT evidence and SAT controls
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid5/test.py | tee hybrid5-retrospective.log
+          grep -Fx 'ALL_TESTS_PASS' hybrid5-retrospective.log
+      - name: Preserve auditable test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pcmax-hybrid6-symbolic-product-audit
+          if-no-files-found: warn
+          path: |
+            hybrid6-symbolic-tests.log
+            hybrid5-retrospective.log
