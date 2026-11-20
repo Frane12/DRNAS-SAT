@@ -107,20 +107,85 @@ UNKNOWN or exhaust its resource cap.
   capacity-12 SAT control. These are performance and
   soundness probes, not frozen competition holdouts.
 
-## 4. Next research obstacle
+## 4. A proof-producing product: Theorem H6-RUP
 
-The explicit 2^n pattern enumeration is removed in this
-recognized class. The remaining hard tasks are:
+An additional source-only proof generator is implemented in
+`proof.py`. For each source-verified reachable product state
+(q_0,...,q_(m-1)) at job index i, process states in reverse job
+order, so all live successor states have already been blocked.
 
-1. Recognizing bounded-width BDDs directly from arbitrary
-   source CNFs, with a provable *CNF-size* bound.
-2. Avoiding the product explosion when machine count m
-   grows as part of input.
-3. Compiling product-state UNSAT discoveries into short
-   independently accepted RUP/VeriPB certificates directly,
-   without a potentially exponential reconstruction step.
-4. Testing untouched holdout CNFs beyond synthetic families.
+For each potential machine choice j, derive by RUP the guarded clause
 
-Existing methods of product automata and symbolic model
-checking underpin the construction. No novelty claim is
-made for the product concept itself.
+    (not q_0 OR ... OR not q_(m-1) OR not x_(i,j)).
+
+Under the negation of this clause, all q states are true and
+x_(i,j) is true. Source exact-one at-most-one clauses force
+every other group selector false. The source BDD edge implications
+then force all the child states. If any child is the false
+terminal, the negative false-terminal source unit contradicts
+the assignment; otherwise the already-derived blocking clause
+for the live child tuple contradicts it. Therefore each guard
+is valid RUP relative to the original source CNF and earlier
+proof steps.
+
+Having derived the m guarded clauses, derive the parent clause
+
+    not q_0 OR ... OR not q_(m-1)
+
+by RUP: under its negation every selector x_(i,j) is forced
+false, contradicting the original at-least-one source clause.
+Finally, when the root tuple is blocked, the original positive
+root units force a contradiction and the empty clause is RUP.
+
+This constructs at most
+
+    (m+1) * sum_i |R_i| + 1
+
+RUP steps, where R_i are the reachable nonfalse joint BDD
+states before the first empty layer. For fixed m this
+is polynomial in the sizes of the supplied aligned BDDs.
+It does NOT imply the BDD can be built in polynomial time
+from an arbitrary original CNF.
+
+**Independently checked results (20 Nov 2026):**
+
+| Source family | Product states | Product RUP steps | External VeriPB |
+|---|---:|---:|---|
+| MATH-HYBRID5, generated 9-job source | 100 | 401 | VERIFIED UNSAT |
+| Fano / MATH-HYBRID3, generated 7-job source | 58 | 233 | VERIFIED UNSAT |
+
+Both RUP proofs were accepted directly against the byte-exact
+unchanged original-to-the-experiment CNFs by VeriPB 3.0.2.
+A separate Python RUP checker checked every line as well.
+
+The existing hand-pruned HYBRID5 proof had 301 steps, so
+the general product proof was *longer* on that small case.
+The original unpruned Fano proof had 3280 steps, but the
+older prefix-pruned Fano proof had only 175 steps. These
+numbers measure proof SIZE on fixed synthetic cases, not
+the runtime of a standard solver on diverse benchmarks.
+
+GitHub verification run:
+https://github.com/Frane12/DRNAS-SAT/actions/runs/44706409863
+
+## 5. Next research obstacle
+
+The unnecessary enumeration of all 2^n local assignments
+is removed in this recognized class, **and a generic
+source-backed proof compiler is now implemented**.
+
+The remaining hard tasks are:
+
+1. Find/reconstruct small aligned BDD representations from
+   arbitrary CNFs with a provable bound in ORIGINAL CNF size.
+2. Avoid exponential product growth when the machine count
+   m is part of the input, or the source BDDs are large.
+3. Measure this automated RUP route on source-frozen
+   genuinely unseen real-world CNFs and prove the detector
+   does not overfit a hand-picked encoding.
+4. Improve proof cost and coverage on structurally mixed
+   CNFs while preserving standard external checking.
+
+Existing product-automaton constructions and BDD symbolic
+reasoning are well-known; the experiment does not claim to
+have discovered their mathematical principles.
