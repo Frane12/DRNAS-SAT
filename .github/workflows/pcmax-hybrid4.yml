@@ -1,0 +1,58 @@
+name: DRNAS MATH-HYBRID4 exact-cover lattice hole and standard proof
+
+on:
+  push:
+    branches:
+      - 'experiment/pcmax-hybrid4-*'
+    paths:
+      - 'research/pcmax_hybrid4/**'
+      - '.github/workflows/pcmax-hybrid4.yml'
+  workflow_dispatch:
+
+jobs:
+  exact-cover-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate immutable synthetic CNF and 31-step source RUP
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid4/emit.py --out hybrid4-unsat | tee hybrid4-manifest.log
+          python3 research/pcmax_hybrid4/emit.py --out hybrid4-sat --control
+      - name: Independent source, lattice, fractional, parity and RUP audit
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid4/check.py \
+            --cnf hybrid4-unsat/source.cnf \
+            --certificate hybrid4-unsat/certificate.json \
+            --drup hybrid4-unsat/proof.drup | tee hybrid4-audit.json
+          grep -q 'ALL_RUP_STEPS_CHECKED' hybrid4-audit.json
+          python3 research/pcmax_hybrid4/test.py | tee hybrid4-tests.log
+          grep -Fx 'ALL_TESTS_PASS' hybrid4-tests.log
+      - name: Install independent VeriPB 3.0.2
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version
+      - name: Externally verify source-CNF UNSAT proof
+        run: |
+          set -euo pipefail
+          veripb --cnf hybrid4-unsat/source.cnf hybrid4-unsat/proof.pbp \
+            2>&1 | tee hybrid4-veripb.log
+          grep -Fx 's VERIFIED UNSATISFIABLE' hybrid4-veripb.log
+      - name: Preserve all source inputs, controls and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pcmax-hybrid4-source-verified-evidence
+          if-no-files-found: warn
+          path: |
+            hybrid4-unsat/
+            hybrid4-sat/
+            hybrid4-manifest.log
+            hybrid4-audit.json
+            hybrid4-tests.log
+            hybrid4-veripb.log
