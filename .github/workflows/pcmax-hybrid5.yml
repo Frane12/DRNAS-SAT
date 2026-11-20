@@ -36,6 +36,12 @@ jobs:
           python3 research/pcmax_hybrid5/test.py | tee hybrid5-tests.log
           grep -Fx 'ALL_TESTS_PASS' hybrid5-tests.log
 
+      - name: Generic source-only 3-machine recognizer across TWO distinct families
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid5/recognize_test.py | tee hybrid5-recognizer.log
+          grep -Fx 'ALL_RECOGNIZER_TESTS_PASS' hybrid5-recognizer.log
+
       - name: Install independent VeriPB 3.0.2
         run: |
           set -euo pipefail
@@ -62,4 +68,5 @@ jobs:
             hybrid5-control.log
             hybrid5-audit.json
             hybrid5-tests.log
+            hybrid5-recognizer.log
             hybrid5-veripb.log
