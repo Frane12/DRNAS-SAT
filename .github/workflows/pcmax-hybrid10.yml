@@ -22,6 +22,33 @@ jobs:
           set -euo pipefail
           python3 research/pcmax_hybrid10/test.py 2>&1 | tee hybrid10-tests.log
           grep -Fx 'ALL_HYBRID10_TESTS_PASS' hybrid10-tests.log
+      - name: Emit source-bound Hall subset capacity witness
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid10/emit_witness.py --out hybrid10-hall-unsat --special-jobs 3
+          python3 research/pcmax_capacity/check_capacity.py \
+            hybrid10-hall-unsat/source.cnf hybrid10-hall-unsat/hall_witness.json \
+            | tee hybrid10-capacity-check.json
+          python3 research/pcmax_capacity/emit_veripb_capacity_weighted2.py \
+            --cnf hybrid10-hall-unsat/source.cnf \
+            --certificate hybrid10-hall-unsat/hall_witness.json \
+            --output hybrid10-hall-unsat/proof.pbp \
+            | tee hybrid10-pbp-emitter.log
+          grep -q 'PCMAX_WEIGHTED_PB_EMITTED' hybrid10-pbp-emitter.log
+
+      - name: Install independent VeriPB 3.0.2
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version
+
+      - name: Verify Hall subset proof against unchanged source CNF
+        run: |
+          set -euo pipefail
+          veripb --cnf hybrid10-hall-unsat/source.cnf \
+            hybrid10-hall-unsat/proof.pbp 2>&1 | tee hybrid10-veripb.log
+          grep -Fx 's VERIFIED UNSATISFIABLE' hybrid10-veripb.log
+
       - name: Preserve source-backed audit outputs
         if: always()
         uses: actions/upload-artifact@v4
@@ -31,3 +58,7 @@ jobs:
           path: |
             hybrid10-tests.log
             hybrid10-results.json
+            hybrid10-hall-unsat/
+            hybrid10-capacity-check.json
+            hybrid10-pbp-emitter.log
+            hybrid10-veripb.log
