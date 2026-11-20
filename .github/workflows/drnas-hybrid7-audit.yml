@@ -1,0 +1,46 @@
+name: DRNAS HYBRID7 XOR-2SAT strict proof audit
+on:
+  push:
+    branches:
+      - experiment/hybrid7-xor-2sat-source-audit-20261120
+    paths:
+      - research/hybrid7/**
+      - .github/workflows/drnas-hybrid7-audit.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-and-drat:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - name: Checkout isolated experiment
+        uses: actions/checkout@v4
+      - name: Verify actual source-clause hybrid derivation and SAT controls
+        run: python3 research/hybrid7/verify_source_k4.py
+      - name: Build pinned upstream DRAT-trim
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --quiet https://github.com/marijnheule/drat-trim.git /tmp/drat-trim
+          git -C /tmp/drat-trim checkout -q 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+          cc -O2 /tmp/drat-trim/drat-trim.c -o /tmp/drat-trim/drat-trim
+      - name: Validate pinned DRUP bytes and original CNF
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s  %s\n' '68787bd6a4082d7f41d1777cac92a44e9ef1114f171a37103a619fd7237dacda' 'research/hybrid7/k4-dpll.drup' | sha256sum -c -
+          printf '%s  %s\n' 'c29b2e5aa5ed1e71fbaef528cbfa492877f977ddce757edfae690c34603af09b' 'research/hybrid7/k4-mixed-unsat.cnf' | sha256sum -c -
+          /tmp/drat-trim/drat-trim research/hybrid7/k4-mixed-unsat.cnf research/hybrid7/k4-dpll.drup -f | tee /tmp/hybrid7-valid.log
+          grep -q 's VERIFIED' /tmp/hybrid7-valid.log
+      - name: Reject same refutation on SAT control
+        shell: bash
+        run: |
+          set -euo pipefail
+          if /tmp/drat-trim/drat-trim research/hybrid7/k4-parity-control-sat.cnf research/hybrid7/k4-dpll.drup -f > /tmp/hybrid7-invalid.log 2>&1; then
+            if grep -q 's VERIFIED' /tmp/hybrid7-invalid.log; then
+              echo 'ERROR: accepted an UNSAT proof over SAT control!' >&2
+              exit 1
+            fi
+          fi
+          echo 'SAT-control refutation correctly rejected'
