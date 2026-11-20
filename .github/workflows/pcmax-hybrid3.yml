@@ -22,6 +22,11 @@ jobs:
           set -euo pipefail
           python3 research/pcmax_hybrid3/emit.py --kind fano --out hybrid3-fano
           python3 research/pcmax_hybrid3/emit.py --kind sat-control --out hybrid3-control
+      - name: Generate 175-step prefix-pruned RUP refutation
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_hybrid3/emit_compact.py --folder hybrid3-fano | tee hybrid3-compact.json
+          grep -q '"compact_proof_steps": 175' hybrid3-compact.json
       - name: Source structure, modular contradiction, and SAT tamper controls
         run: |
           set -euo pipefail
@@ -42,6 +47,11 @@ jobs:
           veripb --cnf hybrid3-fano/source.cnf hybrid3-fano/proof.pbp \
             2>&1 | tee hybrid3-veripb.log
           grep -Fx 's VERIFIED UNSATISFIABLE' hybrid3-veripb.log
+      - name: Independently verify compact proof against SAME source CNF
+        run: |
+          set -euo pipefail
+          veripb --cnf hybrid3-fano/source.cnf hybrid3-fano/compact.pbp             2>&1 | tee hybrid3-veripb-compact.log
+          grep -Fx 's VERIFIED UNSATISFIABLE' hybrid3-veripb-compact.log
       - name: Archive original source, certificate, proof, and audit
         if: always()
         uses: actions/upload-artifact@v4
@@ -54,3 +64,5 @@ jobs:
             hybrid3-fano-check.json
             hybrid3-tests.log
             hybrid3-veripb.log
+            hybrid3-veripb-compact.log
+            hybrid3-compact.json
