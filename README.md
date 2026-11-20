@@ -6,6 +6,21 @@ Can a solver explain why a schedule is impossible before it tries every assignme
 
 [Hrvatski uvod](docs/UVOD_HR.md) · [Fano experiment](#seven-jobs-in-triples) · [Illustrated formulas](#illustrated-formulas) · [Verify a proof](#verify-a-proof) · [Experimental results](#experimental-results) · [Source audit](docs/SOURCE_AUDIT.md)
 
+## November 2026 research update · HYBRID6–10
+
+The recent experiments connect independently checked source-CNF reasoning with **symbolic BDD products**, **machine symmetry**, **weighted capacity bounds**, and **restricted-group Hall cuts**. The C++ solver on main is **not** claimed to contain these isolated experimental Python prototypes. Each result below identifies its input type and level of proof validation.
+
+| Method | Key result | Evidence and scope |
+|---|---|---|
+| **HYBRID6** · symbolic product + proof emission | On generated exact-cover CNFs, independent VeriPB accepted **401-step** (HYBRID5) and **233-step** (Fano) product-state RUP proofs. | **Synthetic, externally verified.** [Run](https://github.com/Frane12/DRNAS-SAT/actions/runs/44706409863) · [Method](https://github.com/Frane12/DRNAS-SAT/tree/experiment/pcmax-hybrid6-symbolic-product-20261120/research/pcmax_hybrid6) |
+| **HYBRID7–8** · sparse BDDs and symmetry | On original PCMAX inputs, HYBRID7 returned **0/11 new solves** under a 1,000-state cap; HYBRID8 returned **0/6** under a 3,000-state cap. A separate generated symmetric case was resolved with **11** states. | **Original-source UNKNOWNs + synthetic structural proof.** [H7 run](https://github.com/Frane12/DRNAS-SAT/actions/runs/44708615859) · [H8 run](https://github.com/Frane12/DRNAS-SAT/actions/runs/44709857869) |
+| **HYBRID9** · weighted cuts + symmetry | Independently recomputed the already known weighted contradictions for **11/11 archived original PCMAX UNSAT inputs**, each at the initial state. | **Retrospective integration**, not a new standard proof or comparative speedup. [Run](https://github.com/Frane12/DRNAS-SAT/actions/runs/44711793978) |
+| **HYBRID10** · restricted-group Hall cuts | Generated Hall instance: global demand and capacity both **10**, but three restricted jobs have combined capacity **2**. The **3 > 2** certificate was compiled to a **5,742-byte VeriPB proof**, externally accepted against **272-variable / 662-clause** original-to-the-experiment CNF. | **Synthetic, externally verified.** SAT-possible control: **27 → 11** visited states, both outcomes appropriately UNKNOWN. [Run & artifacts](https://github.com/Frane12/DRNAS-SAT/actions/runs/44713058817) |
+
+![On two separate synthetic test formulas, adding weighted and Hall cuts reduced the number of reached product states.](docs/figures/hybrid-state-comparisons.svg)
+
+These panels are **different generated test cases**, not paired tests on real PCMAX formulas. No claim is made that the worst-case exponential complexity of arbitrary SAT, or compact BDD construction from arbitrary CNF, has been resolved. [Detailed mathematical and verification log](docs/HYBRID_RESEARCH_UPDATE_2026-11-20.md).
+
 ## A schedule that cannot fit
 
 ![PCMAX m14. Twenty weighted groups require 31 units. Fourteen machines can supply at most 30.](docs/figures/pcmax-capacity.svg)
@@ -173,6 +188,11 @@ For the mixed12 chart, let $V$ be the attempts verified within the cap and $t_i$
 $$\mathrm{PAR2}_{\rm sum}=\sum_{i\in V} t_i+2T(24-|V|)=6.250680+16\cdot16=262.250680\ \mathrm{s}.$$
 
 ## From formula to verdict
+
+![Diagram of source-checked BDDs, mathematical structural cuts, proof emission and independent VeriPB acceptance, with an explicit UNKNOWN path.](docs/figures/proof-aware-pipeline.svg)
+
+A mathematical structural verdict is not the same as independent standard-proof acceptance. HYBRID6 and the generated HYBRID10 Hall example have explicit accepted VeriPB runs; the newer structural-only product recognizers retain UNKNOWN and are not counted as externally verified proofs unless a checker accepts their proof.
+
 
 ```mermaid
 flowchart TD
