@@ -190,6 +190,22 @@ def validate(cnf_data,cert):
             pair_count+=1
     expect(single_count==511 and pair_count==130305,
            'unexpected number of GF2 support tests')
+    # A concrete four-dimensional linear GF(2) signature *does*
+    # separate this instance. Minimality for k=3 is NOT claimed.
+    four=(94,96,176,430)
+    def signature(p):
+        return sum((((p & support).bit_count() & 1)<<i)
+                   for i,support in enumerate(four))
+    local_signatures={signature(p) for p in spec}
+    attainable={x^y^z for x in local_signatures
+                for y in local_signatures for z in local_signatures}
+    target_sig=signature(allones)
+    if kind=='global3_unsat':
+        expect(target_sig not in attainable,
+               'claimed four-dimensional GF2 obstruction invalid')
+    else:
+        expect(target_sig in attainable,
+               'SAT control falsely rejected by four-dimensional signature')
 
     return {
         'status':'UNSAT_GLOBAL3_COMPATIBILITY_CONFIRMED'
@@ -203,6 +219,9 @@ def validate(cnf_data,cert):
         'integer_lattice_witness_checked':True,
         'one_dimensional_gf2_tested':single_count,
         'two_dimensional_gf2_tested':pair_count,
+        'four_dimensional_gf2_witness':list(four),
+        'four_dimensional_gf2_target':target_sig,
+        'four_dimensional_gf2_attainable':sorted(attainable),
         'rup_steps_claimed':cert.get('rup_steps'),
         'external_veripb_status':'INDEPENDENT_CI_REQUIRED'
     }
