@@ -1,0 +1,63 @@
+name: DRNAS HYBRID8 direct witness-to-DRUP external audit
+on:
+  push:
+    branches:
+      - experiment/hybrid8-witness-to-drup-20261120
+    paths:
+      - research/hybrid8/**
+      - .github/workflows/drnas-hybrid8-audit.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  strict-drat:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout HYBRID8 experimental branch
+        uses: actions/checkout@v4
+      - name: Build pinned independent DRAT-trim checker
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --quiet https://github.com/marijnheule/drat-trim.git /tmp/drat-trim
+          git -C /tmp/drat-trim checkout --quiet 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+          cc -O2 /tmp/drat-trim/drat-trim.c -o /tmp/drat-trim/drat-trim
+          test -x /tmp/drat-trim/drat-trim
+      - name: Verify direct proof on multiple sizes and permuted sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/hybrid8
+          for k in 3 4 8 12 32 64; do
+            python3 research/hybrid8/generate.py --k "$k" --prefix "/tmp/hybrid8/k$k" | tee "/tmp/hybrid8/k$k.json"
+            grep -q '"status": "EMITTED_UNCHECKED"' "/tmp/hybrid8/k$k.json"
+            /tmp/drat-trim/drat-trim "/tmp/hybrid8/k$k.cnf" "/tmp/hybrid8/k$k.drup" -f | tee "/tmp/hybrid8/k$k.log"
+            grep -q 's VERIFIED' "/tmp/hybrid8/k$k.log"
+            echo "EXTERNAL_VERIFIED k=$k"
+          done
+          printf '%s  %s\n' '906a9a4fca927025264693053987e8c87f17386edfeb809767ef31da46fc0e85' /tmp/hybrid8/k12.drup | sha256sum -c -
+          printf '%s  %s\n' '216beda78948513fcc16deefad233b81c85f3dbd7233bdc75e3bf6f29dff8e51' /tmp/hybrid8/k64.drup | sha256sum -c -
+          for seed in 0 1 2 3; do
+            python3 research/hybrid8/generate.py --k 12 --seed "$seed" --prefix "/tmp/hybrid8/perm$seed" | tee "/tmp/hybrid8/perm$seed.json"
+            grep -q '"status": "EMITTED_UNCHECKED"' "/tmp/hybrid8/perm$seed.json"
+            /tmp/drat-trim/drat-trim "/tmp/hybrid8/perm$seed.cnf" "/tmp/hybrid8/perm$seed.drup" -f | tee "/tmp/hybrid8/perm$seed.log"
+            grep -q 's VERIFIED' "/tmp/hybrid8/perm$seed.log"
+            echo "EXTERNAL_VERIFIED permutation seed=$seed"
+          done
+      - name: Reject invalid proof and fail closed on SAT controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          for mode in sat broken; do
+            python3 research/hybrid8/generate.py --k 12 --mode "$mode" --prefix "/tmp/hybrid8/$mode" | tee "/tmp/hybrid8/$mode.json"
+            grep -q '"status": "UNKNOWN"' "/tmp/hybrid8/$mode.json"
+            test ! -e "/tmp/hybrid8/$mode.drup"
+            if /tmp/drat-trim/drat-trim "/tmp/hybrid8/$mode.cnf" /tmp/hybrid8/k12.drup -f > "/tmp/hybrid8/$mode.bad.log" 2>&1; then
+              if grep -q 's VERIFIED' "/tmp/hybrid8/$mode.bad.log"; then
+                echo "UNSOUND: proof accepted for SAT control" >&2
+                exit 1
+              fi
+            fi
+            echo "NEGATIVE_CONTROL_REJECTED mode=$mode"
+          done
