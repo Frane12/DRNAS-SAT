@@ -1,0 +1,91 @@
+name: DRNAS ATLAS6 semantic AND camouflage XOR SAT source verification
+on:
+  push:
+    branches:
+      - experiment/atlas6-camouflaged-xor-id8-20261121
+    paths:
+      - .github/workflows/atlas6-semantic-xor.yml
+permissions:
+  contents: read
+jobs:
+  semantic-inversion-and-model:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - name: Source and syntax preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas6_camouflage/{semantic_and_xor,check_semantic,audit_semantic}.py
+          sha256sum research/atlas6_camouflage/{semantic_and_xor,check_semantic,audit_semantic}.py > atlas6-semantic-code-hashes.txt
+          sha256sum evidence/ci/graph-disjoint10.json research/graph_family_disjoint25/prespec.json > atlas6-semantic-source-index-hashes.txt
+          git rev-parse HEAD > atlas6-semantic-commit.txt
+          lscpu > atlas6-semantic-runner.txt
+      - name: Fetch unchanged historical SAT05-origin GBD original ID8 by hash
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p atlas6_source
+          python3 - <<'PY'
+          import hashlib,json,pathlib,sys
+          pre=json.load(open("research/graph_family_disjoint25/prespec.json"))
+          old=json.load(open("evidence/ci/graph-disjoint10.json"))
+          selected=next(x for x in pre["records"] if x["id"]==8)
+          historic=next(x for x in old["provenance"] if x["id"]==8)
+          assert selected["gbd_hash"]=="b5431f41e3264c64508c30da215c69c6"
+          sys.path.insert(0,"research/graph_family_disjoint25")
+          from freeze import download_original,syntax_only
+          raw,zip_sha,zip_bytes,url=download_original(selected["gbd_hash"])
+          sha=hashlib.sha256(raw).hexdigest()
+          assert sha==historic["source_sha256"]=="f9dcbbbcb2abc290439c21978d04cdc44efffbed9b4e5cdee96dd63856a5a156"
+          info=syntax_only(raw)
+          assert info["variables"]==352 and info["clauses"]==2492
+          pathlib.Path("atlas6_source/id08.cnf").write_bytes(raw)
+          print("ATLAS6_SOURCE_FROZEN",json.dumps({"sha":sha,"gbd":selected["gbd_hash"],**info}))
+          PY
+      - name: Independent full source truth-table equivalence and SAT model, 3 variants
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          taskset -c "$cpu" python3 -u research/atlas6_camouflage/audit_semantic.py | tee atlas6-semantic-audit.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open('atlas6_semantic_results/summary.json'))
+          assert d['status']=='PASS'
+          assert d['original_sha256']=='f9dcbbbcb2abc290439c21978d04cdc44efffbed9b4e5cdee96dd63856a5a156'
+          assert d['original_source']['AND_pair_count']==102
+          assert d['original_source']['virtual_variables']==250
+          assert d['original_source']['recovered_GF2_equations']==250
+          assert d['all_four_original_source_model_verified']
+          assert len(d['controlled_variant_results'])==3
+          assert d['source_clause_mutation_with_updated_SHA_rejected']
+          assert d['wrong_signed_AND_orientation_rejected']
+          assert d['wrong_model_rejected']
+          assert d['forged_source_SHA_rejected']
+          print('ATLAS6_SEMANTIC_ALL_SAT_MODELS_SOURCE_CHECKED_PASS')
+          PY
+      - name: Freeze source/model/checker evidence SHA
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find atlas6_source atlas6_semantic_results -maxdepth 1 -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas6-semantic-artifact-hashes.txt
+          date -u +'%FT%TZ' > atlas6-semantic-finished-utc.txt
+      - name: Upload original CNF, normalized XOR, independent premises, SAT models
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS6-SEMANTIC-AND-XOR-SAT
+          path: |
+            atlas6_source/
+            atlas6_semantic_results/
+            atlas6-semantic-audit.log
+            atlas6-semantic-code-hashes.txt
+            atlas6-semantic-source-index-hashes.txt
+            atlas6-semantic-commit.txt
+            atlas6-semantic-runner.txt
+            atlas6-semantic-artifact-hashes.txt
+            atlas6-semantic-finished-utc.txt
+          retention-days: 30
