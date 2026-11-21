@@ -1,0 +1,93 @@
+name: DRNAS ATLAS6 targeted camouflaged XOR recovery and SAT model ID8
+on:
+  push:
+    branches:
+      - experiment/atlas6-camouflaged-xor-id8-20261121
+    paths:
+      - .github/workflows/atlas6-camouflaged-xor.yml
+      - research/atlas6_camouflage/**
+permissions:
+  contents: read
+jobs:
+  invert-masked-source-xor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - name: Checkout experiment branch only
+        uses: actions/checkout@v4
+      - name: Code and historical source preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas6_camouflage/*.py
+          sha256sum research/atlas6_camouflage/*.py > atlas6-code-hashes.txt
+          sha256sum evidence/ci/graph-disjoint10.json research/graph_family_disjoint25/prespec.json > atlas6-frozen-index-hashes.txt
+          git rev-parse HEAD > atlas6-commit.txt
+          lscpu > atlas6-runner-cpu.txt
+      - name: Download ONLY exact previously selected 2005-origin source ID8
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p atlas6_source
+          python3 - <<'PY'
+          import json,hashlib,pathlib,sys
+          root=pathlib.Path('.')
+          p=json.loads((root/'research/graph_family_disjoint25/prespec.json').read_text())
+          prior=json.loads((root/'evidence/ci/graph-disjoint10.json').read_text())
+          s=next(x for x in p['records'] if x['id']==8)
+          o=next(x for x in prior['provenance'] if x['id']==8)
+          assert s['gbd_hash']=='b5431f41e3264c64508c30da215c69c6'
+          assert o['source_sha256']=='f9dcbbbcb2abc290439c21978d04cdc44efffbed9b4e5cdee96dd63856a5a156'
+          sys.path.insert(0,'research/graph_family_disjoint25')
+          from freeze import download_original,syntax_only
+          raw,compressed_hash,compressed_size,url=download_original(s['gbd_hash'])
+          sha=hashlib.sha256(raw).hexdigest()
+          assert sha==o['source_sha256']
+          bounds=syntax_only(raw)
+          pathlib.Path('atlas6_source/id08.cnf').write_bytes(raw)
+          print('ATLAS6_SOURCE_SHA_FROZEN',json.dumps({'hash':sha,'bytes':len(raw),
+              'variables':bounds['variables'],'clauses':bounds['clauses'],
+              'compressed_sha':compressed_hash,'gbd_hash':s['gbd_hash']}))
+          PY
+      - name: Recover masked AND variables and source-prove GF2 candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          taskset -c "$cpu" python3 -u research/atlas6_camouflage/audit.py | tee atlas6-audit.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open('atlas6_results/summary.json'))
+          assert d['status']=='PASS'
+          assert d['expected_sha256']=='f9dcbbbcb2abc290439c21978d04cdc44efffbed9b4e5cdee96dd63856a5a156'
+          assert d['independent_roundtrip_original']
+          assert d['forged_SHA_rejected']
+          assert d['controlled_variants']==3
+          assert d['controlled_variant_inverse_equivalence']==3
+          assert d['no_UNSAT_claim']
+          assert not d['critical']
+          print('ATLAS6_SOURCE_SOUNDNESS_PASS',json.dumps(d,sort_keys=True))
+          PY
+      - name: Freeze input, quotient, SAT models and audit evidence
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find atlas6_results atlas6_source -maxdepth 1 -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas6-artifact-hashes.txt
+          date -u +'%FT%TZ' > atlas6-finished-utc.txt
+      - name: Upload exact original CNF and all source/model verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS6-CAMOUFLAGED-XOR-ID8
+          path: |
+            atlas6_source/
+            atlas6_results/
+            atlas6-audit.log
+            atlas6-code-hashes.txt
+            atlas6-frozen-index-hashes.txt
+            atlas6-commit.txt
+            atlas6-runner-cpu.txt
+            atlas6-artifact-hashes.txt
+            atlas6-finished-utc.txt
+          retention-days: 30
