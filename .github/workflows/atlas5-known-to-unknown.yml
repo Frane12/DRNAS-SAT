@@ -1,0 +1,88 @@
+name: DRNAS ATLAS5 known math facts to independently verified new proof chain
+on:
+  push:
+    branches:
+      - experiment/atlas5-known-to-unknown-proofchain-20261121
+    paths:
+      - .github/workflows/atlas5-known-to-unknown.yml
+      - research/structure_atlas5/**
+permissions:
+  contents: read
+jobs:
+  proof-from-source-facts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - name: Checkout experimental code
+        uses: actions/checkout@v4
+      - name: Audit syntax and immutable source definitions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/structure_atlas5/known_to_unknown.py research/structure_atlas4/freeze10.py
+          python3 -m py_compile research/structure_atlas3/{source_facts,check_facts}.py research/xorlin1/{extract,emit_veripb}.py
+          sha256sum research/structure_atlas5/*.py research/structure_atlas3/{source_facts,check_facts}.py research/xorlin1/{extract,emit_veripb}.py > atlas5-code-hashes.txt
+          sha256sum research/graph_family_disjoint25/prespec.json evidence/ci/graph-disjoint10.json > atlas5-historical-source-manifests.txt
+          git rev-parse HEAD > atlas5-commit.txt
+          lscpu > atlas5-cpu.txt
+      - name: Reconstruct exact historical source-frozen ten originals
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/structure_atlas4/freeze10.py | tee atlas5-freeze.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open('atlas4_real10/manifest.json'))
+          assert d['status']=='FROZEN_ALL_10_EXISTING_ORIGINALS'
+          assert d['count']==10 and d['families']==7
+          PY
+      - name: Install standard VeriPB 3.0.2 independent checker
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version > atlas5-veripb-version.txt 2>&1
+      - name: Known source XOR to GF2 inference to original CNF standard proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/structure_atlas5/known_to_unknown.py | tee atlas5-trials.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open('atlas5_results/summary.json'))
+          assert d['status']=='COMPLETE' and d['originals']==10 and d['catalog_families']==7
+          assert d['critical']==[]
+          assert d['original_verified_ids'] == [6],d
+          assert d['permuted_known_formula_replays']==3
+          assert d['permuted_standard_verified']==3
+          assert d['source_premise_tamper_rejections']==1
+          assert d['newly_solved_unseen_families_claimed']==0
+          print('ATLAS5_KNOWN_TO_UNKNOWN_VERIPB_REGRESSION_PASS',json.dumps(d,sort_keys=True))
+          PY
+      - name: Archive source, proof, status and environment hashes
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find atlas5_results -maxdepth 1 -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas5-evidence-hashes.txt
+          find atlas4_real10 -maxdepth 1 -name '*.cnf' -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas5-original-hashes.txt
+          date -u +'%FT%TZ' > atlas5-finished-at.txt
+      - name: Upload full standard proof and source-bound derivation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS5-known-to-unknown-veripb
+          path: |
+            atlas5_results/
+            atlas4_real10/manifest.json
+            atlas5-freeze.log
+            atlas5-trials.log
+            atlas5-veripb-version.txt
+            atlas5-cpu.txt
+            atlas5-code-hashes.txt
+            atlas5-commit.txt
+            atlas5-evidence-hashes.txt
+            atlas5-original-hashes.txt
+            atlas5-historical-source-manifests.txt
+            atlas5-finished-at.txt
+          retention-days: 30
