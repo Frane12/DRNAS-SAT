@@ -168,7 +168,7 @@ def main():
     (OUT/"summary.json").write_text(json.dumps(summary,sort_keys=True,indent=2)+"\n")
     print("ATLAS9_FINAL "+json.dumps({k:v for k,v in summary.items() if k!="trials"},sort_keys=True),flush=True)
     # A failed standard proof must make the audit conspicuously red.
-    if (not original["original_veripb_strict"] or 
+    if (not original["standard_original_veripb_verified"] or 
         sum(x["standard_original_veripb_verified"] for x in runs[1:])!=len(runs)-1):
         print("ATLAS9_STRICT_ORIGINAL_UNSAT_NOT_YET_PROVED",flush=True)
         raise SystemExit(2)
