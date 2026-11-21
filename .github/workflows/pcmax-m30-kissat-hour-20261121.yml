@@ -1,0 +1,134 @@
+name: PCMAX m30 Kissat 3600s single-core
+
+on:
+  push:
+    branches:
+      - 'experiment/pcmax-m30-kissat-hour-20261121'
+
+permissions:
+  contents: read
+
+jobs:
+  kissat-m30:
+    runs-on: ubuntu-latest
+    timeout-minutes: 85
+    steps:
+      - name: Checkout and SHA-pin unchanged original PCMAX m30 formula
+        uses: actions/checkout@v4
+
+      - name: Freeze formula and environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          cp evidence/pcmax-weighted2/15/original.cnf out/original.cnf
+          echo '7cc73d81dbac7c8680cb7c5f6805e6e4d6aa101e5466771d5ce7aacee78d6472  out/original.cnf' | sha256sum -c -
+          grep '^p cnf ' out/original.cnf | head -1 | tee out/dimensions.txt
+          grep -q -E '^p cnf 14113 167638[[:space:]]*$' out/original.cnf
+          sha256sum out/original.cnf > out/source.sha256
+          lscpu > out/environment.txt
+          uname -a >> out/environment.txt
+          cp evidence/pcmax-weighted2/15/veripb.log out/original-veripb-previously-accepted.log
+          printf 'Original m30. Independent original-source VeriPB prior proof: 998 > 990. Not a Kissat proof.\n' > out/source-notes.txt
+
+      - name: Build exact pinned Kissat 4.0.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q --depth 1 --branch rel-4.0.4 https://github.com/arminbiere/kissat.git kissat-src
+          ACTUAL="$(git -C kissat-src rev-parse HEAD)"
+          test "$ACTUAL" = '8af8e56f174b778aef3aa45af9f739b2a5f492c2'
+          printf '%s\n' "$ACTUAL" > out/kissat-source-sha.txt
+          ( cd kissat-src && ./configure && make -j2 )
+          ./kissat-src/build/kissat --version > out/kissat-version.txt
+
+      - name: One logical CPU Kissat, maximum 3600 wall seconds, native heuristics
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          test -n "$cpu"
+          printf 'CPU=%s\nKissat=default-heuristics\nwall_limit_s=3600\nproof_during_timed_run=no\n' "$cpu" | tee out/setup.txt
+          start="$(date +%s)"
+          set +e
+          taskset -c "$cpu" timeout --signal=TERM --kill-after=15s 3600s \
+            /usr/bin/time -v ./kissat-src/build/kissat --statistics out/original.cnf \
+            > out/kissat.log 2>&1
+          rc="$?"
+          set -e
+          end="$(date +%s)"
+          printf '%s\n' "$rc" > out/solver-return-code.txt
+          printf '%s\n' "$((end - start))" > out/wall-seconds.txt
+          if [ "$rc" -eq 20 ] && grep -q '^s UNSATISFIABLE' out/kissat.log; then
+            echo 'UNSAT_REPORTED_NOT_KISSAT_PROOF_VERIFIED' > out/solver-status.txt
+          elif [ "$rc" -eq 10 ] && grep -q '^s SATISFIABLE' out/kissat.log; then
+            echo 'CRITICAL_SAT_CONFLICTS_WITH_ACCEPTED_VERIPB_UNSAT' > out/solver-status.txt
+          elif [ "$rc" -eq 124 ]; then
+            echo 'TIMEOUT_3600_SECONDS_NO_RESULT' > out/solver-status.txt
+          else
+            echo "UNKNOWN_OR_RESOURCE_FAILURE_RC_$rc" > out/solver-status.txt
+          fi
+          cat out/solver-status.txt
+          tail -100 out/kissat.log > out/kissat-tail.txt
+          grep -E '(^s |process-time:|conflicts:|decisions:|clauses_learned:|Maximum resident set size|Elapsed \(wall clock\))' out/kissat.log | tail -80 > out/solver-statistics.txt || true
+
+      - name: Conditional separate DRAT rerun and independent check, not part of one-hour timing
+        if: always()
+        shell: bash
+        run: |
+          set -u
+          if [ ! -f out/solver-status.txt ] || ! grep -q '^UNSAT_REPORTED' out/solver-status.txt; then
+            echo 'SKIPPED_NO_UNSAT_SOLVER_ANSWER' > out/drat-check-status.txt
+            exit 0
+          fi
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          echo 'Separate optional proof-producing rerun, capped at 900 seconds; NOT the measured main solve.' > out/proof-rerun-note.txt
+          set +e
+          (
+            ulimit -f 8388608
+            taskset -c "$cpu" timeout --signal=TERM --kill-after=15s 900s \
+              ./kissat-src/build/kissat --no-binary out/original.cnf out/kissat.drat
+          ) > out/proof-rerun.log 2>&1
+          proof_rc="$?"
+          set -e
+          printf '%s\n' "$proof_rc" > out/proof-rerun-rc.txt
+          if [ "$proof_rc" -ne 20 ] || ! grep -q '^s UNSATISFIABLE' out/proof-rerun.log; then
+            echo "PROOF_RERUN_NO_COMPLETED_UNSAT_RC_$proof_rc" > out/drat-check-status.txt
+            exit 0
+          fi
+          set +e
+          git clone -q --depth 1 https://github.com/marijnheule/drat-trim.git drat-trim
+          clone_rc="$?"
+          if [ "$clone_rc" -ne 0 ]; then echo 'PROOF_CHECKER_CLONE_FAILED' > out/drat-check-status.txt; exit 0; fi
+          git -C drat-trim rev-parse HEAD > out/drat-trim-sha.txt
+          gcc -D_GNU_SOURCE -std=c99 -O2 -o drat-trim/drat-trim drat-trim/drat-trim.c > out/drat-build.log 2>&1
+          build_rc="$?"
+          if [ "$build_rc" -ne 0 ]; then echo 'PROOF_CHECKER_BUILD_FAILED' > out/drat-check-status.txt; exit 0; fi
+          taskset -c "$cpu" timeout --signal=TERM --kill-after=15s 300s \
+            ./drat-trim/drat-trim out/original.cnf out/kissat.drat > out/drat-check.log 2>&1
+          verify_rc="$?"
+          if [ "$verify_rc" -eq 0 ] && grep -q '^s VERIFIED' out/drat-check.log; then
+            echo 'UNSAT_INDEPENDENT_DRAT_VERIFIED_SEPARATE_RERUN' > out/drat-check-status.txt
+          else
+            echo "UNVERIFIED_OR_TIMEOUT_RC_$verify_rc" > out/drat-check-status.txt
+          fi
+          set -e
+
+      - name: Freeze hashes and audit logs
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          [ ! -f out/kissat.drat ] || sha256sum out/kissat.drat > out/proof-sha256.txt
+          [ ! -f out/kissat.drat ] || du -h out/kissat.drat > out/proof-size.txt
+          rm -f out/kissat.drat out/original.cnf
+          date -u +'%Y-%m-%dT%H:%M:%SZ' > out/finished-utc.txt
+          find out -maxdepth 1 -type f -printf '%f %s bytes\n' | sort > out/manifest.txt
+
+      - name: Upload logs and measurements even on timeouts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PCMAX-m30-Kissat-3600s
+          path: out/
+          retention-days: 30
