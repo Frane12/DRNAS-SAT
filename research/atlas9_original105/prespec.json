@@ -1,0 +1,22 @@
+{
+  "protocol": "DRNAS-ATLAS9-GBD-ORIGINAL-UNSAT105-3-20261121",
+  "source_selection_time_utc": "2026-11-21",
+  "source_id": "07f5f3ca046261c3819c5c888ac837e5",
+  "isohash": "c76cc643e32004f5840c305a217d58de",
+  "filename": "mod2c-rand3bip-unsat-105-3.shuffled-as.sat05-2325.cnf.xz",
+  "catalog_family": "random-graph-xorsat",
+  "catalog_expected_status_for_reporting_only": "unsat",
+  "selection_basis": "SAT Competition 2005 original available yes via public GBD index; after previous different UNSAT candidate GBD 073c28... was unavailable; fixed new selection before source download, frozen detector already developed Atlas8",
+  "prior_unavailable_source_id": "073c28dfd3204f4c51e03c297ac841c1",
+  "original_source_max_bytes": 8000000,
+  "source_verification": "raw SHA-256 computed and recorded before any detector run, with exact GBD ID",
+  "proof_rule": "Standard VeriPB 3.0.2 externally checks complete PBP against unchanged original DIMACS, no custom proof as strict UNSAT",
+  "expected_outcome_for_assertions": "NONE",
+  "variants_seeds": [
+    617,
+    829
+  ],
+  "no_source_substitution": true,
+  "no_main_change": true,
+  "retrospective_family_knowledge": "Benchmark has known UNSAT label; new Atlas source-level evaluation, not new SAT competition verdict"
+}
