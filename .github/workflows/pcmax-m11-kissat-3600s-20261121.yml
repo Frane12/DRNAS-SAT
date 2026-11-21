@@ -1,0 +1,119 @@
+name: PCMAX m11 Kissat 1h isolated benchmark
+
+on:
+  push:
+    branches:
+      - 'experiment/pcmax-m11-kissat-hour-20261121'
+
+permissions:
+  contents: read
+
+jobs:
+  kissat-one-hour:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Check out experiment and frozen original CNF
+        uses: actions/checkout@v4
+
+      - name: Validate exact original DIMACS file
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          cp evidence/pcmax-weighted2/00/original.cnf out/original.cnf
+          echo 'c55ab8fe2c9e10f0579f806802bc32d04913f12cd6ce28e6662b8d59d114c174  out/original.cnf' | sha256sum -c -
+          sed -n '1p' out/original.cnf
+          sha256sum out/original.cnf | tee out/source.sha256
+          uname -a > out/environment.txt
+          lscpu >> out/environment.txt
+          echo 'Input: original PCMAX m11, 1517 variables, 6802 clauses; 16 > 15.' >> out/environment.txt
+
+      - name: Build pinned upstream Kissat 4.0.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q --depth 1 --branch rel-4.0.4 https://github.com/arminbiere/kissat.git kissat-src
+          ACTUAL="$(git -C kissat-src rev-parse HEAD)"
+          test "$ACTUAL" = '8af8e56f174b778aef3aa45af9f739b2a5f492c2'
+          echo "$ACTUAL" > out/kissat-source-sha.txt
+          cd kissat-src
+          ./configure
+          make -j2
+          ./build/kissat --version | tee ../out/kissat-version.txt
+
+      - name: Run one-core Kissat for at most 3600 seconds
+        shell: bash
+        run: |
+          set -u
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          if [ -z "$cpu" ]; then echo 'Could not determine allowed CPU core'; exit 2; fi
+          echo "Pinned logical CPU $cpu" | tee out/solver-setup.txt
+          echo "Solver full heuristics enabled; one trial; total wall cap 3600 s." >> out/solver-setup.txt
+          start="$(date +%s)"
+          # The proof is written as plain DRAT; file-size limit prevents filling the runner.
+          (
+            ulimit -f 8388608
+            taskset -c "$cpu" timeout --signal=TERM --kill-after=15s 3600s \
+              /usr/bin/time -v ./kissat-src/build/kissat --statistics --no-binary \
+                out/original.cnf out/kissat.drat
+          ) > out/kissat.log 2>&1
+          rc=$?
+          finish="$(date +%s)"
+          echo "$rc" > out/solver-return-code.txt
+          echo "$((finish - start))" > out/elapsed-wall-seconds.txt
+          grep -E '(^s |^c .* (conflicts|decisions|seconds|propagations)|Maximum resident set size)' out/kissat.log | tail -50 > out/kissat-summary.txt || true
+          if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
+            echo "TIMEOUT_AFTER_3600_SECONDS" > out/solver-status.txt
+          elif [ "$rc" -eq 20 ] && grep -q '^s UNSATISFIABLE' out/kissat.log; then
+            echo "UNSAT_REPORTED_PROOF_NOT_YET_CHECKED" > out/solver-status.txt
+          elif [ "$rc" -eq 10 ] && grep -q '^s SATISFIABLE' out/kissat.log; then
+            echo "SAT_REPORTED_CONTRADICTS_EXISTING_PC_MAX_PROOF_REQUIRES_CRITICAL_AUDIT" > out/solver-status.txt
+          else
+            echo "UNKNOWN_OR_ERROR" > out/solver-status.txt
+          fi
+          ls -lh out/ >> out/solver-setup.txt
+          cat out/solver-status.txt
+
+      - name: Independently check Kissat DRAT only if UNSAT was found
+        if: always()
+        shell: bash
+        run: |
+          set -u
+          if [ ! -f out/solver-status.txt ] || ! grep -q '^UNSAT_REPORTED' out/solver-status.txt; then
+            echo 'SKIPPED_NO_COMPLETE_UNSAT_RESULT' > out/drat-check-status.txt
+            exit 0
+          fi
+          git clone -q --depth 1 https://github.com/marijnheule/drat-trim.git drat-trim
+          clone_rc=$?
+          if [ "$clone_rc" -ne 0 ]; then echo "CHECKER_BUILD_FAILED_CLONE_$clone_rc" > out/drat-check-status.txt; exit 0; fi
+          git -C drat-trim rev-parse HEAD > out/drat-trim-sha.txt
+          make -C drat-trim > out/checker-build.log 2>&1
+          build_rc=$?
+          if [ "$build_rc" -ne 0 ]; then echo "CHECKER_BUILD_FAILED_$build_rc" > out/drat-check-status.txt; exit 0; fi
+          timeout --signal=TERM 300s ./drat-trim/drat-trim out/original.cnf out/kissat.drat > out/drat-check.log 2>&1
+          drat_rc=$?
+          if [ "$drat_rc" -eq 0 ] && grep -qi 'VERIFIED' out/drat-check.log; then
+            echo 'UNSAT_DRAT_INDEPENDENTLY_VERIFIED' > out/drat-check-status.txt
+          else
+            echo "UNVERIFIED_OR_CHECKER_TIMEOUT_RC_$drat_rc" > out/drat-check-status.txt
+          fi
+
+      - name: Archive concise audit artifacts (not giant proof file)
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          sha256sum out/original.cnf out/kissat.drat > out/sha256.txt 2>/dev/null
+          du -h out/kissat.drat > out/proof-size.txt 2>/dev/null
+          rm -f out/original.cnf out/kissat.drat
+          date -u +'%Y-%m-%dT%H:%M:%SZ' > out/finished-utc.txt
+          find out -maxdepth 1 -type f -printf '%f %s bytes\n' | sort > out/manifest.txt
+
+      - name: Upload all logs, timings, hashes and statuses
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PCMAX-m11-Kissat-3600s
+          path: out/
+          retention-days: 30
