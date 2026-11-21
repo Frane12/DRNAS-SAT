@@ -5,6 +5,7 @@ on:
       - experiment/structure-atlas3-diverse-encoding-validation-20261121
     paths:
       - .github/workflows/structure-atlas3-diverse-encoding-audit.yml
+      - research/structure_atlas3/**
 permissions:
   contents: read
 jobs:
