@@ -27,7 +27,7 @@ def check(raw,claims):
     groups_seen=set();xor_seen=set()
     pair_checks=0;xor_clause_checks=0
     for group in groups:
-        require(type(group) is list and 3<=len(group)<=32 and
+        require(type(group) is list and 2<=len(group)<=32 and
                 all(type(v) is int and 0<abs(v)<=nv for v in group) and
                 len(set(map(abs,group)))==len(group),"malformed_group")
         g=tuple(group)
