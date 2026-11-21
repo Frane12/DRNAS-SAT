@@ -92,7 +92,8 @@ jobs:
           clone_rc=$?
           if [ "$clone_rc" -ne 0 ]; then echo "CHECKER_BUILD_FAILED_CLONE_$clone_rc" > out/drat-check-status.txt; exit 0; fi
           git -C drat-trim rev-parse HEAD > out/drat-trim-sha.txt
-          make -C drat-trim > out/checker-build.log 2>&1
+          # getc_unlocked requires GNU feature macros with strict -std=c99 on Ubuntu.
+          gcc -D_GNU_SOURCE -std=c99 -O2 -o drat-trim/drat-trim drat-trim/drat-trim.c > out/checker-build.log 2>&1
           build_rc=$?
           if [ "$build_rc" -ne 0 ]; then echo "CHECKER_BUILD_FAILED_$build_rc" > out/drat-check-status.txt; exit 0; fi
           timeout --signal=TERM 300s ./drat-trim/drat-trim out/original.cnf out/kissat.drat > out/drat-check.log 2>&1
