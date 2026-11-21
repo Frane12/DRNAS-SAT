@@ -20,7 +20,7 @@ jobs:
           set -euo pipefail
           python3 -m py_compile research/structure_atlas1/{atlas,semantic_eo}.py research/structure_atlas2/real_source_audit.py
           python3 -m json.tool research/structure_atlas2/domain_registry.json >/dev/null
-          sha256sum research/structure_atlas2/* research/structure_atlas1/{atlas,semantic_eo}.py > atlas2-code-sha256.txt
+          sha256sum research/structure_atlas2/real_source_audit.py research/structure_atlas2/domain_registry.json research/structure_atlas1/{atlas,semantic_eo}.py > atlas2-code-sha256.txt
           sha256sum evidence/graph-k11/original.cnf evidence/ipg7b-petersen/original.cnf evidence/xor234-grid5/original.cnf evidence/pcmax-weighted2/05/original.cnf evidence/pcmax-weighted2/15/original.cnf > atlas2-real-source-sha256.txt
           git rev-parse HEAD > atlas2-commit.txt
           lscpu > atlas2-cpu.txt
