@@ -17,10 +17,10 @@ PRE=json.loads((ROOT/"research/graph_family_disjoint25/prespec.json").read_text(
 HIST=json.loads((ROOT/"evidence/ci/graph-disjoint10.json").read_text())
 assert MAN["status"]=="FROZEN_ALL_10_EXISTING_ORIGINALS"
 assert len(MAN["sources"])==len(PRE["records"])==len(HIST["provenance"])==10
-MAX_STRICT_PROBE_BYTES=23_000_000
-MAX_STRICT_PROBE_CLAUSES=300_000
-MAX_STRICT_PROBE_VARS=600_000
-CAP_S=22
+MAX_STRICT_PROBE_BYTES=60_000_000
+MAX_STRICT_PROBE_CLAUSES=2_500_000
+MAX_STRICT_PROBE_VARS=4_000_000
+CAP_S=60
 CPU=min(os.sched_getaffinity(0))
 os.sched_setaffinity(0,{CPU})
 
@@ -43,7 +43,8 @@ def run(label,args,timeout=CAP_S,ok=(0,)):
 
 def sketch(file):
     """Source-only streaming clause-width census; no family label or status."""
-    hist=collections.Counter();maxw=0;current=0
+    hist=collections.Counter();maxw=0;current=0;head=[]
+    mutex=implication=positive_binary=0
     pos=neg=0;numclause=0
     with file.open("rb") as f:
         for line in f:
@@ -51,15 +52,23 @@ def sketch(file):
             for word in line.split():
                 x=int(word)
                 if x==0:
-                    hist[current]+=1;numclause+=1;maxw=max(maxw,current);current=0
+                    hist[current]+=1;numclause+=1;maxw=max(maxw,current)
+                    if current==2:
+                        if head[0]<0 and head[1]<0:mutex+=1
+                        elif head[0]>0 and head[1]>0:positive_binary+=1
+                        else:implication+=1
+                    current=0;head=[]
                 else:
+                    if current<2:head.append(x)
                     current+=1
                     if x>0:pos+=1
                     else:neg+=1
     assert current==0
     return {"clause_count":numclause,
             "width_histogram":{str(k):v for k,v in sorted(hist.items())},
-            "max_clause_width":maxw,"positive_literals":pos,"negative_literals":neg}
+            "max_clause_width":maxw,"positive_literals":pos,"negative_literals":neg,
+            "source_binary_mutex_clauses":mutex,"source_binary_implications":implication,
+            "source_binary_atleastone":positive_binary}
 
 rows=[]
 for s in sorted(MAN["sources"],key=lambda v:v["id"]):
@@ -78,11 +87,11 @@ for s in sorted(MAN["sources"],key=lambda v:v["id"]):
       "source_bytes":s["source_bytes"],"variables":s["variables"],
       "clauses":s["clauses"],"basic_source_sketch":basic,
       "not_new_blind":True,"fact_probe":"UNKNOWN_RESOURCE_GATE" if not eligible else "NOT_RUN",
-      "variant_probes":[],"candidate_exchanges":0,
+      "variant_probes":[],"candidate_exchanges":0,"candidate_graph_links":0,
       "graph_strict_proof":"NOT_ATTEMPTED","hall_source_cert":"NOT_ATTEMPTED"}
     if eligible:
         probe=OUT/(f"id{i:02}.facts.json")
-        res=run(f"id{i:02}-source-facts",[sys.executable,HERE/"probe_one.py",fn,"--output",probe],20)
+        res=run(f"id{i:02}-source-facts",[sys.executable,HERE/"probe_one.py",fn,"--output",probe],60)
         if res["status"]=="RETURNED" and probe.exists():
             fact=json.loads(probe.read_text())
             assert fact["input_sha256"]==s["original_source_sha256"]
@@ -91,11 +100,12 @@ for s in sorted(MAN["sources"],key=lambda v:v["id"]):
             entry["eo_facts"]=fact["module_EO_facts"]
             entry["xor_facts"]=fact["module_XOR_facts"]
             entry["candidate_exchanges"]=fact["module_exchange_candidates_EO_XOR"]
+            entry["candidate_graph_links"]=fact["module_exchange_candidates_EO_GRAPH_binary_conflicts"]
             for variant in (1,2):
                 out=OUT/(f"id{i:02}.variant{variant}.json")
                 q=run(f"id{i:02}-variant{variant}",[sys.executable,
                   HERE/"probe_one.py",fn,"--output",out,
-                  "--variant",variant],20)
+                  "--variant",variant],60)
                 if q["status"]=="RETURNED" and out.exists():
                     f2=json.loads(out.read_text())
                     assert f2["inverse_clause_multiset_equivalent"] is True
@@ -149,6 +159,7 @@ for s in sorted(MAN["sources"],key=lambda v:v["id"]):
       "id":i,"bytes":entry["source_bytes"],"clauses":entry["clauses"],
       "facts":entry["fact_probe"],"variants":entry["variant_probes"],
       "EO_XOR_candidates":entry["candidate_exchanges"],
+      "EO_GRAPH_source_connections":entry["candidate_graph_links"],
       "graph_standard":entry["graph_strict_proof"],
       "hall_custom":entry["hall_source_cert"]},sort_keys=True),flush=True)
 
@@ -182,6 +193,7 @@ summary={
  "known_bijection_variant_passes":sum(x["status"]=="PASS" for r in rows for x in r["variant_probes"]),
  "known_bijection_variant_unknown":sum(x["status"]!="PASS" for r in rows for x in r["variant_probes"]),
  "eo_xor_overlap_candidates_only":sum(r["candidate_exchanges"] for r in rows),
+ "eo_graph_source_binary_connections_only":sum(r["candidate_graph_links"] for r in rows),
  "graph_standard_verified_unsat":sum(r["graph_strict_proof"]=="STANDARD_VERIPB_VERIFIED_UNSAT" for r in rows),
  "hall_custom_verified_not_strict":sum(r["hall_source_cert"]=="CUSTOM_SOURCE_CERTIFICATE_VERIFIED_NOT_VERIPB" for r in rows),
  "proof_system_note":"Only external VeriPB on exact original can count as strict UNSAT",
