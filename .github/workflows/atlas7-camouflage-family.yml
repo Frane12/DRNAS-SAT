@@ -1,0 +1,88 @@
+name: DRNAS ATLAS7 three fresh camouflaged-XOR originals, fixed-rule replay
+on:
+  push:
+    branches:
+      - experiment/atlas7-camouflage-family-holdout-20261121
+    paths:
+      - .github/workflows/atlas7-camouflage-family.yml
+permissions:
+  contents: read
+jobs:
+  original-source-holdout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Freeze exact code and prespecified source selection
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas6_camouflage/{semantic_and_xor,check_semantic}.py research/atlas7_family/{freeze,audit}.py
+          sha256sum research/atlas6_camouflage/{semantic_and_xor,check_semantic}.py research/atlas7_family/{freeze,audit}.py > atlas7-code-hashes.txt
+          sha256sum research/atlas7_family/prespec.json > atlas7-prespec-hash.txt
+          git rev-parse HEAD > atlas7-commit.txt
+          lscpu > atlas7-runner-cpu.txt
+          python3 - <<'PY'
+          import json
+          x=json.load(open('research/atlas7_family/prespec.json'))
+          assert x['preselected_before_any_source_download_or_ATLAS7_detector_run']
+          assert len(x['sources'])==3
+          assert x['per_source_replays']==2
+          assert len({s['gbd_hash'] for s in x['sources']})==3
+          PY
+      - name: Source-freeze all three exact GBD originals BEFORE detector evaluation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/atlas7_family/freeze.py | tee atlas7-freeze.log
+          test -s atlas7_original_sources/manifest.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('atlas7_original_sources/manifest.json'))
+          assert d['source_count']==3
+          assert d['status']=='FROZEN_SOURCE_ONLY_BEFORE_DETECTOR'
+          PY
+      - name: Run same frozen mathematical rule on three distinct originals and six variants
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          taskset -c "$cpu" python3 -u research/atlas7_family/audit.py | tee atlas7-trials.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open('atlas7_results/summary.json'))
+          assert d['status']=='COMPLETE'
+          assert d['frozen_original_sources']==3
+          assert d['independent_formula_origins']==3
+          assert d['controlled_permutations']==6
+          assert d['strict_original_VERIPB_UNSAT']==0
+          assert d['no_false_original_sat_model_claims']
+          assert d['no_source_outcome_input_to_detector']
+          assert d['main_untouched']
+          print('ATLAS7_FROZEN_FAMILY_AUDIT_COMPLETE',json.dumps({
+               k:v for k,v in d.items() if k!='original_source_summaries'},sort_keys=True))
+          PY
+      - name: Archive original source / exact reconstructed proofs / verified models
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find atlas7_original_sources atlas7_results -maxdepth 1 -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas7-all-evidence-sha256.txt
+          date -u +'%FT%TZ' > atlas7-finished-utc.txt
+      - name: Upload all original CNFs, source equivalence and SAT/UNKNOWN records
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS7-THREE-ORIGINAL-CAMOUFLAGED-XOR-SOURCES
+          path: |
+            atlas7_original_sources/
+            atlas7_results/
+            atlas7-freeze.log
+            atlas7-trials.log
+            atlas7-code-hashes.txt
+            atlas7-prespec-hash.txt
+            atlas7-commit.txt
+            atlas7-runner-cpu.txt
+            atlas7-all-evidence-sha256.txt
+            atlas7-finished-utc.txt
+          retention-days: 30
