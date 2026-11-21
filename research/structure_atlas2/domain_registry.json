@@ -1,0 +1,260 @@
+{
+  "format": "DRNAS-ATLAS2-DOMAIN-CATALOG-v1",
+  "caution": "Domain taxonomy and complexity belong to the originating PROBLEM with exact conditions; never inferred from raw DIMACS alone. Formula shape is a separate source-only observation. NP-complete family does not imply each instance hard.",
+  "entries": [
+    {
+      "key": "graph-coloring",
+      "real_question": "Mogu li se ispiti ili komunikacijske frekvencije rasporediti u k termina/kanala tako da povezani sukobi nisu istodobni?",
+      "formal_decision": "k-bojivost grafa (k>=3 kao fiksna opća obitelj)",
+      "complexity": "NP-complete (general k>=3)",
+      "primitives": [
+        "ONE_HOT",
+        "GRAPH_CONFLICT",
+        "CAPACITY"
+      ],
+      "module_candidates": [
+        "GRAPH",
+        "HALL",
+        "MATH5"
+      ],
+      "source_provenance": "repo_original",
+      "source_path": "evidence/graph-k11/original.cnf",
+      "claim_scope": "Matematička analogija; izvorište ovog CNF-a je benchmark bojanja, ne stvarni raspored ispita."
+    },
+    {
+      "key": "petersen-graph-configuration",
+      "real_question": "Može li se konfiguracija diskretnih izbora složiti uz međusobna grafovska ograničenja?",
+      "formal_decision": "Specifična Petersenova kombinatorna konfiguracija; tip zadatka traži provjeru izvornog opisnika.",
+      "complexity": "NOT_ASSIGNED_FROM_FILENAME",
+      "primitives": [
+        "ONE_HOT",
+        "GRAPH_CONFLICT"
+      ],
+      "module_candidates": [
+        "IPG",
+        "GRAPH",
+        "HALL"
+      ],
+      "source_provenance": "repo_original",
+      "source_path": "evidence/ipg7b-petersen/original.cnf",
+      "claim_scope": "Ne proglašavati pojedinačnu instancu NP-potpunom niti preciznu klasu bez definicije."
+    },
+    {
+      "key": "mixed-xor-network",
+      "real_question": "Jesu li kontrolni/paritetni bitovi digitalnog sustava međusobno dosljedni uz dodatna ograničenja?",
+      "formal_decision": "Provjera konzistentnosti mješovitog CNF-a; sam linearni XOR nad GF(2) je u P.",
+      "complexity": "XOR linear systems in P; general combined SAT in NP-complete family",
+      "primitives": [
+        "XOR3",
+        "XOR4",
+        "ONE_HOT",
+        "TWO_SAT"
+      ],
+      "module_candidates": [
+        "XOR",
+        "MATH5",
+        "TWO_SAT"
+      ],
+      "source_provenance": "repo_original",
+      "source_path": "evidence/xor234-grid5/original.cnf",
+      "claim_scope": "Benchmark matematičke obitelji, nije tvrdnja da CNF dolazi iz industrijske kontrole."
+    },
+    {
+      "key": "pcmax-parallel-machines",
+      "real_question": "Stignu li svi poslovi određenog trajanja na dostupnim strojevima prije roka?",
+      "formal_decision": "Identical parallel-machine makespan feasibility P||Cmax<=T",
+      "complexity": "NP-complete in general; special polynomial subcases exist",
+      "primitives": [
+        "ONE_HOT",
+        "CARDINALITY",
+        "CAPACITY",
+        "BDD",
+        "HALL"
+      ],
+      "module_candidates": [
+        "PCMAX",
+        "MATCH3_HALL",
+        "IPG_BDD"
+      ],
+      "source_provenance": "repo_original",
+      "source_paths": [
+        "evidence/pcmax-weighted2/05/original.cnf",
+        "evidence/pcmax-weighted2/15/original.cnf"
+      ],
+      "claim_scope": "Originalni PCMAX benchmarkovi; dodatne Hallove dopuštenosti zahtijevaju izvorne dokaze, ne naziv obitelji."
+    },
+    {
+      "key": "hamiltonian",
+      "real_question": "Postoji li zatvorena ruta koja posjeti svaku lokaciju točno jedanput?",
+      "formal_decision": "Hamiltonov ciklus (ne poistovjećivati s TSP optimizacijom)",
+      "complexity": "NP-complete",
+      "primitives": [
+        "ONE_HOT",
+        "GRAPH_CONFLICT",
+        "CONNECTIVITY",
+        "CYCLE"
+      ],
+      "module_candidates": [
+        "GRAPH",
+        "TWO_SAT",
+        "MATH5"
+      ],
+      "source_provenance": "gbd_2025_manifest_only",
+      "gbd_family": "hamiltonian",
+      "claim_scope": "Podrijetlo iz GBD kataloga; izvorni CNF još nije skeniran u ovom ATLAS2 auditu."
+    },
+    {
+      "key": "independent-set",
+      "real_question": "Koje se međusobno nekompatibilne antene ili zadaci mogu odabrati tako da ih bude barem k?",
+      "formal_decision": "Independent Set size >= k",
+      "complexity": "NP-complete",
+      "primitives": [
+        "GRAPH_CONFLICT",
+        "CARDINALITY",
+        "HALL"
+      ],
+      "module_candidates": [
+        "GRAPH",
+        "MATCH3_HALL",
+        "MATH5"
+      ],
+      "source_provenance": "gbd_2025_manifest_only",
+      "gbd_family": "independent-set",
+      "claim_scope": "Antenama je ilustrirana primjena, ne dokazano podrijetlo izvornog CNF-a."
+    },
+    {
+      "key": "independent-set-reconfiguration",
+      "real_question": "Može li se iz jednog valjanog rasporeda prijeći u drugi pomicanjem po jednom izboru i bez privremenih sukoba?",
+      "formal_decision": "Neograničena rekonfiguracija nezavisnog skupa; ograničena duljina puta je zaseban problem.",
+      "complexity": "PSPACE-complete in general for unrestricted reconfiguration; bounded-step existential encoding is in NP",
+      "primitives": [
+        "GRAPH_CONFLICT",
+        "TRANSITION",
+        "TIME_LAYER",
+        "ONE_HOT"
+      ],
+      "module_candidates": [
+        "GRAPH",
+        "TWO_SAT",
+        "MATH5"
+      ],
+      "source_provenance": "gbd_2025_manifest_only",
+      "gbd_family": "independent-set-reconfiguration",
+      "claim_scope": "Ne smije se generalizirati kao samo NP-kompletno; točna složenost ovisi o kretanju i vremenskoj granici."
+    },
+    {
+      "key": "rooks",
+      "real_question": "Mogu li se nadzorne točke ili figure rasporediti po mreži bez sukoba u retku i stupcu?",
+      "formal_decision": "Placement of nonattacking rooks; difficulty depends on extra constraints",
+      "complexity": "Simple bipartite matching variant in P; enriched variants may be harder",
+      "primitives": [
+        "ONE_HOT",
+        "ALL_DIFFERENT",
+        "MATCHING",
+        "HALL"
+      ],
+      "module_candidates": [
+        "MATCH3_HALL",
+        "MATH5",
+        "GRAPH"
+      ],
+      "source_provenance": "gbd_2025_manifest_only",
+      "gbd_family": "rooks",
+      "claim_scope": "Ne izvoditi NP-complete za konkretnu izvedenicu samo iz naziva rooks."
+    },
+    {
+      "key": "tseitin-formulas",
+      "real_question": "Jesu li lokalne paritetne provjere signala na grafu globalno konzistentne?",
+      "formal_decision": "Tseitin parity CNF from graph incidence",
+      "complexity": "Underlying GF(2) consistency in P; some proof systems require long refutations",
+      "primitives": [
+        "XOR3",
+        "XOR4",
+        "GRAPH",
+        "PARITY"
+      ],
+      "module_candidates": [
+        "XOR",
+        "MATH5",
+        "GRAPH"
+      ],
+      "source_provenance": "gbd_2025_manifest_only",
+      "gbd_family": "tseitin-formulas",
+      "claim_scope": "Izvorni CNF mora se provjeriti prije nego paritetna struktura bude potvrđena."
+    },
+    {
+      "key": "ramsey-numbers",
+      "real_question": "Možemo li obojiti bridove mreže bez zabranjenog potpuno povezanog obrasca?",
+      "formal_decision": "Finite Ramsey coloring existence at fixed graph size and pattern",
+      "complexity": "SAT encoding is in NP for bounded finite witness; no automatic NP-complete classification of this precise catalog family",
+      "primitives": [
+        "GRAPH",
+        "CARDINALITY",
+        "SYMMETRY"
+      ],
+      "module_candidates": [
+        "GRAPH",
+        "MATH5",
+        "PCMAX"
+      ],
+      "source_provenance": "gbd_2025_manifest_only",
+      "gbd_family": "ramsey-numbers",
+      "claim_scope": "Nije dokaz da stvarni izvor pripada poslovnom sustavu."
+    },
+    {
+      "key": "random-graph-xorsat",
+      "real_question": "Jesu li binarne odluke uz paritetne zahtjeve konzistentne na grafu?",
+      "formal_decision": "Random graph XOR-SAT family; inspect whether additional CNF clauses appear",
+      "complexity": "Pure XOR linear equations in P, mixed general CNF may be NP-complete",
+      "primitives": [
+        "XOR3",
+        "XOR4",
+        "GRAPH",
+        "PARITY"
+      ],
+      "module_candidates": [
+        "XOR",
+        "MATH5",
+        "GRAPH"
+      ],
+      "source_provenance": "gbd_2025_manifest_only",
+      "gbd_family": "random-graph-xorsat",
+      "claim_scope": "Probna hipoteza bez izvornog skena."
+    }
+  ],
+  "deferred_sources": [
+    {
+      "question": "Raspoređivanje operacijskih dvorana i osoblja",
+      "problem_family": "resource-constrained scheduling",
+      "expected_primitives": [
+        "ONE_HOT",
+        "CAPACITY",
+        "GRAPH_CONFLICT",
+        "TIME_LAYER"
+      ],
+      "status": "REAL_CNF_SOURCE_NOT_YET_PINNED"
+    },
+    {
+      "question": "Projektiranje i provjera hardverskih sklopova",
+      "problem_family": "bounded model checking / equivalence",
+      "expected_primitives": [
+        "GATES",
+        "TWO_SAT",
+        "XOR",
+        "TIME_LAYER"
+      ],
+      "status": "REAL_CNF_SOURCE_NOT_YET_PINNED"
+    },
+    {
+      "question": "Upravljanje ovisnostima paketa programske opreme",
+      "problem_family": "software package dependency solving",
+      "expected_primitives": [
+        "IMPLIES",
+        "TWO_SAT",
+        "ONE_HOT",
+        "CAPACITY"
+      ],
+      "status": "REAL_CNF_SOURCE_NOT_YET_PINNED"
+    }
+  ]
+}
