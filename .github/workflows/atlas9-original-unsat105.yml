@@ -1,0 +1,96 @@
+name: DRNAS ATLAS9 original SAT05 masked XOR UNSAT105-3 standard VeriPB
+on:
+  push:
+    branches:
+      - experiment/atlas9-original-unsat-105-3-20261121
+    paths:
+      - .github/workflows/atlas9-original-unsat105.yml
+      - research/atlas9_original105/**
+permissions:
+  contents: read
+jobs:
+  public-original-unsat-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout experimental proof chain only
+        uses: actions/checkout@v4
+      - name: Freeze proof code and original GBD ID before detector run
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas9_original105/*.py research/atlas6_camouflage/{semantic_and_xor,check_semantic}.py research/atlas8_masked_unsat/proof.py
+          sha256sum research/atlas9_original105/*.py research/atlas6_camouflage/{semantic_and_xor,check_semantic}.py research/atlas8_masked_unsat/proof.py research/xorlin1/emit_veripb.py > atlas9-source-code-hashes.txt
+          sha256sum research/atlas9_original105/prespec.json > atlas9-prespecified-source-hash.txt
+          git rev-parse HEAD > atlas9-commit.txt
+          lscpu > atlas9-runner-cpu.txt
+          python3 - <<'PY'
+          import json
+          d=json.load(open('research/atlas9_original105/prespec.json'))
+          assert d['protocol']=='DRNAS-ATLAS9-GBD-ORIGINAL-UNSAT105-3-20261121'
+          assert d['source_id']=='07f5f3ca046261c3819c5c888ac837e5'
+          assert d['isohash']=='c76cc643e32004f5840c305a217d58de'
+          assert d['variants_seeds']==[617,829]
+          assert d['no_source_substitution'] and d['no_main_change']
+          PY
+      - name: Freeze unchanged public GBD CNF and SHA before any candidate processing
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/atlas9_original105/freeze.py | tee atlas9-freeze.log
+          python3 - <<'PY'
+          import json,hashlib
+          x=json.load(open('atlas9_original105_source/source-frozen.json'))
+          assert x['source_gbd_id']=='07f5f3ca046261c3819c5c888ac837e5'
+          assert hashlib.sha256(open('atlas9_original105_source/original.cnf','rb').read()).hexdigest()==x['source_original_raw_sha256']
+          print('ATLAS9_GBD_ORIGINAL_BYTES_FROZEN')
+          PY
+      - name: Install independent standard VeriPB 3.0.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version > atlas9-veripb-version.txt 2>&1
+      - name: Source-only reconstruction, GF2 contradiction and original VeriPB
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          taskset -c "$cpu" python3 -u research/atlas9_original105/audit.py | tee atlas9-audit.log
+          python3 - <<'PY'
+          import json
+          x=json.load(open('atlas9_original105_results/summary.json'))
+          assert x['status']=='COMPLETE'
+          assert x['original_semantic_recovered']
+          assert x['original_veripb_strict']
+          assert x['permutations']==2
+          assert x['permutation_strict_Veripb']==2
+          assert all(x['tamper_controls'].values())
+          assert x['only_standard_veripb_on_exact_source_as_strict_unsat']
+          print('ATLAS9_PUBLIC_ORIGINAL_STRICT_VERIPB_PASS')
+          PY
+      - name: All source and proof SHA evidence
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find atlas9_original105_source atlas9_original105_results -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas9-evidence-sha256.txt
+          date -u +'%FT%TZ' > atlas9-finished-utc.txt
+      - name: Archive unchanged public original, exact PBP proofs and all negatives
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS9-GBD-UNSAT105-ORIGINAL-VERIPB
+          path: |
+            atlas9_original105_source/
+            atlas9_original105_results/
+            atlas9-audit.log
+            atlas9-freeze.log
+            atlas9-veripb-version.txt
+            atlas9-source-code-hashes.txt
+            atlas9-prespecified-source-hash.txt
+            atlas9-commit.txt
+            atlas9-runner-cpu.txt
+            atlas9-evidence-sha256.txt
+            atlas9-finished-utc.txt
+          retention-days: 30
