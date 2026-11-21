@@ -10,7 +10,7 @@ def signed_exact_one(source):
     out=[]
     for group in source:
         clause=tuple(group)
-        if not (3 <= len(clause) <= 32 and len({abs(x) for x in clause})==len(clause)):
+        if not (2 <= len(clause) <= 32 and len({abs(x) for x in clause})==len(clause)):
             continue
         if all(frozenset((-a,-b)) in source
                for i,a in enumerate(clause) for b in clause[i+1:]):
@@ -64,7 +64,7 @@ def reencode_amo(raw,group):
     """
     nv,clauses=parse(raw)
     group=tuple(group)
-    if not (3<=len(group)<=12):raise ValueError("rewrite_width_budget")
+    if not (2<=len(group)<=12):raise ValueError("rewrite_width_budget")
     orig={frozenset(c) for c in clauses}
     if frozenset(group) not in orig:raise ValueError("missing_ALO")
     blocked={frozenset((-a,-b)) for a,b in itertools.combinations(group,2)}
@@ -93,7 +93,7 @@ def local_sequential_equivalence(n):
     """Exhaustively test full projected semantics of source ALO + direct AMO
     versus source ALO + Sinz AMO for small n (up to 6); independent of encoding.
     """
-    if not(3<=n<=6):raise ValueError("oracle budget")
+    if not(2<=n<=6):raise ValueError("oracle budget")
     import itertools
     src=list(range(1,n+1))
     direct=[tuple(src)]+[(-a,-b) for a,b in itertools.combinations(src,2)]
