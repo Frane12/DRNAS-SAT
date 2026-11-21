@@ -349,8 +349,11 @@ def main():
     arg.add_argument("--output",required=True,type=Path)
     arg.add_argument("--meta",type=Path)
     arg.add_argument("--exchange",type=Path,help="Source SHA-bound 2-SAT fact handoff")
+    arg.add_argument("--require-exchange",action="store_true",help="Experimental split-module transport ablation")
     a=arg.parse_args()
     try:
+        if a.require_exchange:
+            need(a.exchange is not None,"bridge OFF: no signed 2-SAT facts, dispatch UNKNOWN")
         exchange=json.loads(a.exchange.read_text()) if a.exchange else None
         pb,meta=compile_source(a.cnf.read_bytes(),exchange)
         a.output.parent.mkdir(parents=True,exist_ok=True)
