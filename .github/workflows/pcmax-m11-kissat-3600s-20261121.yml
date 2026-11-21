@@ -51,6 +51,8 @@ jobs:
           echo "Pinned logical CPU $cpu" | tee out/solver-setup.txt
           echo "Solver full heuristics enabled; one trial; total wall cap 3600 s." >> out/solver-setup.txt
           start="$(date +%s)"
+          # SAT solvers return 10 (SAT) or 20 (UNSAT); preserve rc instead of failing the step.
+          set +e
           # The proof is written as plain DRAT; file-size limit prevents filling the runner.
           (
             ulimit -f 8388608
@@ -59,6 +61,7 @@ jobs:
                 out/original.cnf out/kissat.drat
           ) > out/kissat.log 2>&1
           rc=$?
+          set -e
           finish="$(date +%s)"
           echo "$rc" > out/solver-return-code.txt
           echo "$((finish - start))" > out/elapsed-wall-seconds.txt
@@ -80,6 +83,7 @@ jobs:
         shell: bash
         run: |
           set -u
+          set +e
           if [ ! -f out/solver-status.txt ] || ! grep -q '^UNSAT_REPORTED' out/solver-status.txt; then
             echo 'SKIPPED_NO_COMPLETE_UNSAT_RESULT' > out/drat-check-status.txt
             exit 0
