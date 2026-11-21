@@ -1,0 +1,65 @@
+name: DRNAS ATLAS8 masked XOR known SAT and UNSAT standard source proofs
+on:
+  push:
+    branches:
+      - experiment/atlas8-masked-xor-unsat-proof-20261121
+    paths:
+      - .github/workflows/atlas8-masked-xor-unsat.yml
+      - research/atlas8_masked_unsat/**
+permissions:
+  contents: read
+jobs:
+  verified-masked-parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout experimental source
+        uses: actions/checkout@v4
+      - name: Source and protocol freeze
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas8_masked_unsat/*.py
+          sha256sum research/atlas8_masked_unsat/*.py research/atlas6_camouflage/{semantic_and_xor,check_semantic}.py research/xorlin1/emit_veripb.py > atlas8-code-hashes.txt
+          git rev-parse HEAD > atlas8-commit.txt
+          lscpu > atlas8-cpu.txt
+      - name: Install independent standard VeriPB version 3.0.2
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version > atlas8-veripb-version.txt 2>&1
+      - name: Source-only masked XOR SAT/UNSAT 3 graph families and independent original source checker
+        run: |
+          set -euo pipefail
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          taskset -c "$cpu" python3 -u research/atlas8_masked_unsat/audit.py | tee atlas8-audit.log
+          python3 - <<'PY'
+          import json
+          x=json.load(open('atlas8_out/summary.json'))
+          assert x['status']=='PASS'
+          assert x['originals_unsat_veripb_verified']==6
+          assert x['originals_sat_models_verified']==6
+          assert x['permuted_unsat_veripb_verified']==3
+          assert x['source_mutation_proof_rejections']>=1
+          print("ATLAS8_ALL_SOURCE_PROOFS_CHECKED",json.dumps(x,sort_keys=True))
+          PY
+      - name: Evidence hash manifest
+        if: always()
+        run: |
+          set +e
+          find atlas8_out -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas8-artifact-hashes.txt
+          date -u +'%FT%TZ' > atlas8-finished.txt
+      - name: Preserve original CNFs, standard proofs, SAT models and controls
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS8-MASKED-XOR-UNSAT-VERIPB-CONTROLS
+          path: |
+            atlas8_out/
+            atlas8-audit.log
+            atlas8-code-hashes.txt
+            atlas8-commit.txt
+            atlas8-cpu.txt
+            atlas8-veripb-version.txt
+            atlas8-artifact-hashes.txt
+            atlas8-finished.txt
+          retention-days: 30
