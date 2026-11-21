@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - 'experiment/pcmax-m30-kissat-hour-20261121'
+    paths:
+      - '.github/workflows/pcmax-m30-kissat-hour-20261121.yml'
 
 permissions:
   contents: read
@@ -24,7 +26,7 @@ jobs:
           cp evidence/pcmax-weighted2/15/original.cnf out/original.cnf
           echo '7cc73d81dbac7c8680cb7c5f6805e6e4d6aa101e5466771d5ce7aacee78d6472  out/original.cnf' | sha256sum -c -
           grep '^p cnf ' out/original.cnf | head -1 | tee out/dimensions.txt
-          grep -q -E '^p cnf 14113 167638[[:space:]]*$' out/original.cnf
+          grep -q -E '^p cnf 14112 167638[[:space:]]*$' out/original.cnf
           sha256sum out/original.cnf > out/source.sha256
           lscpu > out/environment.txt
           uname -a >> out/environment.txt
