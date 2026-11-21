@@ -1,0 +1,68 @@
+name: DRNAS Atlas3 - 14 original CNFs, varied encodings and proof-premise validation
+on:
+  push:
+    branches:
+      - experiment/structure-atlas3-diverse-encoding-validation-20261121
+    paths:
+      - .github/workflows/structure-atlas3-diverse-encoding-audit.yml
+permissions:
+  contents: read
+jobs:
+  source-proof-invariance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout experimental branch, preserve original sources
+        uses: actions/checkout@v4
+      - name: Validate source and syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/structure_atlas1/atlas.py research/structure_atlas1/semantic_eo.py research/structure_atlas3/*.py
+          sha256sum research/structure_atlas3/*.py research/structure_atlas1/atlas.py research/structure_atlas1/semantic_eo.py > atlas3-code-sha256.txt
+          find evidence -name original.cnf -type f -print0 | sort -z | xargs -0 -r sha256sum > atlas3-original-source-sha256.txt
+          git rev-parse HEAD > atlas3-commit.txt
+          lscpu > atlas3-runner-lscpu.txt
+      - name: Repeated source-exact mathematical facts on original CNFs and controlled variants
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/structure_atlas3/audit.py | tee atlas3-audit.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open('structure_atlas3_results/summary.json'))
+          assert d['status']=='PASS'
+          assert d['original_sources']==14
+          assert d['distinct_repository_source_domains']==4
+          assert d['known_inverse_variant_trials']==42
+          assert d['source_motif_certificates_independently_checked']==56
+          assert d['signed_EO_count_preserved']==42
+          assert d['complete_XOR_counts_preserved']==42
+          assert d['coarse_invariant_preserved']==42
+          assert d['tamper_source_missing_premise_rejected']>=10
+          assert d['reencoded_original_sources_supported']>=2
+          assert d['no_new_SAT_UNSAT']
+          print('ATLAS3_FULL_AUDIT_PASS',json.dumps(d,sort_keys=True))
+          PY
+      - name: Archive evidence hashes
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find structure_atlas3_results -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas3-evidence-sha256.txt
+          date -u +'%FT%TZ' > atlas3-end-utc.txt
+      - name: Upload full original source evidence, fact certificates and repeat rows
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS3-14ORIGINAL-42VARIANTS
+          path: |
+            structure_atlas3_results/
+            atlas3-audit.log
+            atlas3-code-sha256.txt
+            atlas3-original-source-sha256.txt
+            atlas3-commit.txt
+            atlas3-runner-lscpu.txt
+            atlas3-evidence-sha256.txt
+            atlas3-end-utc.txt
+          retention-days: 30
