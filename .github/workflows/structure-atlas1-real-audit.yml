@@ -1,0 +1,64 @@
+name: DRNAS Structure Atlas 1 - real CNF variation robustness audit
+on:
+  push:
+    branches:
+      - experiment/structure-atlas1-original-permutations-20261121
+    paths:
+      - .github/workflows/structure-atlas1-real-audit.yml
+permissions:
+  contents: read
+jobs:
+  atlas-real-variants:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Code audit and immutable provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/structure_atlas1/atlas.py research/structure_atlas1/audit.py
+          sha256sum research/structure_atlas1/*.py > atlas-source-code-hashes.txt
+          sha256sum evidence/graph-k11/original.cnf evidence/ipg7b-petersen/original.cnf evidence/xor234-grid5/original.cnf evidence/pcmax-weighted2/05/original.cnf evidence/pcmax-weighted2/15/original.cnf > atlas-original-input-hashes.txt
+          git rev-parse HEAD > atlas-commit.txt
+          lscpu > atlas-cpu.txt
+      - name: Source-only Atlas permutation, polarity and mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/structure_atlas1/audit.py | tee atlas-audit.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open('structure_atlas1_audit/summary.json'))
+          assert d['status']=='PASS'
+          assert d['original_sources']==5
+          assert d['controlled_bijection_transforms']==20
+          assert d['exact_inverse_equivalences']==20
+          assert d['coarse_fingerprint_invariant']==20
+          assert d['rename_only_motifs_preserved']==10
+          assert d['source_mutation_negative_controls']==5
+          assert d['different_fingerprint_original_sources']==5
+          print("ATLAS1_STRICT_SOURCE_AUDIT_PASS")
+          PY
+      - name: Evidence hashes
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find structure_atlas1_audit -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas-evidence-hashes.txt
+          date -u +'%FT%TZ' > atlas-finished-utc.txt
+      - name: Upload source-bound Atlas reports, invariant profiles and variant audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-STRUCTURE-ATLAS1-REAL-CNF-variants
+          path: |
+            structure_atlas1_audit/
+            atlas-audit.log
+            atlas-original-input-hashes.txt
+            atlas-source-code-hashes.txt
+            atlas-commit.txt
+            atlas-cpu.txt
+            atlas-evidence-hashes.txt
+            atlas-finished-utc.txt
+          retention-days: 30
