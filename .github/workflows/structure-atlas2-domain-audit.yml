@@ -1,0 +1,68 @@
+name: DRNAS Structure Atlas 2 - Real question to CNF fact taxonomy
+on:
+  push:
+    branches:
+      - experiment/structure-atlas2-domain-taxonomy-20261121
+    paths:
+      - .github/workflows/structure-atlas2-domain-audit.yml
+permissions:
+  contents: read
+jobs:
+  original-cnf-domain-facts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout unchanged original CNFs from pinned branch
+        uses: actions/checkout@v4
+      - name: Preflight taxonomy, sources and source code
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/structure_atlas1/{atlas,semantic_eo}.py research/structure_atlas2/real_source_audit.py
+          python3 -m json.tool research/structure_atlas2/domain_registry.json >/dev/null
+          sha256sum research/structure_atlas2/* research/structure_atlas1/{atlas,semantic_eo}.py > atlas2-code-sha256.txt
+          sha256sum evidence/graph-k11/original.cnf evidence/ipg7b-petersen/original.cnf evidence/xor234-grid5/original.cnf evidence/pcmax-weighted2/05/original.cnf evidence/pcmax-weighted2/15/original.cnf > atlas2-real-source-sha256.txt
+          git rev-parse HEAD > atlas2-commit.txt
+          lscpu > atlas2-cpu.txt
+      - name: Original CNF source facts and domain taxonomy separated
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/structure_atlas2/real_source_audit.py | tee atlas2-audit.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open("structure_atlas2_audit/summary.json"))
+          assert d["status"]=="PASS"
+          assert d["original_repo_cnfs_scanned"]==5
+          assert d["formal_domain_taxonomy_entries"]==11
+          assert d["gbd_2025_source_metadata_rows_not_scanned"]==10
+          assert d["gbd_2025_distinct_catalog_families"]==7
+          assert d["signed_original_variants_exact_inverse_equivalent"]==2
+          assert d["false_solver_claims"]==0
+          print("ATLAS2_REAL_ORIGINAL_SOURCE_AUDIT_PASS",json.dumps({
+            k:d[k] for k in ("original_repo_cnfs_scanned","formal_domain_taxonomy_entries",
+                             "gbd_2025_distinct_catalog_families",
+                             "source_exact_one_cooccurs_xor_count")},sort_keys=True))
+          PY
+      - name: Record provenance and evidence
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find structure_atlas2_audit -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas2-evidence-sha256.txt
+          date -u +'%FT%TZ' > atlas2-audit-done.txt
+      - name: Upload taxonomy, real-source fact profiles, communication candidates and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-STRUCTURE-ATLAS2-real-family-source-facts
+          path: |
+            structure_atlas2_audit/
+            atlas2-audit.log
+            atlas2-code-sha256.txt
+            atlas2-real-source-sha256.txt
+            atlas2-commit.txt
+            atlas2-cpu.txt
+            atlas2-evidence-sha256.txt
+            atlas2-audit-done.txt
+          retention-days: 30
