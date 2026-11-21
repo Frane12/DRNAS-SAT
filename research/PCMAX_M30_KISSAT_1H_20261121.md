@@ -2,7 +2,7 @@
 
 - Target: unchanged `evidence/pcmax-weighted2/15/original.cnf`
 - SHA256: `7cc73d81dbac7c8680cb7c5f6805e6e4d6aa101e5466771d5ce7aacee78d6472`
-- Formula: original PCMAX m30, 14,113 variables and 167,638 clauses.
+- Formula: original PCMAX m30, 14,112 variables declared in the DIMACS header (14,113 appears in source filename) and 167,638 clauses.
 - Already validated mathematical capacity contradiction: `998 > 990`, with externally accepted VeriPB 3.0.2 proof at `evidence/pcmax-weighted2/15/weighted.pbp`.
 - Solver: pinned upstream Kissat 4.0.4, default heuristics, one logical CPU.
 - Main comparison: run at most 3600 wall seconds, on original CNF (no transformations and no proof-writing interference).
