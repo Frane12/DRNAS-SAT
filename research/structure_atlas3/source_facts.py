@@ -8,7 +8,8 @@ from atlas import parse,encoded
 
 def signed_exact_one(source):
     out=[]
-    for clause in source:
+    for group in source:
+        clause=tuple(group)
         if not (3 <= len(clause) <= 32 and len({abs(x) for x in clause})==len(clause)):
             continue
         if all(frozenset((-a,-b)) in source
