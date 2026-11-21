@@ -1,0 +1,75 @@
+name: DRNAS GRAPH to PCMAX capacity bridge - source-proof 3x audit
+
+on:
+  push:
+    branches:
+      - 'experiment/graph-pcmax-proof-bridge1-20261121'
+    paths:
+      - '.github/workflows/graph-pcmax-bridge1-audit.yml'
+permissions:
+  contents: read
+
+jobs:
+  graph-hall-bridge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout experimental source only
+        uses: actions/checkout@v4
+
+      - name: Preflight syntax and freeze code SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/graph_pcmax_bridge1/*.py
+          sha256sum research/graph_pcmax_bridge1/*.py > graph-bridge-source-hashes.txt
+          git rev-parse HEAD > graph-bridge-commit.txt
+          lscpu > graph-bridge-cpu.txt
+
+      - name: Install and pin external independent VeriPB
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version > graph-bridge-veripb-version.txt 2>&1
+
+      - name: Triple-repeat GRAPH -> PCMAX source proof and standard verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 research/graph_pcmax_bridge1/audit.py | tee graph-bridge-results.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open("graph_pcmax_bridge1_results/summary.json"))
+          assert d["status"]=="PASS"
+          assert d["total_trials"]==9 and d["verified_unsat"]==9
+          assert d["graph_alone_unknown"]==9 and d["pcmax_alone_unknown"]==9
+          assert d["malformed_exchange_rejections"]==2
+          assert d["sat_controls_no_false_unsat"]==3
+          assert d["unsupported_original_cnfs_unknown"]==2
+          print("DRNAS_GRAPH_PCMAX_BRIDGE_VERIPB_PASS",json.dumps(d,sort_keys=True))
+          PY
+
+      - name: Manifest and outcome
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find graph_pcmax_bridge1_results -maxdepth 1 -type f -print0 2>/dev/null | xargs -0 -r sha256sum > graph-bridge-evidence-sha256.txt
+          date -u +'%Y-%m-%dT%H:%M:%SZ' > graph-bridge-completion.txt
+
+      - name: Archive exact CNFs, signed exchange, proofs, verifier logs and controls
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GRAPH-PCMAX-HALL-bridge1-all-repeats
+          path: |
+            graph_pcmax_bridge1_results/
+            graph-bridge-results.log
+            graph-bridge-source-hashes.txt
+            graph-bridge-commit.txt
+            graph-bridge-cpu.txt
+            graph-bridge-veripb-version.txt
+            graph-bridge-evidence-sha256.txt
+            graph-bridge-completion.txt
+          retention-days: 30
