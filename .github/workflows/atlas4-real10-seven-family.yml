@@ -5,6 +5,7 @@ on:
       - experiment/atlas4-seven-family-source-20261121
     paths:
       - .github/workflows/atlas4-real10-seven-family.yml
+      - research/structure_atlas4/**
 permissions:
   contents: read
 jobs:
