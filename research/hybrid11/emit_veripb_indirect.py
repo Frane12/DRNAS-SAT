@@ -86,7 +86,7 @@ class Proof:
         return self.pol(ops)
 
 
-def discover(original,nv):
+def discover(original,nv,external_links=None):
     """Source-only structural recovery of indirect XOR3/4 gates.
     This is an incomplete sufficient-condition detector: unsupported => UNKNOWN.
     """
@@ -137,16 +137,38 @@ def discover(original,nv):
         for v in vars:index_by_var[v].add(idx)
     for onehot in candidates:
         chosen=[];seen_y=set()
-        for x in onehot:
-            possible=[]
-            for y in sorted(graphvars-set(onehot)):
-                positive=reachable(x,y) and reachable(y,x)
-                negative=reachable(x,-y) and reachable(-y,x)
-                if positive:possible.append((x,y,0))
-                if negative:possible.append((x,y,1))
-            if len(possible)!=1:break
-            if possible[0][1] in seen_y:break
-            seen_y.add(possible[0][1]);chosen.append(possible[0])
+        if external_links is not None:
+            if list(onehot)!=external_links.get("onehot"):continue
+            claims=external_links.get("links",[])
+            need(len(claims)==len(onehot),"exchange link count mismatch")
+            for x,claim in zip(onehot,claims):
+                need(type(claim) is dict and claim.get("x")==x,
+                     "exchange job-to-link order mismatch")
+                y=claim.get("y");d=claim.get("xor_bit")
+                need(type(y) is int and y in graphvars and y not in onehot
+                     and d in (0,1) and y not in seen_y,"exchange invalid signed link")
+                target=y if d==0 else -y
+                for key,a,b in (("path_xy",x,target),("path_yx",target,x)):
+                    path=claim.get(key)
+                    need(type(path) is list and len(path)>=2 and
+                         len(path)<=len(original)+1 and path[0]==a and path[-1]==b and
+                         all(type(v) is int and v!=0 and abs(v)<=nv for v in path),
+                         "exchange invalid source path")
+                    for u,v in zip(path,path[1:]):
+                        need(frozenset((-u,v)) in ids,
+                             "exchange path step is not an original binary source clause")
+                chosen.append((x,y,d));seen_y.add(y)
+        else:
+            for x in onehot:
+                possible=[]
+                for y in sorted(graphvars-set(onehot)):
+                    positive=reachable(x,y) and reachable(y,x)
+                    negative=reachable(x,-y) and reachable(-y,x)
+                    if positive:possible.append((x,y,0))
+                    if negative:possible.append((x,y,1))
+                if len(possible)!=1:break
+                if possible[0][1] in seen_y:break
+                seen_y.add(possible[0][1]);chosen.append(possible[0])
         if len(chosen)!=len(onehot):continue
 
         # Discover the gate component reachable from matched y variables.
@@ -173,10 +195,16 @@ def discover(original,nv):
         return onehot,chosen,selected
     raise Unsupported("no closed source XOR3/4 network linked to exact-one through 2-SAT")
 
-def compile_source(raw):
+def compile_source(raw,exchange=None):
     started=time.perf_counter()
     nv,original=ordered_dimacs(raw)
-    onehot, links, graph_rows=discover(original,nv)
+    if exchange is not None:
+        need(type(exchange) is dict and
+             exchange.get("format")=="DRNAS-2SAT-SIGNED-LINKS-v1" and
+             exchange.get("verdict")=="FACTS_ONLY_UNCHECKED" and
+             exchange.get("source_sha256")==hashlib.sha256(raw).hexdigest(),
+             "exchange source hash or format mismatch")
+    onehot, links, graph_rows=discover(original,nv,exchange)
     p=Proof(original)
     # Source implications entail these two equivalence clauses by RUP,
     # because both directions are paths of length >=1 in the 2-CNF graph.
@@ -311,6 +339,8 @@ def compile_source(raw):
         "proof_bytes":len(output.encode("ascii")),
         "generator_s":round(time.perf_counter()-started,6),
         "external_verifier_required":True,
+        "source_verified_exchange_used":exchange is not None,
+        "received_links":len(links) if exchange is not None else 0,
         "scope":"source-CNF one-hot + signed 2-SAT SCC + closed indirect XOR3/XOR4 network"}
 
 def main():
@@ -318,9 +348,11 @@ def main():
     arg.add_argument("--cnf",required=True,type=Path)
     arg.add_argument("--output",required=True,type=Path)
     arg.add_argument("--meta",type=Path)
+    arg.add_argument("--exchange",type=Path,help="Source SHA-bound 2-SAT fact handoff")
     a=arg.parse_args()
     try:
-        pb,meta=compile_source(a.cnf.read_bytes())
+        exchange=json.loads(a.exchange.read_text()) if a.exchange else None
+        pb,meta=compile_source(a.cnf.read_bytes(),exchange)
         a.output.parent.mkdir(parents=True,exist_ok=True)
         a.output.write_text(pb)
         if a.meta:a.meta.write_text(json.dumps(meta,indent=2,sort_keys=True)+"\n")
