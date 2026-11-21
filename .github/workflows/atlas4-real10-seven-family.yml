@@ -1,0 +1,87 @@
+name: DRNAS ATLAS4 ten original SAT2025 CNFs seven-family source-first audit
+on:
+  push:
+    branches:
+      - experiment/atlas4-seven-family-source-20261121
+    paths:
+      - .github/workflows/atlas4-real10-seven-family.yml
+permissions:
+  contents: read
+jobs:
+  original-seven-family-atlas:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    steps:
+      - name: Checkout experimental branch only
+        uses: actions/checkout@v4
+      - name: Syntax and frozen protocol hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/structure_atlas4/*.py
+          python3 -m py_compile research/structure_atlas3/{source_facts,check_facts}.py
+          sha256sum research/structure_atlas4/*.py research/structure_atlas3/{source_facts,check_facts}.py > atlas4-code-hashes.txt
+          sha256sum research/graph_family_disjoint25/prespec.json evidence/ci/graph-disjoint10.json > atlas4-original-prespec-hashes.txt
+          git rev-parse HEAD > atlas4-commit.txt
+          lscpu > atlas4-cpu.txt
+      - name: Download exact ten original GBD source bytes and verify prior frozen source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/structure_atlas4/freeze10.py | tee atlas4-freeze.log
+          python3 - <<'PY'
+          import json
+          m=json.load(open("atlas4_real10/manifest.json"))
+          assert m["status"]=="FROZEN_ALL_10_EXISTING_ORIGINALS"
+          assert m["count"]==10 and m["families"]==7
+          print("ATLAS4_ORIGINAL_SOURCE_FREEZE_PASS")
+          PY
+      - name: Install external standard VeriPB 3.0.2 checker
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version > atlas4-veripb-version.txt 2>&1
+      - name: Source-only module facts, two bijections and proof-only scouting
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/structure_atlas4/audit.py | tee atlas4-audit.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open("atlas4_results/summary.json"))
+          assert d["status"]=="COMPLETE_FACT_CENSUS"
+          assert d["original_sources"]==10
+          assert d["different_catalog_families"]==7
+          assert d["source_hash_forgeries_rejected"]==min(2,d["eligible_source_fact_probes"])
+          assert d["no_claim_of_joint_solver_new_solution"] is True
+          assert d["known_bijection_variant_passes"]+d["known_bijection_variant_unknown"]<=20
+          print("ATLAS4_COMPLETE_COHORT_WITH_ALL_UNKNOWN_ACCOUNTED",json.dumps(d,sort_keys=True))
+          PY
+      - name: Complete SHA-based evidence record
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find atlas4_results -maxdepth 1 -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas4-result-hashes.txt
+          find atlas4_real10 -maxdepth 1 -name '*.cnf' -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas4-frozen-input-hashes.txt
+          date -u +'%FT%TZ' > atlas4-utc-finished.txt
+      - name: Archive source manifests, proof checker logs and all UNKNOWNs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS4-ORIGINAL10-SEVEN-FAMILIES
+          path: |
+            atlas4_results/
+            atlas4_real10/manifest.json
+            atlas4-freeze.log
+            atlas4-audit.log
+            atlas4-veripb-version.txt
+            atlas4-cpu.txt
+            atlas4-commit.txt
+            atlas4-code-hashes.txt
+            atlas4-original-prespec-hashes.txt
+            atlas4-result-hashes.txt
+            atlas4-frozen-input-hashes.txt
+            atlas4-utc-finished.txt
+          retention-days: 30
