@@ -28,9 +28,9 @@ jobs:
           assert x['separately_fixed_before_ANY_ATLAS7B_detector_evaluation']
           assert len(x['sources'])==2
           assert x['per_source_replays']==2
-          assert len({s['gbd_hash'] for s in x['sources']})==3
+          assert len({s['gbd_hash'] for s in x['sources']})==2
           PY
-      - name: Source-freeze all three exact GBD originals BEFORE detector evaluation
+      - name: Source-freeze both exact GBD originals BEFORE detector evaluation
         shell: bash
         run: |
           set -euo pipefail
@@ -42,7 +42,7 @@ jobs:
           assert d['source_count']==2
           assert d['status']=='FROZEN_SOURCE_ONLY_BEFORE_DETECTOR'
           PY
-      - name: Run same frozen mathematical rule on three distinct originals and six variants
+      - name: Run same frozen mathematical rule on two distinct originals and four variants
         shell: bash
         run: |
           set -euo pipefail
