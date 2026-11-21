@@ -1,0 +1,66 @@
+name: DRNAS HYBRID11 proof-carrying 2SAT XOR exchange, paired repeat
+
+on:
+  push:
+    branches:
+      - 'experiment/hybrid11-modular-bridge-ablation-20261121'
+    paths:
+      - '.github/workflows/hybrid11-bridge-repeat-20261121.yml'
+permissions:
+  contents: read
+jobs:
+  signed-bridge-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout experiment branch only
+        uses: actions/checkout@v4
+      - name: Source and syntax check
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/hybrid11/emit_veripb_indirect.py research/hybrid11/signed_2sat_exchange.py research/hybrid11/test_module_exchange.py
+          git rev-parse HEAD > bridge-head-sha.txt
+          lscpu > bridge-runner-lscpu.txt
+      - name: Install independent VeriPB 3.0.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version | tee bridge-veripb-version.txt
+      - name: Test 2SAT signed fact handoff to XOR proof generator, three repeats
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 research/hybrid11/test_module_exchange.py | tee bridge-audit.log
+          test -f hybrid11_bridge_test_output/summary.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('hybrid11_bridge_test_output/summary.json'))
+          assert d['status']=='PASS'
+          assert d['trials']==9 and d['bridge_veripb_verified']==9
+          assert d['direct_veripb_verified']==9 and d['off_unknown']==9
+          assert d['forged_messages_rejected']==2 and d['controls_safe_unknown']==4
+          print('BRIDGE_ABLATION_AUDIT_PASS',json.dumps(d,sort_keys=True))
+          PY
+      - name: Keep proof and source evidence
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find hybrid11_bridge_test_output -type f -print0 2>/dev/null | xargs -0 -r sha256sum > bridge-files-sha256.txt
+          date -u +'%FT%TZ' > bridge-finished-utc.txt
+      - name: Upload all trials, controls and VeriPB proof logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-HYBRID11-2SAT-XOR-bridge-3repeat
+          path: |
+            hybrid11_bridge_test_output/
+            bridge-audit.log
+            bridge-head-sha.txt
+            bridge-runner-lscpu.txt
+            bridge-veripb-version.txt
+            bridge-files-sha256.txt
+            bridge-finished-utc.txt
+          retention-days: 30
