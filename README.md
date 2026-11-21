@@ -2,6 +2,10 @@
 
 **Structural SAT solving and independently checkable proofs** · Frane Drnas, Croatia
 
+> **Moto · Motto**
+> **„Ne pretražuj ono što možeš dokazati.”**  
+> *“Don't search what you can prove.”*
+
 Can a solver explain why a schedule is impossible before it tries every assignment? DRNAS SAT looks for mathematical structure in a Boolean formula and turns it into a proof that a separate program can check. This repository contains the C++ solvers, the proof generators, the original inputs for selected cases, and experiments that show where the approach succeeds or runs out of time.
 
 [Hrvatski uvod](docs/UVOD_HR.md) · [Latest HYBRID6–10 results](#november-2026-research-update--hybrid610) · [Fano experiment](#seven-jobs-in-triples) · [Illustrated formulas](#illustrated-formulas) · [Verify a proof](#verify-a-proof) · [Experimental results](#experimental-results) · [Source audit](docs/SOURCE_AUDIT.md)
