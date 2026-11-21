@@ -1,0 +1,42 @@
+{
+  "protocol": "DRNAS-ATLAS7B-TWO-ACCESSIBLE-SAT-SOURCES-20261121",
+  "preselected_before_any_source_download_or_ATLAS7_detector_run": false,
+  "selection_method": "Three DIFFERENT historical benchmark IDs from same random-graph-xorsat camouflaged family, selected by GBD metadata and source filename only. No choice influenced by new ATLAS7 detection results.",
+  "fixed_detector_source_branch": "experiment/atlas6-camouflaged-xor-id8-20261121",
+  "detector_code_frozen_after_ATLAS6_success": true,
+  "not_general_new_blind_competition_claim": true,
+  "input_family": "random-graph-xorsat camouflaged original CNFs",
+  "source_catalog": "https://benchmark-database.de/",
+  "sources": [
+    {
+      "id": "SAT_230_1",
+      "gbd_hash": "0462a0427297f8979588174b502bd044",
+      "isohash": "b6e717232c3fd8feeb20651a33c4405b",
+      "original_filename": "mod2c-rand3bip-sat-230-1.shuffled-as.sat05-2503.cnf.xz",
+      "catalog_status_for_posthoc_report_only": "sat",
+      "expected_source_sha256": "9794f4cbff9f0e1136b5711a88d58bc7eabdcc1e78fb2594dd50e9bac8a5bc0f"
+    },
+    {
+      "id": "SAT_220_1",
+      "gbd_hash": "1b0780e82e41f6ca9c6c2f37b5350789",
+      "isohash": "97f918a0703f017cabb6ff707fc45d63",
+      "original_filename": "mod2c-rand3bip-sat-220-1.shuffled-as.sat05-2488.cnf.xz",
+      "catalog_status_for_posthoc_report_only": "sat",
+      "expected_source_sha256": "935b7936ef02e2029d9d08e04f6ee4e76117351b0ffd37280b7427a51910dfa6"
+    }
+  ],
+  "resource_cap_bytes_per_raw_source": 8000000,
+  "per_source_replays": 2,
+  "variant_seeds": [
+    311,
+    422
+  ],
+  "with_optional_sign_flip_on_second_variant": true,
+  "SAT_claim_rule": "Only if independently checked SAT model satisfies every exact original CNF clause",
+  "UNSAT_claim_rule": "GF2 contradiction source checked is project-specific only, not standard VeriPB/DRAT; do not count as strict UNSAT without original-source standard proof",
+  "fail_closed_source_missing": true,
+  "main_untouched": true,
+  "separately_fixed_before_ANY_ATLAS7B_detector_evaluation": true,
+  "v2_scope": "Separate post-availability two-source study: original 3-source run aborted because UNSAT GBD hash 073c28... returned 404, with NO candidate solver evaluation. The first two source SHA values were observed during metadata/source-only download, but NO ATLAS7 detector results were observed.",
+  "aborted_three_source_run": "https://github.com/Frane12/DRNAS-SAT/actions/runs/44952863254"
+}
