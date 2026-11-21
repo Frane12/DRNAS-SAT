@@ -1,0 +1,142 @@
+name: PCMAX connected 4x - Kissat 3600s
+
+on:
+  push:
+    branches:
+      - 'experiment/pcmax-connected-4x-hour-20261121'
+    paths:
+      - '.github/workflows/pcmax-connected-4x-hour-20261121.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  connected-4x:
+    runs-on: ubuntu-latest
+    timeout-minutes: 85
+    steps:
+      - name: Checkout pinned experiment
+        uses: actions/checkout@v4
+
+      - name: Generate exactly frozen 4x connected original-to-experiment CNF
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out build
+          python3 research/pcmax_4x_20261121/generate_connected_pcmax4x.py out/connected_4x.cnf > out/generator-metadata.json
+          echo '510afeeeba1478ebaa2ce4866680447ad496e2eec30ce1c88eb5f9f07f9a4cb9  out/connected_4x.cnf' | sha256sum -c -
+          grep -x 'p cnf 81055 704682' out/connected_4x.cnf > out/cnf-header.txt
+          test "$(stat -c%s out/connected_4x.cnf)" -eq 11856030
+          sha256sum out/connected_4x.cnf > out/cnf-source-sha256.txt
+          lscpu > out/runner-cpu.txt
+          uname -a >> out/runner-cpu.txt
+          printf 'This is NEW generated connected PCMAX-style CNF, not 4 copies of original m30. Original m30 14112 vars/167638 clauses. New 81055 vars/704682 clauses.\n' > out/instance-scope.txt
+
+      - name: DRNAS-style CNF-only BDD Hall detector and independent source checker
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          test -n "$cpu"
+          /usr/bin/time -v -o out/structural-time.txt \
+            taskset -c "$cpu" python3 research/pcmax_4x_20261121/source_bdd_hall_detector.py \
+              out/connected_4x.cnf --cert out/connected_4x.capacity.json \
+              > out/structural-detector.json
+          /usr/bin/time -v -o out/structural-checker-time.txt \
+            taskset -c "$cpu" python3 research/pcmax_capacity/check_capacity.py \
+              out/connected_4x.cnf out/connected_4x.capacity.json \
+              > out/structural-checker.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('out/structural-detector.json'))
+          c=json.load(open('out/structural-checker.json'))
+          assert d['status']=='UNSAT_CERTIFICATE_EMITTED_UNCHECKED',d
+          assert c['status']=='UNSAT_STRUCTURAL_CERTIFICATE_VERIFIED',c
+          assert c['required']==131 and c['capacity_sum']==129,c
+          print('SOURCE_CNF_STRUCTURAL_PROOF_VERIFIED: 131 > 129')
+          PY
+
+      - name: Build pinned upstream Kissat 4.0.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q --depth 1 --branch rel-4.0.4 https://github.com/arminbiere/kissat.git kissat-src
+          ACTUAL="$(git -C kissat-src rev-parse HEAD)"
+          test "$ACTUAL" = '8af8e56f174b778aef3aa45af9f739b2a5f492c2'
+          echo "$ACTUAL" > out/kissat-commit-sha.txt
+          (cd kissat-src && ./configure && make -j2)
+          ./kissat-src/build/kissat --version > out/kissat-version.txt
+
+      - name: Kissat full native heuristics one logical CPU wall cap 3600 seconds
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          test -n "$cpu"
+          printf 'CPU=%s\nKissat=4.0.4, all default heuristics\nWallCapSeconds=3600\nProofLoggingDuringPrimaryRun=off\n' "$cpu" > out/kissat-setup.txt
+          start="$(date +%s)"
+          set +e
+          taskset -c "$cpu" timeout --signal=TERM --kill-after=15s 3600s \
+            /usr/bin/time -v ./kissat-src/build/kissat --statistics out/connected_4x.cnf \
+            > out/kissat.log 2>&1
+          rc="$?"
+          set -e
+          finish="$(date +%s)"
+          printf '%s\n' "$rc" > out/kissat-exit-code.txt
+          printf '%s\n' "$((finish - start))" > out/kissat-wall-seconds.txt
+          if [ "$rc" -eq 20 ] && grep -q '^s UNSATISFIABLE' out/kissat.log; then
+            echo 'UNSAT_REPORTED_NOT_YET_KISSAT_PROOF_VERIFIED' > out/kissat-status.txt
+          elif [ "$rc" -eq 10 ] && grep -q '^s SATISFIABLE' out/kissat.log; then
+            echo 'CRITICAL_SAT_CONTRADICTS_SOURCE_VERIFIED_UNSAT' > out/kissat-status.txt
+          elif [ "$rc" -eq 124 ]; then
+            echo 'TIMEOUT_3600_SECONDS' > out/kissat-status.txt
+          else
+            echo "UNKNOWN_OR_RESOURCE_FAILURE_RC_$rc" > out/kissat-status.txt
+          fi
+          tail -140 out/kissat.log > out/kissat-tail.txt
+          grep -E '(^s |process-time:|conflicts:|decisions:|clauses_learned:|Maximum resident set size|Elapsed \(wall clock\))' out/kissat.log | tail -80 > out/kissat-stats-summary.txt || true
+          cat out/kissat-status.txt
+
+      - name: Optional native DRNAS PCMAX C++ guard check on the same source
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          if [ ! -f out/cnf-source-sha256.txt ]; then echo 'SKIPPED_MISSING_INPUT' > out/native-pcmax-status.txt; exit 0; fi
+          g++ -std=c++20 -O3 -DNDEBUG -DDRNAS_PCMAX_MODULE src/drnas_x5.cpp -lcrypto -o build/drnas-pcmax > out/native-build.log 2>&1
+          compile_rc="$?"
+          if [ "$compile_rc" -ne 0 ]; then echo "NATIVE_BUILD_FAILED_$compile_rc" > out/native-pcmax-status.txt; exit 0; fi
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          taskset -c "$cpu" timeout --signal=TERM 65s \
+            /usr/bin/time -v ./build/drnas-pcmax out/connected_4x.cnf \
+              --mode core --time 60 --pcmax-only --pcmax-budget-ms 30000 \
+              --pcmax-certificate out/native.capacity.json > out/native-pcmax.log 2>&1
+          rc="$?"
+          echo "$rc" > out/native-pcmax-exit-code.txt
+          if [ "$rc" -eq 20 ] && [ -f out/native.capacity.json ]; then
+            python3 research/pcmax_capacity/check_capacity.py out/connected_4x.cnf out/native.capacity.json > out/native-capacity-check.json 2>&1
+            ck="$?"
+            if [ "$ck" -eq 0 ]; then echo 'NATIVE_SOURCE_CERTIFICATE_VERIFIED' > out/native-pcmax-status.txt
+            else echo 'NATIVE_CERTIFICATE_REJECTED' > out/native-pcmax-status.txt; fi
+          else
+            echo "NATIVE_UNKNOWN_OR_ERROR_RC_$rc" > out/native-pcmax-status.txt
+          fi
+          cat out/native-pcmax-status.txt
+
+      - name: Archive reproducibility artifacts including CNF and certificates
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          date -u +'%Y-%m-%dT%H:%M:%SZ' > out/finished-utc.txt
+          find out -maxdepth 1 -type f -printf '%f %s bytes\n' | sort > out/manifest.txt
+          sha256sum out/*cnf out/*.json 2>/dev/null > out/artifact-sha256.txt
+
+      - name: Upload input CNF, math certificate, times and Kissat logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-PCMAX-connected-4x-Kissat-3600s
+          path: out/
+          retention-days: 30
+          compression-level: 6
