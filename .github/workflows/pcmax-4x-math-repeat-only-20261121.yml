@@ -1,0 +1,107 @@
+name: PCMAX 4x fivefold structural validation (NO KISSAT)
+
+on:
+  push:
+    branches:
+      - 'experiment/pcmax-4x-repeat-math-only-20261121'
+    paths:
+      - '.github/workflows/pcmax-4x-math-repeat-only-20261121.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  pcmax-repeat-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout independent test branch (no Kissat)
+        uses: actions/checkout@v4
+
+      - name: Recreate SHA-verified identical connected 4x CNF
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build out repeat
+          python3 research/pcmax_4x_20261121/generate_connected_pcmax4x.py out/connected_4x.cnf > out/generator-metadata.json
+          echo '510afeeeba1478ebaa2ce4866680447ad496e2eec30ce1c88eb5f9f07f9a4cb9  out/connected_4x.cnf' | sha256sum -c -
+          grep -x 'p cnf 81055 704682' out/connected_4x.cnf
+          sha256sum out/connected_4x.cnf > out/source-sha256.txt
+          lscpu > out/runner-environment.txt
+          uname -a >> out/runner-environment.txt
+          echo 'Same exact CNF SHA as separate running Kissat 3600s. Kissat NOT invoked here.' > out/protocol.txt
+
+      - name: Five independent repeats source-extraction plus checker
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 research/pcmax_4x_20261121/repeat_math_audit.py out/connected_4x.cnf repeat --repetitions 5 | tee out/repeat-console.log
+          cp repeat/results.csv out/repeated-results.csv
+          cp repeat/summary.json out/repeated-summary.json
+          cp repeat/negative_hash_test.txt out/negative-hash-test.txt
+
+      - name: Build native DRNAS PCMAX C++ optional separate diagnostic
+        shell: bash
+        run: |
+          set +e
+          g++ -std=c++20 -O3 -DNDEBUG -DDRNAS_PCMAX_MODULE src/drnas_x5.cpp -lcrypto -o build/drnas-pcmax > out/native-build.log 2>&1
+          rc="$?"
+          echo "$rc" > out/native-build-exit-code.txt
+          if [ "$rc" -ne 0 ]; then
+            echo "BUILD_ERROR_RC_$rc" > out/native-status.txt
+          else
+            echo 'NATIVE_BINARY_BUILT' > out/native-status.txt
+            sha256sum build/drnas-pcmax > out/native-binary-sha256.txt
+          fi
+          exit 0
+
+      - name: Native DRNAS C++ PCMAX one-core guarded trial and proof check
+        shell: bash
+        run: |
+          set +e
+          if [ ! -x build/drnas-pcmax ]; then
+            echo "NOT_RUN_NO_NATIVE_BINARY" > out/native-result.txt
+            exit 0
+          fi
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          start="$(date +%s)"
+          taskset -c "$cpu" timeout --signal=TERM --kill-after=10s 50s \
+            /usr/bin/time -v ./build/drnas-pcmax out/connected_4x.cnf \
+            --mode core --time 45 --pcmax-only --pcmax-budget-ms 30000 \
+            --pcmax-certificate out/native.capacity.json > out/native.log 2>&1
+          rc="$?"
+          echo "$rc" > out/native-return-code.txt
+          echo "$(( $(date +%s) - start ))" > out/native-wall-seconds.txt
+          if [ "$rc" -eq 20 ] && [ -f out/native.capacity.json ]; then
+            python3 research/pcmax_capacity/check_capacity.py out/connected_4x.cnf out/native.capacity.json > out/native-checked.json 2>&1
+            ck="$?"
+            if [ "$ck" -eq 0 ]; then
+              echo "NATIVE_UNSAT_SOURCE_CHECKED" > out/native-result.txt
+            else
+              echo "NATIVE_CERT_REJECTED_RC_$ck" > out/native-result.txt
+            fi
+          else
+            echo "NATIVE_NO_VERIFIED_UNSAT_RC_$rc" > out/native-result.txt
+          fi
+          echo "The native C++ guard is a separate diagnostic, not the fivefold Python benchmark." >> out/native-result.txt
+
+      - name: Bundle evidence
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          cp out/repeated-results.csv repeat/repeated-results-copy.csv 2>/dev/null
+          date -u +'%Y-%m-%dT%H:%M:%SZ' > out/finished-utc.txt
+          sha256sum out/connected_4x.cnf > out/hash-audit.txt 2>/dev/null
+          find repeat out -type f -printf '%p %s bytes\n' | sort > out/manifest.txt
+
+      - name: Upload data and independent source certificates
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PCMAX-4x-five-repeats-math-only
+          path: |
+            out/
+            repeat/
+          retention-days: 30
+          compression-level: 6
