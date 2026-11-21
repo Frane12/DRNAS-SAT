@@ -17,7 +17,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m py_compile research/structure_atlas1/atlas.py research/structure_atlas1/audit.py
+          python3 -m py_compile research/structure_atlas1/atlas.py research/structure_atlas1/audit.py research/structure_atlas1/semantic_eo.py research/structure_atlas1/semantic_audit.py
           sha256sum research/structure_atlas1/*.py > atlas-source-code-hashes.txt
           sha256sum evidence/graph-k11/original.cnf evidence/ipg7b-petersen/original.cnf evidence/xor234-grid5/original.cnf evidence/pcmax-weighted2/05/original.cnf evidence/pcmax-weighted2/15/original.cnf > atlas-original-input-hashes.txt
           git rev-parse HEAD > atlas-commit.txt
@@ -40,12 +40,27 @@ jobs:
           assert d['different_fingerprint_original_sources']==5
           print("ATLAS1_STRICT_SOURCE_AUDIT_PASS")
           PY
+      - name: Distinct CNF encodings with auxiliaries and arbitrary variable polarity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/structure_atlas1/semantic_audit.py | tee atlas-semantic-audit.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open('structure_atlas1_semantic/summary.json'))
+          assert d['status']=='PASS'
+          assert d['generated_source_transform_trials']==18
+          assert d['source_supported_exactly_one_recovered']==18
+          assert d['negative_controls_correctly_returned_unknown']==6
+          assert d['projected_exact_one_generator_checks']==6
+          print("ATLAS1_SEMANTIC_AUDIT_PASS")
+          PY
       - name: Evidence hashes
         if: always()
         shell: bash
         run: |
           set +e
-          find structure_atlas1_audit -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas-evidence-hashes.txt
+          find structure_atlas1_audit structure_atlas1_semantic -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas-evidence-hashes.txt
           date -u +'%FT%TZ' > atlas-finished-utc.txt
       - name: Upload source-bound Atlas reports, invariant profiles and variant audit
         if: always()
@@ -54,7 +69,9 @@ jobs:
           name: DRNAS-STRUCTURE-ATLAS1-REAL-CNF-variants
           path: |
             structure_atlas1_audit/
+            structure_atlas1_semantic/
             atlas-audit.log
+            atlas-semantic-audit.log
             atlas-original-input-hashes.txt
             atlas-source-code-hashes.txt
             atlas-commit.txt
