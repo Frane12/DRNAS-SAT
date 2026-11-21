@@ -47,7 +47,7 @@ def sketch(file):
     pos=neg=0;numclause=0
     with file.open("rb") as f:
         for line in f:
-            if not line.strip() or line[:1]==b"c" or line[:2]==b"p ":continue
+            if not line.strip() or line.lstrip().startswith((b"c ",b"p ")):continue
             for word in line.split():
                 x=int(word)
                 if x==0:
