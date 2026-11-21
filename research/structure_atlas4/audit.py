@@ -152,29 +152,24 @@ for s in sorted(MAN["sources"],key=lambda v:v["id"]):
       "graph_standard":entry["graph_strict_proof"],
       "hall_custom":entry["hall_source_cert"]},sort_keys=True),flush=True)
 
-# Tampered source-bound fact-message must be rejected irrespective of
-# the claimed source hash. Applies whenever at least one fact is emitted.
+# Tampered source-bound fact messages must be independently rejected.
+# Test a bounded selection; an invalid premise NEVER earns success.
+sys.path.insert(0,str(ROOT/"research/structure_atlas1"))
+sys.path.insert(0,str(ROOT/"research/structure_atlas3"))
+from source_facts import derive
+from check_facts import check,Invalid
 verified_ids=[r for r in rows if r["fact_probe"]=="SOURCE_FACTS_VERIFIED"]
+tamper_rejected=0
 for rec in verified_ids[:2]:
-    path=ROOT/MAN["sources"][rec["id"]]["path"]
-    facts=OUT/(f'id{rec["id"]:02}.facts.json')
-    # Fact probe stores only verified counts, not full witness. Use the
-    # independently verified source checker from Atlas3 on a fresh witness.
-    r=run(f'id{rec["id"]:02}-fake-sha-test',
-          [sys.executable,"-c",
-           "import sys,hashlib;sys.path.insert(0,'research/structure_atlas1');"+
-           "sys.path.insert(0,'research/structure_atlas3');"+
-           "from source_facts import derive;from check_facts import check,Invalid;"+
-           "raw=open(sys.argv[1],'rb').read();f=derive(raw);"+
-           "f['source_sha256']='0'*64;"+
-           "assert any((not isinstance(x,list) or len(x)>0) for x in [f['exact_one_groups'],f['complete_xor_rows']]) or True;"+
-           "try_check=lambda:check(raw,f);"+
-           "import contextlib;"+
-           "print('FORGED_SHA_REJECTED' if _reject(try_check) else 'WRONG')"],
-          ok=(0,1),timeout=10)
-    # This standalone optional negative check is not part of acceptance
-    # unless it yields a validated rejection. No false UNSAT is credited.
-    rec["optional_forged_SHA_control"]="NOT_SCORED" if r.get("rc")!=0 else "UNVERIFIED_CONTROL"
+    raw=(ROOT/MAN["sources"][rec["id"]]["path"]).read_bytes()
+    claim=derive(raw)
+    claim["source_sha256"]="0"*64
+    try:
+        check(raw,claim)
+    except Invalid:
+        tamper_rejected+=1
+    else:
+        raise AssertionError("SOURCE_HASH_FORGERY_NOT_REJECTED")
 # Record precommitted source selections and labels separately from detector.
 (OUT/"trial_records.json").write_text(json.dumps(rows,indent=2,sort_keys=True)+"\n")
 summary={
@@ -183,7 +178,7 @@ summary={
  "different_catalog_families":len({r["family_for_report_only"] for r in rows}),
  "eligible_source_fact_probes":sum(r["fact_probe"]=="SOURCE_FACTS_VERIFIED" for r in rows),
  "unknown_or_resource_sources":sum(r["fact_probe"]!="SOURCE_FACTS_VERIFIED" for r in rows),
- "known_bijection_variant_passes":sum(x["status"]=="PASS" for r in rows for x in r["variant_probes"]),
+ "source_hash_forgeries_rejected":tamper_rejected,\n "known_bijection_variant_passes":sum(x["status"]=="PASS" for r in rows for x in r["variant_probes"]),
  "known_bijection_variant_unknown":sum(x["status"]!="PASS" for r in rows for x in r["variant_probes"]),
  "eo_xor_overlap_candidates_only":sum(r["candidate_exchanges"] for r in rows),
  "graph_standard_verified_unsat":sum(r["graph_strict_proof"]=="STANDARD_VERIPB_VERIFIED_UNSAT" for r in rows),
