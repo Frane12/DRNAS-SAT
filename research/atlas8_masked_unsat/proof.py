@@ -84,6 +84,7 @@ def build_standard_original_proof(original,quotient,certificate):
     p=Proof(clauses)
     var=certificate["source_vars"]
     token_map={}
+    masked_gate_inputs={}
     for tok in certificate["tokens"]:
         members=tok["members"];true_if=tok["true_if"]
         if len(members)==1:
@@ -97,6 +98,7 @@ def build_standard_original_proof(original,quotient,certificate):
             p.red((-q,b),q,0)
             p.red((q,-a,-b),q,1)
             token_map[tok["id"]]=q
+            masked_gate_inputs[q]=(a,b)
     width=collections.Counter()
     mapped_rows=[]
     for row in certificate["rows"]:
@@ -108,6 +110,16 @@ def build_standard_original_proof(original,quotient,certificate):
         for bits in itertools.product((0,1),repeat=3):
             if sum(bits)%2==rhs:continue
             clause=tuple(-x if bit else x for x,bit in zip(terms,bits))
+            # An AND-mask set to false does not directly unit-propagate
+            # its input literals. The SOURCE truth-table row first proves
+            # each required gate input via two short RUP lemmas, which
+            # then combine with q = a AND b for a full RUP XOR clause.
+            # The external VeriPB checker must accept every step.
+            for q,(a,b) in masked_gate_inputs.items():
+                if q in clause:
+                    guard=tuple(lit for lit in clause if lit!=q)
+                    p.rup(guard+(a,))
+                    p.rup(guard+(b,))
             p.rup(clause)
     incidence=collections.Counter(v for vars,rhs in mapped_rows for v in vars)
     if any(cnt%2 for cnt in incidence.values()) or sum(rhs for vars,rhs in mapped_rows)%2!=1:
