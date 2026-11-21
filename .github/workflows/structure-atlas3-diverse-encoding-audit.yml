@@ -41,7 +41,7 @@ jobs:
           assert d['complete_XOR_counts_preserved']==42
           assert d['coarse_invariant_preserved']==42
           assert d['tamper_source_missing_premise_rejected']>=10
-          assert d['reencoded_original_sources_supported']>=2
+          assert d['reencoded_original_sources_supported']==4
           assert d['no_new_SAT_UNSAT']
           print('ATLAS3_FULL_AUDIT_PASS',json.dumps(d,sort_keys=True))
           PY
