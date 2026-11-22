@@ -20,7 +20,12 @@ from source_php_real26 import discover as hall_facts
 from check_php_partition import check as check_hall
 from emit_veripb_source_clique import emit as emit_hall
 from witness_checker import Invalid as InvalidGraph
-from bridge import compile_original as emit_exchange,Unknown as UnknownExchange
+_joint_spec=importlib.util.spec_from_file_location(
+    "atlas14_joint_frozen",ROOT/"research/atlas13_exchange/bridge.py")
+_joint=importlib.util.module_from_spec(_joint_spec)
+_joint_spec.loader.exec_module(_joint)
+emit_exchange=_joint.compile_original
+UnknownExchange=_joint.Unknown
 _graph=importlib.util.spec_from_file_location("atlas14_graph_frozen",
            ROOT/"research/graphclique/emit_veripb.py")
 graph=importlib.util.module_from_spec(_graph)
