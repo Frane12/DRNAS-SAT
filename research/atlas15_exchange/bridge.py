@@ -23,7 +23,13 @@ from facts import candidates,Unknown
 from witness import verify as original_fact_check,Invalid
 from check_php_partition import check as independent_hall_check
 from emit_veripb_source_clique import emit as hall_emitter
-from bridge import hall_partition,Unknown as HallUnknown
+import importlib.util
+_oldpath=ROOT/"research/atlas13_exchange/bridge.py"
+_oldspec=importlib.util.spec_from_file_location("drnas_atlas13_hall_provenance",_oldpath)
+_oldmodule=importlib.util.module_from_spec(_oldspec)
+_oldspec.loader.exec_module(_oldmodule)
+hall_partition=_oldmodule.hall_partition
+HallUnknown=_oldmodule.Unknown
 
 def sha(raw):return hashlib.sha256(raw).hexdigest()
 
