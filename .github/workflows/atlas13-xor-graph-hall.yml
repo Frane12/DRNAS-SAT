@@ -1,0 +1,90 @@
+name: DRNAS ATLAS13 genuine XOR2 GRAPH HALL joint source inference proof
+on:
+  push:
+    branches:
+      - experiment/atlas13-xor-graph-hall-joint-20261122
+    paths:
+      - .github/workflows/atlas13-xor-graph-hall.yml
+      - research/atlas13_joint/**
+permissions:
+  contents: read
+jobs:
+  joint-source-proven-inference:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - name: Checkout experimental source only
+        uses: actions/checkout@v4
+      - name: Freeze source protocol, code and module ablation definitions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m json.tool research/atlas13_joint/prespec.json >/dev/null
+          python3 -m py_compile research/atlas13_joint/{discover,independent,emit,audit}.py
+          python3 -m py_compile research/structure_atlas3/{source_facts,check_facts}.py
+          python3 -m py_compile research/graphclique/emit_veripb.py research/pcmax_capacity/source_php_real26.py research/xorlin1/extract.py
+          sha256sum research/atlas13_joint/{prespec.json,discover.py,independent.py,emit.py,audit.py} > atlas13-code-hashes.txt
+          sha256sum research/graphclique/emit_veripb.py research/pcmax_capacity/source_php_real26.py research/xorlin1/extract.py > atlas13-previous-module-hashes.txt
+          git rev-parse HEAD > atlas13-git-commit.txt
+          lscpu > atlas13-cpu.txt
+          python3 - <<'PY'
+          import json
+          x=json.load(open('research/atlas13_joint/prespec.json'))
+          assert x['protocol']=='DRNAS-ATLAS13-THREE-WAY-ITERATIVE-INFERENCE-V1'
+          assert x['fixed_before_first_joint_run']
+          assert [(v['k'],v['seed']) for v in x['cases']]==[(3,1303),(4,1304),(5,1305)]
+          assert x['no_main_change']
+          PY
+      - name: Install independent standard VeriPB 3.0.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version > atlas13-veripb-version.txt 2>&1
+      - name: Verify THREE independent module UNKNOWNs, cross-module RUP, Hall CP and all original standard proofs
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          taskset -c "$cpu" python3 -u research/atlas13_joint/audit.py | tee atlas13-audit.log
+          python3 - <<'PY'
+          import json
+          p=json.load(open('atlas13_results/summary.json'))
+          assert p['status']=='PASS'
+          assert p['three_distinct_constructed_k']==3
+          assert p['permuted_constructed_control']==1
+          assert p['accepted_original_source_Veripb_UNSAT']==4
+          assert p['each_GRAPH_only_UNKNOWN']
+          assert p['each_HALL_only_UNKNOWN']
+          assert p['each_XOR_only_UNKNOWN']
+          assert p['all_independent_original_EO_source_checked']
+          assert p['all_derived_mutex_essential_XOR2']
+          assert len(p['SAT_and_forgery_negative_controls'])==4
+          assert not p['not_a_public_original_competition_benchmark']==False
+          assert p['main_untouched']
+          print('ATLAS13_GENUINE_THREE_MODULE_SOURCE_PROOF_PASS',json.dumps({
+                k:v for k,v in p.items() if k not in ('cases','SAT_and_forgery_negative_controls')},sort_keys=True))
+          PY
+      - name: Create independent file hashes of all original and derived proof evidence
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find atlas13_results -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas13-evidence-sha256.txt
+          date -u +'%FT%TZ' > atlas13-finished-utc.txt
+      - name: Archive all original CNFs, proof certificates, standard verifier logs and SAT negative models
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS13-XOR2-GRAPH-HALL-TRUE-JOINT-VERIPB
+          path: |
+            atlas13_results/
+            atlas13-audit.log
+            atlas13-code-hashes.txt
+            atlas13-previous-module-hashes.txt
+            atlas13-git-commit.txt
+            atlas13-cpu.txt
+            atlas13-veripb-version.txt
+            atlas13-evidence-sha256.txt
+            atlas13-finished-utc.txt
+          retention-days: 30
