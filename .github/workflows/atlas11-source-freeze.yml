@@ -1,0 +1,58 @@
+name: DRNAS ATLAS11 publisher archive source-only freeze 2 distinct originals
+on:
+  push:
+    branches:
+      - experiment/atlas11-sat05-independent-120-135-20261122
+    paths:
+      - .github/workflows/atlas11-source-freeze.yml
+permissions:
+  contents: read
+jobs:
+  freeze-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify precommitted source selector and no solver was run
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas11_real2/freeze.py
+          python3 -m json.tool research/atlas11_real2/prespec.json >/dev/null
+          sha256sum research/atlas11_real2/{freeze.py,prespec.json} > atlas11-freeze-code-sha256.txt
+          git rev-parse HEAD > atlas11-freeze-commit.txt
+      - name: Download public SAT Competition 2005 crafted archive (exact publisher checksum)
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 2 --connect-timeout 30 --max-time 550 \
+            --output atlas11-sat2005-crafted.tar.bz2 \
+            'https://zenodo.org/records/6528885/files/distrib-benchs-crafted-sat2005.tar.bz2?download=1'
+          echo '70ca9acc105a889302db71724aab6da7  atlas11-sat2005-crafted.tar.bz2' | md5sum -c -
+          stat -c 'ARCHIVE_BYTES %s' atlas11-sat2005-crafted.tar.bz2
+      - name: Source-only freeze two exact, distinct historical CNFs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/atlas11_real2/freeze.py atlas11-sat2005-crafted.tar.bz2 | tee atlas11-source-freeze.log
+          python3 - <<'PY'
+          import hashlib,json
+          m=json.load(open('atlas11_frozen/manifest.json'))
+          assert m['status']=='FROZEN_ALL_TWO_BEFORE_ANY_SOLVER'
+          assert m['independent_originals']==2
+          assert len({x['source_sha256'] for x in m['sources']})==2
+          for s in m['sources']:
+             assert hashlib.sha256(open(s['path'],'rb').read()).hexdigest()==s['source_sha256']
+          print('ATLAS11_TWO_HISTORICAL_INDEPENDENT_ORIGINALS_FROZEN')
+          PY
+      - name: Archive exact original CNFs, source manifest and archive checksum
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS11-TWO-ORIGINAL-SOURCE-FREEZE
+          path: |
+            atlas11_frozen/
+            atlas11-source-freeze.log
+            atlas11-freeze-code-sha256.txt
+            atlas11-freeze-commit.txt
+          retention-days: 30
