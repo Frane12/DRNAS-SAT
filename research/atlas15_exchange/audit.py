@@ -27,7 +27,7 @@ sys.path.insert(0,str(ROOT/"research/graphclique"))
 from atlas import encoded,parse,transform
 from source_facts import derive as source_eo_facts
 from check_facts import check as independent_eo_checker
-from bridge import compile_original
+from bridge import compile_original,HallUnknown
 from witness import verify as independent_exchange_checker,Invalid
 from facts import candidates,graph_facts,xor_facts,Unknown
 
@@ -161,7 +161,7 @@ def check_one(raw,tag,expected_graph,expected_xor):
         assert independent["status"]=="ATLAS15_ORIGINAL_SOURCE_LEMMAS_INDEPENDENTLY_VERIFIED"
         try:
             result=compile_original(cnf,arm,cert,proof,meta)
-        except (Unknown,old.Unknown):
+        except (Unknown,HallUnknown,old.Unknown):
             arms[arm]={"status":"UNKNOWN","source_graph_facts":claims["graph_fact_count"],
                         "source_xor_facts":claims["xor_fact_count"]}
             continue
