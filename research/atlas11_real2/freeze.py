@@ -5,7 +5,7 @@ The source archive and filename stems were precommitted before downloading.
 Every extracted source is raw hashed, DIMACS validated and frozen in a
 manifest BEFORE any ATLAS detection or solver call. No substitutions.
 """
-import argparse,hashlib,json,tarfile,re
+import argparse,hashlib,json,tarfile,re,bz2,gzip,lzma
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 HERE=Path(__file__).resolve().parent
@@ -43,18 +43,26 @@ def main():
     if actual_md5!=P["source_archive_md5"]:
         raise RuntimeError("ARCHIVE_MD5_MISMATCH_EXPECTED_"+P["source_archive_md5"]+"_GOT_"+actual_md5)
     selected={s["id"]:[] for s in P["sources"]}
+    names_matching=[]
     with tarfile.open(archive,"r:bz2") as f:
         for entry in f:
             if not entry.isfile():continue
             base=Path(entry.name).name
+            if "rand3bip" in base.lower():names_matching.append(entry.name)
             for spec in P["sources"]:
-                if spec["filename_regex"] in base and base.endswith(".cnf"):
+                if spec["filename_regex"] in base and base.endswith((".cnf",".cnf.bz2",".cnf.gz",".cnf.xz")):
                     if len(entry.name)>350:raise RuntimeError("unsafe_tar_name")
                     file=f.extractfile(entry)
                     if file is None:raise RuntimeError("missing_tar_member")
-                    raw=file.read(2000001)
-                    if len(raw)>2000000:raise RuntimeError("original_exceeds_2MB")
+                    payload=file.read(2000001)
+                    if len(payload)>2000000:raise RuntimeError("member_exceeds_2MB")
+                    if base.endswith(".bz2"):raw=bz2.decompress(payload)
+                    elif base.endswith(".gz"):raw=gzip.decompress(payload)
+                    elif base.endswith(".xz"):raw=lzma.decompress(payload)
+                    else:raw=payload
+                    if len(raw)>2000000:raise RuntimeError("source_exceeds_2MB")
                     selected[spec["id"]].append((entry.name,raw))
+    print("ATLAS11_ARCHIVE_MEMBER_DIAGNOSTIC "+json.dumps({"rand3bip_entries":len(names_matching),"matching_examples":names_matching[:35]},sort_keys=True),flush=True)
     frozen=[]
     for spec in P["sources"]:
         entries=selected[spec["id"]]
