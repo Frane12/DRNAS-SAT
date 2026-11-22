@@ -2,7 +2,7 @@ name: DRNAS ATLAS11 two distinct public UNSAT originals 3x strict paired
 on:
   push:
     branches:
-      - experiment/atlas11-multi-original-paired-20261122
+      - experiment/atlas11-sat05-independent-120-135-20261122
     paths:
       - .github/workflows/atlas11-strict-paired.yml
 permissions:
@@ -19,10 +19,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m py_compile research/atlas11_paired/{freeze,emit,paired}.py
+          python3 -m py_compile research/atlas11_real2/{freeze,emit,paired}.py
           python3 -m py_compile research/atlas9_original105/{freeze,audit}.py
-          python3 -m json.tool research/atlas11_paired/prespec.json >/dev/null
-          sha256sum research/atlas11_paired/{freeze,emit,paired}.py research/atlas11_paired/prespec.json research/atlas8_masked_unsat/proof.py research/atlas6_camouflage/{semantic_and_xor,check_semantic}.py > atlas11-code-sha256.txt
+          python3 -m json.tool research/atlas11_real2/prespec.json >/dev/null
+          sha256sum research/atlas11_real2/{freeze,emit,paired}.py research/atlas11_real2/prespec.json research/atlas8_masked_unsat/proof.py research/atlas6_camouflage/{semantic_and_xor,check_semantic}.py > atlas11-code-sha256.txt
           git rev-parse HEAD > atlas11-commit.txt
           lscpu > atlas11-cpu.txt
       - name: Restore completed and SHA-frozen two original CNFs from source-only run
@@ -87,7 +87,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -u research/atlas11_paired/paired.py | tee atlas11-paired.log
+          python3 -u research/atlas11_real2/paired.py | tee atlas11-paired.log
           python3 - <<'PY'
           import json
           d=json.load(open('atlas11_paired_results/summary.json'))
