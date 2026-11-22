@@ -1,0 +1,131 @@
+name: DRNAS ATLAS11 two distinct public UNSAT originals 3x strict paired
+on:
+  push:
+    branches:
+      - experiment/atlas11-multi-original-paired-20261122
+    paths:
+      - .github/workflows/atlas11-strict-paired.yml
+permissions:
+  contents: read
+  actions: read
+jobs:
+  strict-three-arm-paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout unchanged experiment sources
+        uses: actions/checkout@v4
+      - name: Syntax and immutable protocol preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas11_paired/{freeze,emit,paired}.py
+          python3 -m py_compile research/atlas9_original105/{freeze,audit}.py
+          python3 -m json.tool research/atlas11_paired/prespec.json >/dev/null
+          sha256sum research/atlas11_paired/{freeze,emit,paired}.py research/atlas11_paired/prespec.json research/atlas8_masked_unsat/proof.py research/atlas6_camouflage/{semantic_and_xor,check_semantic}.py > atlas11-code-sha256.txt
+          git rev-parse HEAD > atlas11-commit.txt
+          lscpu > atlas11-cpu.txt
+      - name: Restore completed and SHA-frozen two original CNFs from source-only run
+        uses: actions/download-artifact@v4
+        with:
+          name: DRNAS-ATLAS11-TWO-ORIGINAL-SOURCE-FREEZE
+          run-id: 45009764793
+          github-token: ${{ github.token }}
+          path: .
+      - name: Check exact original SHA and two distinct provenance records
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json
+          m=json.load(open('atlas11_frozen/manifest.json'))
+          assert m['status']=='FROZEN_ALL_TWO_BEFORE_ANY_SOLVER'
+          assert m['independent_originals']==2
+          assert m['source_prespec_SHA256']==hashlib.sha256(open('research/atlas11_real2/prespec.json','rb').read()).hexdigest()
+          expected={
+              'unsat-120-3':'ee41e4fbebfa6dbe24dd1136b9e86679b151b9d46985537e12cbd38698c083e2',
+              'unsat-135-2':'60cd6525a1180a7ce9bfd8f5817efda6aa63dc5e1b02c3d9f4547cf8080dd6bc'}
+          assert len(m['sources'])==2
+          for x in m['sources']:
+              sha=hashlib.sha256(open(x['path'],'rb').read()).hexdigest()
+              assert sha==x['source_sha256']==expected[x['id']]
+          print('ATLAS11_INDEPENDENT_SOURCE_FREEZE_RESTORED',m['source_prespec_SHA256'])
+          PY
+      - name: Build source-pinned reference Kissat 4.0.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q --depth 1 --branch rel-4.0.4 https://github.com/arminbiere/kissat.git kissat-src
+          test "$(git -C kissat-src rev-parse HEAD)" = "8af8e56f174b778aef3aa45af9f739b2a5f492c2"
+          (cd kissat-src && ./configure >/dev/null && make -j2 >/dev/null)
+          kissat-src/build/kissat --version > atlas11-kissat-version.txt
+          sha256sum kissat-src/build/kissat > atlas11-kissat-bin-sha256.txt
+      - name: Build source-pinned reference CaDiCaL 2.1.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q --depth 1 --branch rel-2.1.3 https://github.com/arminbiere/cadical.git cadical-src
+          test "$(git -C cadical-src rev-parse HEAD)" = "f13d74439a5b5c963ac5b02d05ce93a8098018b8"
+          (cd cadical-src && ./configure >/dev/null && make -j2 >/dev/null)
+          cadical-src/build/cadical --version > atlas11-cadical-version.txt
+          sha256sum cadical-src/build/cadical > atlas11-cadical-bin-sha256.txt
+      - name: Build pinned DRAT-trim independent checker
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q https://github.com/marijnheule/drat-trim.git drat-trim-src
+          (cd drat-trim-src && git checkout -q 2e3b2dc0ecf938addbd779d42877b6ed69d9a985 && make -j2 >/dev/null)
+          test -x drat-trim-src/drat-trim
+          sha256sum drat-trim-src/drat-trim > atlas11-drat-trim-bin-sha256.txt
+      - name: Install independent VeriPB 3.0.2 standard checker
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version > atlas11-veripb-version.txt 2>&1
+      - name: Paired serial one-logical-CPU solver/proof/checker trial
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/atlas11_paired/paired.py | tee atlas11-paired.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open('atlas11_paired_results/summary.json'))
+          assert d['status']=='COMPLETE'
+          assert d['source_catalog_count']==2
+          assert d['correlated_permutation_variants']==0
+          assert d['total_attempts']==18
+          assert d['one_cpu_serial'] and d['no_false_SAT_UNSAT']
+          assert len(d['arms'])==3
+          print('ATLAS11_STRICT_PAIRED_ALL_ATTEMPTS_ACCOUNTED',json.dumps({
+             'arms':d['arms'],'per_source':d['per_source']},sort_keys=True))
+          PY
+      - name: Hash full evidence and timestamps
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find atlas11_paired_results atlas11_frozen -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas11-evidence-sha256.txt
+          date -u +'%FT%TZ' > atlas11-finished-utc.txt
+      - name: Archive complete source/proof logs and paired comparisons
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS11-TWO-INDEPENDENT-STRICT-18-TRIALS
+          path: |
+            atlas11_paired_results/
+            atlas11_frozen/
+            atlas11-source-freeze.log
+            atlas11-paired.log
+            atlas11-code-sha256.txt
+            atlas11-commit.txt
+            atlas11-cpu.txt
+            atlas11-kissat-version.txt
+            atlas11-cadical-version.txt
+            atlas11-veripb-version.txt
+            atlas11-kissat-bin-sha256.txt
+            atlas11-cadical-bin-sha256.txt
+            atlas11-drat-trim-bin-sha256.txt
+            atlas11-evidence-sha256.txt
+            atlas11-finished-utc.txt
+          retention-days: 30
