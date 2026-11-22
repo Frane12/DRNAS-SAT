@@ -138,6 +138,29 @@ def verify(raw,claim):
       "SAT_UNSAT_VERDICT":"NONE",
       "standard_original_Veripb_still_required":True}
 
+
+def verify_full_original_sat_model(raw,model):
+    """Standalone full original-source SAT witness checker.
+
+    This uses only the independently parsed ORIGINAL CNF and the complete
+    model, never the generator, discovery algorithm or a saved status.
+    """
+    n,rows=parse(raw)
+    require(type(model) is dict and
+            model.get("source_sha256")==hashlib.sha256(raw).hexdigest(),
+            "SAT_WITNESS_ORIGINAL_SHA")
+    bits=model.get("assignment")
+    require(type(bits) is list and len(bits)==n+1 and bits[0] is None,
+            "SAT_WITNESS_ASSIGNMENT_SIZE")
+    require(all(type(v) is bool for v in bits[1:]),
+            "SAT_WITNESS_NONBOOLEAN")
+    for i,row in enumerate(rows,1):
+        require(any(bits[abs(l)]==(l>0) for l in row),
+                "SAT_WITNESS_FALSE_CLAUSE_"+str(i))
+    return {"status":"INDEPENDENT_ORIGINAL_SOURCE_SAT_MODEL_VERIFIED",
+            "source_sha256":hashlib.sha256(raw).hexdigest(),
+            "original_variables":n,"source_clauses_checked":len(rows)}
+
 def main():
     import argparse
     p=argparse.ArgumentParser()
