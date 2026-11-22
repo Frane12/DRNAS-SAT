@@ -29,7 +29,12 @@ sys.path.insert(0,str(ROOT/"research/graphclique"))
 from atlas import parse,encoded
 from check_php_partition import check as hall_independent
 from emit_veripb_source_clique import emit as hall_proof_emitter
-from bridge import discover as previous_graph_clique_discover
+import importlib.util
+_graphspec=importlib.util.spec_from_file_location(
+   "atlas12_existing_graph_bridge",str(ROOT/"research/atlas12_graph_hall/bridge.py"))
+_existing_graph_bridge=importlib.util.module_from_spec(_graphspec)
+_graphspec.loader.exec_module(_existing_graph_bridge)
+previous_graph_clique_discover=_existing_graph_bridge.discover
 import emit_veripb as graph_module
 from witness_checker import check_witness as independent_lemma_check
 MAX_GROUPS=32
