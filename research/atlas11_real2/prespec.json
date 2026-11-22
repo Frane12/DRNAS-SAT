@@ -1,0 +1,42 @@
+{
+  "protocol": "DRNAS-ATLAS11-SAT05-ARCHIVE-INDEPENDENT-120-135-20261122",
+  "selected_before_ATLAS11_source_download": true,
+  "source_archive": "https://zenodo.org/records/6528885/files/distrib-benchs-crafted-sat2005.tar.bz2?download=1",
+  "source_archive_md5": "70ca9acc105a889302db71724aab6da7",
+  "archive_attribution": "Zenodo record 6528885 Laurent Simon SAT Competition 2005 distributed crafted benchmarks",
+  "sources": [
+    {
+      "id": "unsat-120-3",
+      "filename_regex": "mod2c-rand3bip-unsat-120-3",
+      "original_historical_sat05_id": "sat05-2340",
+      "expected_catalog_outcome_for_reporting_only": "UNSAT",
+      "historical_independent_evidence_url": "https://www.cril.univ-artois.fr/SAT09/results/trace.php?idev=29&idjob=1783976"
+    },
+    {
+      "id": "unsat-135-2",
+      "filename_regex": "mod2c-rand3bip-unsat-135-2",
+      "original_historical_sat05_id": "sat05-2354",
+      "expected_catalog_outcome_for_reporting_only": "UNSAT",
+      "historical_independent_evidence_url": "https://www.cril.univ-artois.fr/SAT07/results/trace.php?idev=10&idjob=339353"
+    }
+  ],
+  "no_replacement_after_outcomes": true,
+  "no_family_label_passed_to_detector": true,
+  "raw_source_sha_frozen_before_proof": true,
+  "atlas_proof_module": "research/atlas9_original105/audit.py and research/atlas8_masked_unsat/proof.py unchanged",
+  "time_budget_e2e_s": 30,
+  "solver_precheck_s": 24,
+  "repetitions": 3,
+  "arms": [
+    "ATLAS9_VERIPB",
+    "Kissat4.0.4_DRAT",
+    "CaDiCaL2.1.3_DRAT"
+  ],
+  "one_logical_cpu_serial": true,
+  "strict_unsat": "External VeriPB or DRAT-trim accepted exact original SHA-bound source proof",
+  "proof_size_cap_bytes": 134217728,
+  "memory_cap_bytes": 4294967296,
+  "par2_timeout_s": 60,
+  "scope": "Two separately originated historic contest CNFs, unlike same-source permutations. Previously named examples, so not new blind labels; no cross-family claims.",
+  "main_unmodified": true
+}
