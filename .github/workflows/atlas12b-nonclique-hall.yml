@@ -1,0 +1,71 @@
+name: DRNAS ATLAS12B list-coloring nonclique Hall source proof complementarity
+on:
+  push:
+    branches:
+      - experiment/atlas12-graph-hall-eo-bridge-20261122
+    paths:
+      - .github/workflows/atlas12b-nonclique-hall.yml
+permissions:
+  contents: read
+jobs:
+  source-supported-nonclique:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Freeze source theorem code before any experiment
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas12_graph_hall/{bridge,unified,audit_unified}.py
+          python3 -m py_compile research/pcmax_capacity/{source_php_real26,check_php_partition,emit_veripb_source_clique}.py
+          sha256sum research/atlas12_graph_hall/{bridge,unified,audit_unified}.py research/pcmax_capacity/{source_php_real26,check_php_partition,emit_veripb_source_clique}.py > atlas12b-code-sha256.txt
+          git rev-parse HEAD > atlas12b-commit.txt
+          lscpu > atlas12b-cpu.txt
+      - name: Install independent VeriPB 3.0.2 on exact original CNF
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version > atlas12b-veripb-version.txt 2>&1
+      - name: Run source-only list coloring nonclique Hall bridge and negative controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          taskset -c "$cpu" python3 -u research/atlas12_graph_hall/audit_unified.py | tee atlas12b-audit.log
+          python3 - <<'PY'
+          import json
+          x=json.load(open("atlas12b_results/summary.json"))
+          assert x["status"]=="PASS"
+          assert x["nonclique_external_standard_Veripb"]==4
+          assert x["true_EO_sources_independently_checked"]==3
+          assert x["GRAPH_alone_safe_unknown"]==3
+          assert x["HALL_resource_mode_accepted"]==4
+          assert len(x["negative_controls"])==3
+          assert not x["new_synergy_neither_original_module_could_solve"]
+          print("ATLAS12B_COMPLEMENTARY_SOURCE_VERIPB_PASS",json.dumps({
+             k:v for k,v in x.items() if k not in ("cases","negative_controls")},sort_keys=True))
+          PY
+      - name: Record all source/proof SHA and runtime
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find atlas12b_results -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas12b-evidence-hashes.txt
+          date -u +'%FT%TZ' > atlas12b-finished.txt
+      - name: Archive exact source CNFs, VeriPB files and counterexamples
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS12B-NONCLIQUE-GRAPH-HALL-EO-VERIPB
+          path: |
+            atlas12b_results/
+            atlas12b-audit.log
+            atlas12b-code-sha256.txt
+            atlas12b-commit.txt
+            atlas12b-cpu.txt
+            atlas12b-veripb-version.txt
+            atlas12b-evidence-hashes.txt
+            atlas12b-finished.txt
+          retention-days: 30
