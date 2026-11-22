@@ -1,0 +1,99 @@
+name: DRNAS ATLAS14 five original CNF six-arm strict source-proof pilot
+on:
+  push:
+    branches:
+      - experiment/atlas14-original-five-family-ablation-20261122
+    paths:
+      - .github/workflows/atlas14-five-original-ablation.yml
+permissions:
+  contents: read
+jobs:
+  real-original-ablations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout experimental branch only
+        uses: actions/checkout@v4
+      - name: Freeze code and five source SHA before any solver trial
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas14_five/{freeze,modes,benchmark}.py
+          python3 -m py_compile research/atlas13_exchange/{bridge,witness_checker}.py
+          sha256sum research/atlas14_five/{freeze,modes,benchmark}.py research/atlas14_five/prespec.json research/atlas13_exchange/{bridge,witness_checker}.py > atlas14-code-sha256.txt
+          git rev-parse HEAD > atlas14-source-commit.txt
+          lscpu > atlas14-runner-cpu.txt
+          python3 -u research/atlas14_five/freeze.py | tee atlas14-source-freeze.log
+      - name: Build pinned reference Kissat 4.0.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q --depth 1 --branch rel-4.0.4 https://github.com/arminbiere/kissat.git kissat-src
+          test "$(git -C kissat-src rev-parse HEAD)" = "8af8e56f174b778aef3aa45af9f739b2a5f492c2"
+          (cd kissat-src && ./configure >/dev/null && make -j2 >/dev/null)
+          sha256sum kissat-src/build/kissat > atlas14-kissat-sha256.txt
+      - name: Build pinned reference CaDiCaL 2.1.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q --depth 1 --branch rel-2.1.3 https://github.com/arminbiere/cadical.git cadical-src
+          test "$(git -C cadical-src rev-parse HEAD)" = "f13d74439a5b5c963ac5b02d05ce93a8098018b8"
+          (cd cadical-src && ./configure >/dev/null && make -j2 >/dev/null)
+          sha256sum cadical-src/build/cadical > atlas14-cadical-sha256.txt
+      - name: Build pinned independent DRAT checker
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q https://github.com/marijnheule/drat-trim.git drat-trim-src
+          (cd drat-trim-src && git checkout -q 2e3b2dc0ecf938addbd779d42877b6ed69d9a985 && make -j2 >/dev/null)
+          sha256sum drat-trim-src/drat-trim > atlas14-drat-sha256.txt
+      - name: Install standard independent VeriPB v3.0.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version > atlas14-veripb-version.txt 2>&1
+      - name: Six source-only proof arms, serial one logical CPU, all 30 trials
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/atlas14_five/benchmark.py | tee atlas14-full-benchmark.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open('atlas14_results/summary.json'))
+          assert d['status']=='COMPLETE'
+          assert d['source_originals']==5 and d['total_trials']==30
+          assert d['source_originals_all_SHA_checked']
+          assert d['external_standard_proofs_only']
+          assert d['no_main_modifications']
+          assert set(d['arms'])==set(json.load(open('research/atlas14_five/prespec.json'))['arms'])
+          print('ATLAS14_COMPLETE_ALL_ORIGINAL_SOURCES_AND_ABLATIONS',json.dumps({
+                'arms':d['arms'],'historical_checks':d['historical_proof_checks']},sort_keys=True))
+          PY
+      - name: Preserve source, proof files, hash manifest, diagnostics
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find atlas14_results atlas14_frozen -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas14-evidence-sha256.txt
+          date -u +'%FT%TZ' > atlas14-finished-at.txt
+      - name: Upload every original result, UNKNOWN and independently verified proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS14-FIVE-ORIGINAL-SIX-ARM-PILOT
+          path: |
+            atlas14_frozen/
+            atlas14_results/
+            atlas14-full-benchmark.log
+            atlas14-source-freeze.log
+            atlas14-code-sha256.txt
+            atlas14-source-commit.txt
+            atlas14-runner-cpu.txt
+            atlas14-kissat-sha256.txt
+            atlas14-cadical-sha256.txt
+            atlas14-drat-sha256.txt
+            atlas14-veripb-version.txt
+            atlas14-evidence-sha256.txt
+            atlas14-finished-at.txt
+          retention-days: 30
