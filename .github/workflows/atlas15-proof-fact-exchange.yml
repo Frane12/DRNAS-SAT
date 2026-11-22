@@ -1,0 +1,81 @@
+name: DRNAS ATLAS15 triple mathematical proof-fact exchange controls
+on:
+  push:
+    branches:
+      - experiment/atlas15-proof-fact-exchange-20261122
+    paths:
+      - .github/workflows/atlas15-proof-fact-exchange.yml
+      - research/atlas15_exchange/**
+permissions:
+  contents: read
+jobs:
+  graph-xor-hall-proof-exchange:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - name: Checkout isolated research branch
+        uses: actions/checkout@v4
+      - name: Freeze all source inference modules and checker code
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas15_exchange/{facts,witness,bridge,audit}.py
+          python3 -m py_compile research/atlas13_exchange/bridge.py
+          python3 -m py_compile research/pcmax_capacity/{check_php_partition,emit_veripb_source_clique}.py
+          sha256sum research/atlas15_exchange/{facts,witness,bridge,audit}.py research/atlas13_exchange/bridge.py research/pcmax_capacity/{check_php_partition,emit_veripb_source_clique}.py > atlas15-code-sha256.txt
+          sha256sum evidence/graph-k11/original.cnf evidence/pcmax-weighted2/00/original.cnf evidence/xor234-grid5/original.cnf evidence/ipg7b-petersen/original.cnf > atlas15-historical-source-sha256.txt
+          git rev-parse HEAD > atlas15-commit.txt
+          lscpu > atlas15-runner-cpu.txt
+      - name: Build independent external VeriPB 3.0.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version > atlas15-veripb-version.txt 2>&1
+      - name: Prove GRAPH plus XOR facts required for Hall source-proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          taskset -c "$cpu" python3 -u research/atlas15_exchange/audit.py | tee atlas15-full-audit.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open('atlas15_results/summary.json'))
+          assert d['status']=='COMPLETE'
+          assert d['distinct_constructed_origins']==3
+          assert d['renamed_variants']==1
+          assert d['triple_mode_original_veripb']==4
+          assert d['both_GRAPH_HALL_and_XOR_HALL_UNKNOWN_but_triple_verified']==3
+          assert d['safety']['SAT_original_model_verified']
+          assert d['safety']['removed_XOR_forbidden_assignment_with_source_SHA_update_rejected']
+          assert d['safety']['wrong_source_SHA_rejected']
+          assert len(d['historical_source_stress'])==4
+          assert d['all_original_standard_proof_checks_mandatory']
+          assert d['main_untouched']
+          print('ATLAS15_CROSS_MODULE_GRAPH_XOR_HALL_VERIPB_PASS',json.dumps({
+            k:v for k,v in d.items() if k not in ('cases','safety','historical_source_stress')},
+             sort_keys=True))
+          PY
+      - name: Record all CNF, proof, source and code hashes
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find atlas15_results -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas15-evidence-sha256.txt
+          date -u +'%FT%TZ' > atlas15-finished-utc.txt
+      - name: Upload original-source proofs, verified model and all ablations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS15-GRAPH-XOR-HALL-PROOF-EXCHANGE
+          path: |
+            atlas15_results/
+            atlas15-full-audit.log
+            atlas15-code-sha256.txt
+            atlas15-historical-source-sha256.txt
+            atlas15-commit.txt
+            atlas15-runner-cpu.txt
+            atlas15-veripb-version.txt
+            atlas15-evidence-sha256.txt
+            atlas15-finished-utc.txt
+          retention-days: 30
