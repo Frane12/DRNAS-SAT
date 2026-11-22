@@ -35,6 +35,7 @@ from source_php_real26 import discover as hall_alone_discover
 from discover import discover as jointly_discover,facts_only,find_partition,Unsupported
 from independent import check as independently_check,Invalid
 from emit import compile as emit_veripb
+sys.path.insert(0,str(ROOT/"research/graphclique"))
 import emit_veripb as graph_only_module
 
 CPU=min(os.sched_getaffinity(0))
