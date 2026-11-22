@@ -5,6 +5,7 @@ on:
       - experiment/atlas11-sat05-independent-120-135-20261122
     paths:
       - .github/workflows/atlas11-source-freeze.yml
+      - research/atlas11_real2/freeze.py
 permissions:
   contents: read
 jobs:
