@@ -1,0 +1,49 @@
+{
+  "protocol": "DRNAS-ATLAS10-PINNED-ONE-ORIGINAL-3x-PAIRED-20261122",
+  "metadata_selection_workflow": "https://github.com/Frane12/DRNAS-SAT/actions/runs/45007955609",
+  "metadata_selection_result": "3 public GBD catalog queries timed out; 0 novel source IDs; only 1 historic original selected before benchmark",
+  "selected_origins": [
+    {
+      "label": "SAT05_MASKED_XOR_UNSAT_105_3",
+      "gbd_id": "07f5f3ca046261c3819c5c888ac837e5",
+      "previous_raw_sha256": "828a649666ddc6cd3bd9085821eb5058737f6a9e55c8904eff0681720e5938eb",
+      "historical_veripb_proof": "https://github.com/Frane12/DRNAS-SAT/actions/runs/44957373323",
+      "catalog_status_for_reporting_only": "unsat"
+    }
+  ],
+  "known_exact_equivalence_variations": [
+    {
+      "type": "original"
+    },
+    {
+      "type": "bijective-rename-clause-order",
+      "seed": 617
+    },
+    {
+      "type": "bijective-rename-signflip-clause-order",
+      "seed": 829
+    }
+  ],
+  "experimental_arm_scope": [
+    "ATLAS9_SOURCE_VERIPB",
+    "Kissat4.0.4_DRAT",
+    "CaDiCaL2.1.3_DRAT"
+  ],
+  "reference_commit_sha256": {
+    "kissat": "8af8e56f174b778aef3aa45af9f739b2a5f492c2",
+    "cadical": "f13d74439a5b5c963ac5b02d05ce93a8098018b8",
+    "drat_trim": "2e3b2dc0ecf938addbd779d42877b6ed69d9a985"
+  },
+  "repetitions": 3,
+  "time_cap_e2e_s": 30,
+  "solver_internal_wall_budget_s": 24,
+  "remaining_proof_check_budget_s": 6,
+  "strict_one_logical_cpu_per_arm": true,
+  "processes_run_serially_not_parallel_portfolio": true,
+  "penalty_PAR2_s": 60,
+  "model_acceptance": "original-clause model check",
+  "UNSAT_acceptance": "external VeriPB for ATLAS or external DRAT-trim for Kissat/CaDiCaL exact original source",
+  "assertion_policy": "Never hardcode winner or expected solver outcomes; no missing trial exclusion",
+  "scope_limit": "ONE previously solved, historic original and two equivalent permutations; not 3 distinct independent originals; metadata query failed; no overall superiority conclusion",
+  "no_modification_of_main": true
+}
