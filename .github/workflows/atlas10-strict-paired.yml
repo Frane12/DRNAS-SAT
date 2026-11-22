@@ -1,0 +1,120 @@
+name: DRNAS ATLAS10 strict 1CPU 3x paired Atlas9 Kissat CaDiCaL
+on:
+  push:
+    branches:
+      - experiment/atlas10-multi-original-paired-20261122
+    paths:
+      - .github/workflows/atlas10-strict-paired.yml
+permissions:
+  contents: read
+jobs:
+  strict-three-arm-paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout unchanged experiment sources
+        uses: actions/checkout@v4
+      - name: Syntax and immutable protocol preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas10_paired/{freeze,emit,paired}.py
+          python3 -m py_compile research/atlas9_original105/{freeze,audit}.py
+          python3 -m json.tool research/atlas10_paired/prespec.json >/dev/null
+          sha256sum research/atlas10_paired/{freeze,emit,paired}.py research/atlas10_paired/prespec.json research/atlas8_masked_unsat/proof.py research/atlas6_camouflage/{semantic_and_xor,check_semantic}.py > atlas10-code-sha256.txt
+          git rev-parse HEAD > atlas10-commit.txt
+          lscpu > atlas10-cpu.txt
+      - name: Freeze exact previously published original and two equivalent source permutations
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/atlas10_paired/freeze.py | tee atlas10-freeze.log
+          python3 - <<'PY'
+          import json,hashlib
+          m=json.load(open('atlas10_frozen/manifest.json'))
+          assert m['status']=='FROZEN_BEFORE_SOLVER_TESTS'
+          assert m['distinct_original_sources']==1
+          assert len(m['inputs'])==3
+          assert m['source_original_sha256']=='828a649666ddc6cd3bd9085821eb5058737f6a9e55c8904eff0681720e5938eb'
+          for s in m['inputs']:
+            assert hashlib.sha256(open(s['path'],'rb').read()).hexdigest()==s['raw_sha256']
+          print('ATLAS10_INPUTS_FROZEN_BEFORE_SOLVER_PASS')
+          PY
+      - name: Build source-pinned reference Kissat 4.0.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q --depth 1 --branch rel-4.0.4 https://github.com/arminbiere/kissat.git kissat-src
+          test "$(git -C kissat-src rev-parse HEAD)" = "8af8e56f174b778aef3aa45af9f739b2a5f492c2"
+          (cd kissat-src && ./configure >/dev/null && make -j2 >/dev/null)
+          kissat-src/build/kissat --version > atlas10-kissat-version.txt
+          sha256sum kissat-src/build/kissat > atlas10-kissat-bin-sha256.txt
+      - name: Build source-pinned reference CaDiCaL 2.1.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q --depth 1 --branch rel-2.1.3 https://github.com/arminbiere/cadical.git cadical-src
+          test "$(git -C cadical-src rev-parse HEAD)" = "f13d74439a5b5c963ac5b02d05ce93a8098018b8"
+          (cd cadical-src && ./configure >/dev/null && make -j2 >/dev/null)
+          cadical-src/build/cadical --version > atlas10-cadical-version.txt
+          sha256sum cadical-src/build/cadical > atlas10-cadical-bin-sha256.txt
+      - name: Build pinned DRAT-trim independent checker
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q https://github.com/marijnheule/drat-trim.git drat-trim-src
+          (cd drat-trim-src && git checkout -q 2e3b2dc0ecf938addbd779d42877b6ed69d9a985 && make -j2 >/dev/null)
+          test -x drat-trim-src/drat-trim
+          sha256sum drat-trim-src/drat-trim > atlas10-drat-trim-bin-sha256.txt
+      - name: Install independent VeriPB 3.0.2 standard checker
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version > atlas10-veripb-version.txt 2>&1
+      - name: Paired serial one-logical-CPU solver/proof/checker trial
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/atlas10_paired/paired.py | tee atlas10-paired.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open('atlas10_paired_results/summary.json'))
+          assert d['status']=='COMPLETE'
+          assert d['source_catalog_count']==1
+          assert d['correlated_permutation_variants']==2
+          assert d['total_attempts']==27
+          assert d['one_cpu_serial'] and d['no_false_SAT_UNSAT']
+          assert len(d['arms'])==3
+          print('ATLAS10_STRICT_PAIRED_ALL_ATTEMPTS_ACCOUNTED',json.dumps({
+             'arms':d['arms'],'per_source':d['per_source']},sort_keys=True))
+          PY
+      - name: Hash full evidence and timestamps
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find atlas10_paired_results atlas10_frozen -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas10-evidence-sha256.txt
+          date -u +'%FT%TZ' > atlas10-finished-utc.txt
+      - name: Archive complete source/proof logs and paired comparisons
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS10-STRICT-30S-THREE-ARMS-3REPS
+          path: |
+            atlas10_paired_results/
+            atlas10_frozen/
+            atlas10-freeze.log
+            atlas10-paired.log
+            atlas10-code-sha256.txt
+            atlas10-commit.txt
+            atlas10-cpu.txt
+            atlas10-kissat-version.txt
+            atlas10-cadical-version.txt
+            atlas10-veripb-version.txt
+            atlas10-kissat-bin-sha256.txt
+            atlas10-cadical-bin-sha256.txt
+            atlas10-drat-trim-bin-sha256.txt
+            atlas10-evidence-sha256.txt
+            atlas10-finished-utc.txt
+          retention-days: 30
