@@ -1,0 +1,78 @@
+name: DRNAS ATLAS13 genuine graph implication to Hall proof exchange
+on:
+  push:
+    branches:
+      - experiment/atlas13-inference-exchange-20261122
+    paths:
+      - .github/workflows/atlas13-graph-implication-hall.yml
+      - research/atlas13_exchange/**
+permissions:
+  contents: read
+jobs:
+  certified-information-exchange:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - name: Checkout isolated experimental code
+        uses: actions/checkout@v4
+      - name: Freeze source detector and mathematical checker code
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas13_exchange/{bridge,witness_checker,audit}.py
+          python3 -m py_compile research/atlas12_graph_hall/bridge.py
+          python3 -m py_compile research/pcmax_capacity/{check_php_partition,emit_veripb_source_clique}.py
+          sha256sum research/atlas13_exchange/{bridge,witness_checker,audit}.py research/atlas12_graph_hall/bridge.py research/pcmax_capacity/{check_php_partition,emit_veripb_source_clique}.py > atlas13-code-sha256.txt
+          git rev-parse HEAD > atlas13-commit.txt
+          lscpu > atlas13-runner-cpu.txt
+      - name: Independent source VeriPB 3.0.2 checker
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version > atlas13-veripb-version.txt 2>&1
+      - name: Original-CNF graph lemma + Hall source information exchange and adversarial SAT
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          taskset -c "$cpu" python3 -u research/atlas13_exchange/audit.py | tee atlas13-audit.log
+          python3 - <<'PY'
+          import json,hashlib
+          d=json.load(open('atlas13_results/summary.json'))
+          assert d['status']=='COMPLETE'
+          assert d['generated_distinct_graph_instances']==3
+          assert d['original_external_VERIPB_accepted']==4
+          assert d['total_proven_transferred_lemmas']==7
+          assert d['baseline_both_UNKNOWN_all']
+          assert d['multi_lemma_full_information_required']
+          assert d['negative_controls']['explicit_original_SAT_model_verified']
+          assert d['negative_controls']['stale_bridge_certificate_with_updated_SHA_rejected']
+          assert d['negative_controls']['forged_source_sha_rejected']
+          assert d['full_source_proof_on_unmodified_CNF']
+          assert d['no_main_promotion']
+          print('ATLAS13_TRUE_CROSS_MODULE_INFERENCE_STANDARD_PROOF_PASS',json.dumps({
+             k:v for k,v in d.items() if k not in ('cases','negative_controls')},sort_keys=True))
+          PY
+      - name: Archive SHA-locked source, transmitted RUP lemmas and accepted proofs
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find atlas13_results -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas13-evidence-hashes.txt
+          date -u +'%FT%TZ' > atlas13-finished-at.txt
+      - name: Upload all original CNFs, standard proof, controls and source-check logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS13-TRUE-GRAPH-2SAT-HALL-INFERENCE
+          path: |
+            atlas13_results/
+            atlas13-audit.log
+            atlas13-code-sha256.txt
+            atlas13-commit.txt
+            atlas13-runner-cpu.txt
+            atlas13-veripb-version.txt
+            atlas13-evidence-hashes.txt
+            atlas13-finished-at.txt
+          retention-days: 30
