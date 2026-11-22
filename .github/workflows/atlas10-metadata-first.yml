@@ -1,0 +1,43 @@
+name: DRNAS ATLAS10 metadata-only source freeze before solver
+on:
+  push:
+    branches:
+      - experiment/atlas10-multi-original-paired-20261122
+    paths:
+      - .github/workflows/atlas10-metadata-first.yml
+permissions:
+  contents: read
+jobs:
+  catalog-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Freeze source selector source code before any download
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas10_paired/discover.py
+          sha256sum research/atlas10_paired/discover.py > atlas10-discovery-code-sha.txt
+          git rev-parse HEAD > atlas10-discovery-commit.txt
+      - name: Public GBD catalog metadata and HEAD-only availability
+        run: |
+          set -euo pipefail
+          python3 -u research/atlas10_paired/discover.py | tee atlas10-metadata-audit.log
+          python3 - <<'PY'
+          import json
+          p=json.load(open("atlas10_metadata/selection.json"))
+          assert p["no_solver_or_ATLAS10_detector_run_before_metadata_selection"]
+          assert p["arms"]==["ATLAS9_VERIPB","Kissat4.0.4","CaDiCaL2.1.3"]
+          assert p["repetitions"]==3
+          assert p["expected_count"]==len(p["selection"])
+          PY
+      - name: Store immutable catalogue and selection evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS10-PRESELECTED-METADATA-ONLY
+          path: |
+            atlas10_metadata/
+            atlas10-metadata-audit.log
+            atlas10-discovery-code-sha.txt
+            atlas10-discovery-commit.txt
+          retention-days: 30
