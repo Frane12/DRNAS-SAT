@@ -2,7 +2,7 @@
 
 **Datum:** 22. studenoga 2026.  
 **GitHub eksperimentalna grana:** `experiment/atlas15-proof-fact-exchange-20261122`. `main` je netaknut.  
-**GitHub Actions konačni PASS:** https://github.com/Frane12/DRNAS-SAT/actions/runs/45016577753  
+**GitHub Actions konačni PASS:** https://github.com/Frane12/DRNAS-SAT/actions/runs/45016993709  
 **Status:** 4/4 vanjski VeriPB 3.0.2 standardno verificirana UNSAT dokaza na potpuno originalnim **konstruiranim** CNF-ovima; tri različite konstrukcije i jedna bijektivno preimenovana varijanta. Negativni SAT kontrolni primjer ima provjeren model. Četiri već ranije objavljena stvarna originala na novom prepoznavaču ostaju `UNKNOWN`.
 
 ## 1. Istraživačko pitanje i odnos na ATLAS13/14
@@ -96,7 +96,7 @@ Cijene samo vanjske standardne verifikacije na tim sintetičkim mikroprimjerima 
 
 ## 5. Namjerno zadovoljivi kontrolni slučaj
 
-Za najveći kontrolirani izvor obrisana je točno **jedna ključna XOR3 forbidden-assignment klauzula**, dok su sve druge originalne premise sačuvane. Nova formula više ne podrazumijeva taj mutex i postaje **SAT**; izračunata je potpuna dodjela koja zadovoljava svaku od **174** stvarne klauzule.
+Za najveći kontrolirani izvor obrisana je točno **jedna ključna XOR3 forbidden-assignment klauzula**, dok su sve druge originalne premise sačuvane. Nova formula više ne podrazumijeva taj mutex i postaje **SAT**; izračunata je potpuna dodjela koja zadovoljava svaku od **174** stvarne klauzule. **Potpuni source-SHA-vezani model** arhiviran je u `source-mutation-SAT/source-SAT-model.json`, a *zasebni* `witness.py::verify_full_original_sat_model` ponovno je parsirao sve klauzule bez uvoza generatora i prihvatio model. Evidencija je arhivirana u `source-mutation-SAT/independent-SAT-check.json`.
 
 - XOR producent vidi samo preostalu cjelovitu XOR3 tablicu (jedan je dokazni red namjerno nepotpun).
 - Namjerno ponovno korišten stari certifikat s **novim ispravnim SHA izvora** ne prolazi neovisnu source-XOR premisnu provjeru.
@@ -144,4 +144,4 @@ python3 research/atlas15_exchange/bridge.py \
 veripb --cnf ORIGINAL.cnf original.pbp
 ```
 
-Workflow `.github/workflows/atlas15-proof-fact-exchange.yml`, GitHub [run 45016577753](https://github.com/Frane12/DRNAS-SAT/actions/runs/45016577753) i arhiva `DRNAS-ATLAS15-GRAPH-XOR-HALL-PROOF-EXCHANGE` čuvaju izvorne CNF-ove, dokazne source-fact certifikate, originalne VeriPB PBP-ove, SHA izvora, negativni SAT model i sve opažene UNKNOWN rezultate. Nema promjena glavne grane.
+Workflow `.github/workflows/atlas15-proof-fact-exchange.yml`, GitHub [run 45016993709](https://github.com/Frane12/DRNAS-SAT/actions/runs/45016993709) i arhiva `DRNAS-ATLAS15-GRAPH-XOR-HALL-PROOF-EXCHANGE` čuvaju izvorne CNF-ove, dokazne source-fact certifikate, originalne VeriPB PBP-ove, SHA izvora, negativni SAT model i sve opažene UNKNOWN rezultate. Nema promjena glavne grane.
