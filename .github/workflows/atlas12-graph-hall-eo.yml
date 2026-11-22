@@ -1,0 +1,75 @@
+name: DRNAS ATLAS12 GRAPH HALL EXACTLY-ONE original CNF strict source proof
+on:
+  push:
+    branches:
+      - experiment/atlas12-graph-hall-eo-bridge-20261122
+    paths:
+      - .github/workflows/atlas12-graph-hall-eo.yml
+      - research/atlas12_graph_hall/**
+permissions:
+  contents: read
+jobs:
+  graph-hall-source-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout isolated experimental branch
+        uses: actions/checkout@v4
+      - name: Source-code syntax and original SHA freeze BEFORE any inference
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas12_graph_hall/{bridge,audit}.py
+          python3 -m py_compile research/graphclique/emit_veripb.py
+          python3 -m py_compile research/pcmax_capacity/{check_php_partition,emit_veripb_source_clique}.py
+          sha256sum research/atlas12_graph_hall/{bridge,audit}.py research/graphclique/emit_veripb.py research/pcmax_capacity/{check_php_partition,emit_veripb_source_clique}.py > atlas12-code-hashes.txt
+          sha256sum evidence/graph-k11/original.cnf evidence/pcmax-weighted2/00/original.cnf > atlas12-frozen-original-sha256.txt
+          git rev-parse HEAD > atlas12-experiment-commit.txt
+          lscpu > atlas12-runner-cpu.txt
+      - name: Install independent original-source VeriPB 3.0.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version > atlas12-veripb-version.txt 2>&1
+      - name: Complete source-only GRAPH + ALO/EO + HALL standard-proof audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          taskset -c "$cpu" python3 -u research/atlas12_graph_hall/audit.py | tee atlas12-audit.log
+          python3 - <<'PY'
+          import json,hashlib
+          d=json.load(open('atlas12_results/summary.json'))
+          assert d['status']=='COMPLETE'
+          assert d['synthetic_standard_verified']==5
+          assert d['source_forgery_controls_checked']>=4
+          assert d['real_original_source_sha256']==hashlib.sha256(open('evidence/graph-k11/original.cnf','rb').read()).hexdigest()
+          assert d['known_theorem_not_new_complexity_class']
+          assert d['main_untouched']
+          print('ATLAS12_GRAPH_HALL_EO_SOURCE_PROOF_AUDIT_PASS',json.dumps({
+             k:v for k,v in d.items() if k not in ('cases','safety_controls')},sort_keys=True))
+          PY
+      - name: Archive exact source and verified proof hashes
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find atlas12_results -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas12-evidence-hashes.txt
+          date -u +'%FT%TZ' > atlas12-finished-at.txt
+      - name: Upload original source, standard VeriPB proofs, SAT controls, telemetry
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS12-GRAPH-HALL-EO-VERIPB
+          path: |
+            atlas12_results/
+            atlas12-audit.log
+            atlas12-code-hashes.txt
+            atlas12-frozen-original-sha256.txt
+            atlas12-experiment-commit.txt
+            atlas12-runner-cpu.txt
+            atlas12-veripb-version.txt
+            atlas12-evidence-hashes.txt
+            atlas12-finished-at.txt
+          retention-days: 30
