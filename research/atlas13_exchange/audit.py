@@ -25,6 +25,8 @@ sys.path.insert(0,str(ROOT/"research/structure_atlas3"))
 sys.path.insert(0,str(ROOT/"research/pcmax_capacity"))
 sys.path.insert(0,str(ROOT/"research/atlas12_graph_hall"))
 sys.path.insert(0,str(ROOT/"research/graphclique"))
+# Own Atlas13 bridge wins over the earlier Atlas12 file of the same name.
+sys.path.insert(0,str(HERE))
 from atlas import parse,encoded,transform
 from source_facts import derive as eo_facts
 from check_facts import check as eo_source_checker
