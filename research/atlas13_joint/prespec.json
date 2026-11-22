@@ -1,0 +1,42 @@
+{
+  "protocol": "DRNAS-ATLAS13-THREE-WAY-ITERATIVE-INFERENCE-V1",
+  "fixed_before_first_joint_run": true,
+  "objective": "Graph-only, direct Hall-only and XOR2-only each return UNKNOWN, while source-certified XOR2 implication yields exactly one missing cross-resource mutex and Hall contradiction, certified on exact original CNF by external VeriPB.",
+  "construction": "List coloring k+1 jobs in k resources, two allowed resources per job, original direct resource mutex missing for two jobs. An independent Boolean variable z with source-complete XOR2 a=z and an original binary implication (~z or ~b) entails missing (~a or ~b).",
+  "cases": [
+    {
+      "k": 3,
+      "seed": 1303
+    },
+    {
+      "k": 4,
+      "seed": 1304
+    },
+    {
+      "k": 5,
+      "seed": 1305
+    }
+  ],
+  "variant": {
+    "k": 3,
+    "seed": 1303,
+    "permutation_seed": 21022,
+    "rename": true,
+    "flip": false,
+    "shuffle": true
+  },
+  "controls": [
+    "SAT remove bridge (~z or ~b), explicit model",
+    "forged source SHA",
+    "remove equality source XOR clause with updated SHA",
+    "reverse XOR parity (independent checker rejects)"
+  ],
+  "source_provenance": "constructed deterministic source-only controls, NOT original competition CNFs",
+  "external_proof": "VeriPB 3.0.2 on identical source CNF after RUP of missing mutex, then CP Hall",
+  "trust": "independently re-evaluate complete original source ALO, source XOR2 tables, derived implication/mutex, resource partition and final external PBP",
+  "no_silent_source_replacement": true,
+  "no_main_change": true,
+  "no_claim_general_unsat_algorithm": true,
+  "performance_comparison": "none; first demonstrate sound joint inference / module ablations; later freeze independent competition originals",
+  "accepted_outcome": "3 synthetic positive UNSAT verified; one bijective variant; safe SAT negative and forged controls"
+}
