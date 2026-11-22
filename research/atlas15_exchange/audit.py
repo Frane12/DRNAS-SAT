@@ -220,8 +220,8 @@ for k in (4,5,6):
                      "assignment":[None]+[assignment[v] for v in range(1,parse(mutated)[0]+1)]}
         independently_checked_sat=verify_full_original_sat_model(mutated,sat_witness)
         assert independently_checked_sat["status"]=="INDEPENDENT_ORIGINAL_SOURCE_SAT_MODEL_VERIFIED"
-        (satdir/"source-SAT-model.json").write_text(json.dumps(sat_witness,sort_keys=True)+"\\n")
-        (satdir/"independent-SAT-check.json").write_text(json.dumps(independently_checked_sat,sort_keys=True,indent=2)+"\\n")
+        (satdir/"source-SAT-model.json").write_text(json.dumps(sat_witness,sort_keys=True)+"\n")
+        (satdir/"independent-SAT-check.json").write_text(json.dumps(independently_checked_sat,sort_keys=True,indent=2)+"\n")
         forged=candidates(raw,"TRIPLE_HALL")
         forged["source_sha256"]=hashof(mutated)
         forged["source_clauses"]=len(parse(mutated)[1])
