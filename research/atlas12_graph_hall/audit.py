@@ -93,7 +93,9 @@ for k in range(2,6):
     facts=eo_fact_producer(raw)
     independently=eo_independent_check(raw,facts)
     assert independently["status"]=="SOURCE_FACTS_INDEPENDENTLY_VERIFIED"
-    assert len(facts["exact_one_groups"])==n
+    source_eo={frozenset(g) for g in facts["exact_one_groups"]}
+    assert all(frozenset(mapping[(v,c)] for c in range(k)) in source_eo
+               for v in range(n)), "SOURCE_VERTEX_EO_GROUP_MISSING"
     r=case(raw,f"synthetic-K{n}-with-{k}-colors","synthetic_eo_graph_hall")
     assert r["direct_source_exact_one_groups"]==n
     records.append(r)
