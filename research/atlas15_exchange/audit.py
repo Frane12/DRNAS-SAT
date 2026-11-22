@@ -28,7 +28,7 @@ from atlas import encoded,parse,transform
 from source_facts import derive as source_eo_facts
 from check_facts import check as independent_eo_checker
 from bridge import compile_original,HallUnknown
-from witness import verify as independent_exchange_checker,Invalid
+from witness import verify as independent_exchange_checker,verify_full_original_sat_model,Invalid
 from facts import candidates,graph_facts,xor_facts,Unknown
 
 CPU=min(os.sched_getaffinity(0));os.sched_setaffinity(0,{CPU})
@@ -216,6 +216,12 @@ for k in (4,5,6):
         assert model_is_valid(mutated,assignment),"SAT_MODEL_BROKEN"
         satdir=OUT/"source-mutation-SAT";satdir.mkdir(exist_ok=True)
         path=satdir/"original.cnf";path.write_bytes(mutated)
+        sat_witness={"source_sha256":hashof(mutated),
+                     "assignment":[None]+[assignment[v] for v in range(1,parse(mutated)[0]+1)]}
+        independently_checked_sat=verify_full_original_sat_model(mutated,sat_witness)
+        assert independently_checked_sat["status"]=="INDEPENDENT_ORIGINAL_SOURCE_SAT_MODEL_VERIFIED"
+        (satdir/"source-SAT-model.json").write_text(json.dumps(sat_witness,sort_keys=True)+"\\n")
+        (satdir/"independent-SAT-check.json").write_text(json.dumps(independently_checked_sat,sort_keys=True,indent=2)+"\\n")
         forged=candidates(raw,"TRIPLE_HALL")
         forged["source_sha256"]=hashof(mutated)
         forged["source_clauses"]=len(parse(mutated)[1])
@@ -230,6 +236,7 @@ for k in (4,5,6):
         assert len(xfacts)==1,("expected one surviving full XOR row",xfacts)
         safety={"source_sha256":hashof(mutated),
              "SAT_original_model_verified":True,
+             "independent_original_source_SAT_model_verified":True,
              "source_clauses_checked":len(parse(mutated)[1]),
              "removed_XOR_forbidden_assignment_with_source_SHA_update_rejected":changed_premise_rejected,
              "wrong_source_SHA_rejected":forged_sha_rejected,
