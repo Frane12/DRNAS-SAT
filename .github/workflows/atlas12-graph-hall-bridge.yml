@@ -1,0 +1,74 @@
+name: DRNAS ATLAS12 GRAPH to HALL EO source-verifiable modular bridge
+on:
+  push:
+    branches:
+      - experiment/atlas12-proof-modular-bridge2-20261122
+    paths:
+      - .github/workflows/atlas12-graph-hall-bridge.yml
+      - research/atlas12_bridge/**
+permissions:
+  contents: read
+jobs:
+  graph-hall-source-bridge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+      - name: Source and frozen proof modules preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas12_bridge/{bridge,audit}.py
+          python3 -m py_compile research/pcmax_capacity/{check_php_partition,emit_veripb_source_clique,source_php_real26}.py
+          python3 -m py_compile research/graphclique/{emit_veripb,selftest}.py
+          sha256sum research/atlas12_bridge/*.py research/pcmax_capacity/{check_php_partition,emit_veripb_source_clique,source_php_real26}.py research/graphclique/{emit_veripb,selftest}.py > atlas12-code-source-sha256.txt
+          sha256sum evidence/graph-k11/original.cnf evidence/pcmax-weighted2/{05,15}/original.cnf > atlas12-original-source-sha256.txt
+          git rev-parse HEAD > atlas12-commit.txt
+          lscpu > atlas12-cpu.txt
+      - name: Install independent original-source VeriPB 3.0.2 checker
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version > atlas12-veripb-version.txt 2>&1
+      - name: Actual modular bridge and source tamper controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          taskset -c "$cpu" python3 -u research/atlas12_bridge/audit.py | tee atlas12-bridge-audit.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open("atlas12_results/summary.json"))
+          assert d["status"]=="COMPLETE"
+          assert d["synthetic_K4_standard_proofs"]==3
+          assert d["real_original_graph_K11_verified"]
+          assert d["controls"]["SAT_structural_no_false_UNSAT"]
+          assert d["controls"]["forged_premise_with_updated_SHA_rejected"]
+          assert d["no_false_UNSAT"] and d["no_main_change"]
+          assert d["only_standard_veripb_as_final_UNSAT"]
+          print("ATLAS12_GRAPH_HALL_PCMax_SOURCE_BRIDGE_PASS",json.dumps(d,sort_keys=True))
+          PY
+      - name: Hash all certificate and proof evidence
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find atlas12_results -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas12-artifact-sha256.txt
+          date -u +'%FT%TZ' > atlas12-finished-utc.txt
+      - name: Upload original-graph, Hall certificates, original VeriPB proofs and controls
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS12-GRAPH-HALL-EO-MODULAR-BRIDGE
+          path: |
+            atlas12_results/
+            atlas12-bridge-audit.log
+            atlas12-code-source-sha256.txt
+            atlas12-original-source-sha256.txt
+            atlas12-veripb-version.txt
+            atlas12-commit.txt
+            atlas12-cpu.txt
+            atlas12-artifact-sha256.txt
+            atlas12-finished-utc.txt
+          retention-days: 30
