@@ -1,0 +1,68 @@
+name: DRNAS CircuitCheck 2048 stress original-results audit replay
+
+on:
+  push:
+    branches:
+      - experiment/circuitcheck-stress-audit-only-20261123
+    paths:
+      - '.github/workflows/drnas-circuitcheck-2048-audit-replay.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  aggregate_original_120:
+    name: Audit original 120 trials without rerunning or retuning any solver
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fetch original frozen RTL manifest from run 45245092918
+        uses: actions/download-artifact@v4
+        with:
+          name: circuitcheck-stress-frozen-rtl
+          run-id: 45245092918
+          repository: Frane12/DRNAS-SAT
+          github-token: ${{ github.token }}
+          path: frozen
+      - name: Fetch original four successful run shards (no remeasurement)
+        uses: actions/download-artifact@v4
+        with:
+          pattern: circuitcheck-stress-shard-*
+          run-id: 45245092918
+          repository: Frane12/DRNAS-SAT
+          github-token: ${{ github.token }}
+          path: combined
+      - name: Recompute strict PAR-2 from all 120 original trials
+        run: |
+          set -euo pipefail
+          (cd frozen && sha256sum -c sources.sha256)
+          python3 -u apps/circuitcheck/stress_run.py aggregate \
+            --manifest frozen/manifest.json --combined combined --shards 4 \
+            --output stress-results.json --report STRESS_REPORT.md
+          python3 - <<'PY'
+          import json
+          result=json.load(open("stress-results.json"))
+          assert result["audit_only"] is True
+          assert result["original_ci_run_id"]==45245092918
+          assert len(result["cases"])==20
+          assert result["matched"]["comparable_cases"]==20
+          assert all(x["attempts"]==40 for x in result["matched"]["scores"].values())
+          assert sum(len(c["trials"]) for c in result["cases"].values())==120
+          print("ORIGINAL_SOURCE_120_TRIAL_REPLAY_AUDIT_PASS")
+          PY
+          cat STRESS_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-CIRCUITCHECK-STRESS-2048-INDEPENDENT-AGGREGATE
+          path: |
+            stress-results.json
+            STRESS_REPORT.md
+            frozen/manifest.json
+          if-no-files-found: warn
+          retention-days: 90
