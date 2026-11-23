@@ -1,0 +1,94 @@
+name: DRNAS ATLAS-SEPARATOR3 SATLIB original100 corpus
+
+on:
+  push:
+    branches:
+      - experiment/drnas-atlas-separator3-20261123-proof
+    paths:
+      - '.github/workflows/drnas-atlas-separator3-corpus.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  freeze_original100:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Obtain four public SATLIB source archives
+        run: |
+          set -euo pipefail
+          mkdir -p archives
+          for fam in uf20-91 uf50-218 uuf50-218 uf100-430; do
+            curl --fail --location --retry 4 --connect-timeout 20 --max-time 180 \
+              "https://www.cs.ubc.ca/~hoos/SATLIB/Benchmarks/SAT/RND3SAT/${fam}.tar.gz" \
+              -o "archives/${fam}.tar.gz"
+            sha256sum "archives/${fam}.tar.gz"
+          done
+      - name: Freeze SHA-scored distinct original CNFs (25 from each family)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p original100/raw original100/canonical
+          python3 - <<'PY'
+          import hashlib,io,json,os,pathlib,tarfile
+          root=pathlib.Path('original100')
+          families=['uf20-91','uf50-218','uuf50-218','uf100-430']
+          manifest=[]
+          for fam in families:
+              archive=pathlib.Path('archives')/(fam+'.tar.gz')
+              entries=[]
+              with tarfile.open(archive,'r:gz') as tf:
+                  for member in tf:
+                      if not member.isfile() or not member.name.lower().endswith('.cnf'):continue
+                      f=tf.extractfile(member)
+                      if not f:continue
+                      raw=f.read()
+                      if not raw:continue
+                      # Canonical input: remove only SATLIB's trailing '%' sentinel lines.
+                      lines=raw.decode('ascii').splitlines(keepends=True)
+                      cleaned=''.join(line for line in lines if not line.lstrip().startswith('%')).encode('ascii')
+                      try:
+                          rows=cleaned.decode('ascii').splitlines()
+                          header=next(l for l in rows if l.startswith('p cnf '))
+                          _,typ,nv,nc=header.split()
+                          assert typ=='cnf'
+                          tokens=[]
+                          for l in rows:
+                              if l.startswith('c') or l.startswith('p ') or not l.strip():continue
+                              tokens.extend(map(int,l.split()))
+                          assert sum(x==0 for x in tokens)==int(nc)
+                          assert all(x==0 or 1<=abs(x)<=int(nv) for x in tokens)
+                      except Exception:
+                          continue
+                      entries.append((hashlib.sha256(raw).hexdigest(),member.name,raw,cleaned,int(nv),int(nc)))
+              entries.sort(key=lambda t:(t[0],t[1]))
+              assert len(entries)>=25,(fam,len(entries))
+              for k,(sha,name,raw,cleaned,nv,nc) in enumerate(entries[:25]):
+                  fname=f'{fam}_{k:02d}.cnf'
+                  (root/'raw'/fname).write_bytes(raw)
+                  (root/'canonical'/fname).write_bytes(cleaned)
+                  manifest.append({'family':fam,'source_member':name,'file':fname,'sha256_raw':sha,
+                      'sha256_canonical':hashlib.sha256(cleaned).hexdigest(),
+                      'nvars':nv,'nclauses':nc,'format_note':"original SATLIB bytes, canonical removes standalone percent sentinel lines only"})
+          assert len(manifest)==100
+          assert len({r['sha256_raw'] for r in manifest})==100
+          summary={'family_counts':{fam:25 for fam in families},'total':100,
+             'selection':'sorted raw SHA256 per family, top 25; fixed and label-independent',
+             'source_url_prefix':'https://www.cs.ubc.ca/~hoos/SATLIB/Benchmarks/SAT/RND3SAT/',
+             'scope':'SATLIB retrospective published source cohort, not blind and not cross-family comprehensive'}
+          (root/'manifest.json').write_text(json.dumps(manifest,indent=2))
+          (root/'summary.json').write_text(json.dumps(summary,indent=2))
+          print('ATLAS3_FROZEN_ORIGINAL100',json.dumps(summary,sort_keys=True))
+          PY
+      - name: Upload source-locked corpus
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas3-satlib-original100
+          retention-days: 30
+          path: |
+            original100/
+            archives/*.tar.gz
