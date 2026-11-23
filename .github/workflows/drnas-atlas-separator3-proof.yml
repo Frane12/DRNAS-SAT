@@ -1,0 +1,54 @@
+name: DRNAS ATLAS-SEPARATOR3 third-party proof check
+
+on:
+  push:
+    branches:
+      - experiment/drnas-atlas-separator3-20261123-proof
+    paths:
+      - 'experiments/atlas_separator3/**'
+      - '.github/workflows/drnas-atlas-separator3-proof.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  external_proof_check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Frozen source checkout
+        uses: actions/checkout@v4
+      - name: Build external DRAT and LRAT verifiers
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/marijnheule/drat-trim.git third_party/drat-trim
+          make -C third_party/drat-trim drat-trim lrat-check
+          git -C third_party/drat-trim rev-parse HEAD > experiments/atlas_separator3/verifier_commit.txt
+      - name: Check DRAT (addition-only RUP)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd experiments/atlas_separator3
+          ../../third_party/drat-trim/drat-trim original_mixed_graph_xor_pcmax_unsat.cnf mixed_graph_xor_pcmax_unsat.drup 2>&1 | tee drat_verification.log
+          grep -q '^s VERIFIED$' drat_verification.log
+      - name: Check LRAT (ASCII, independent third-party implementation)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd experiments/atlas_separator3
+          ../../third_party/drat-trim/lrat-check original_mixed_graph_xor_pcmax_unsat.cnf mixed_graph_xor_pcmax_unsat.lrat 2>&1 | tee lrat_verification.log
+          grep -q '^c VERIFIED$' lrat_verification.log
+      - name: Archive verifiable evidence and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-separator3-thirdparty-check
+          retention-days: 30
+          path: |
+            experiments/atlas_separator3/*.cnf
+            experiments/atlas_separator3/*.drup
+            experiments/atlas_separator3/*.lrat
+            experiments/atlas_separator3/*verification.log
+            experiments/atlas_separator3/verifier_commit.txt
