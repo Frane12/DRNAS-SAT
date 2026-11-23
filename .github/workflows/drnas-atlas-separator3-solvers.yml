@@ -1,0 +1,63 @@
+name: DRNAS ATLAS-SEPARATOR3 reference solvers
+
+on:
+  push:
+    branches:
+      - experiment/drnas-atlas-separator3-20261123-proof
+    paths:
+      - '.github/workflows/drnas-atlas-separator3-solvers.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source_build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile pinned-at-run reference SAT engines
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ref_sources ref_bins/lib
+          git clone --depth 1 https://github.com/arminbiere/kissat.git ref_sources/kissat
+          git clone --depth 1 https://github.com/arminbiere/cadical.git ref_sources/cadical
+          (cd ref_sources/kissat && ./configure && make -j2)
+          (cd ref_sources/cadical && ./configure && make -j2)
+          cp ref_sources/kissat/build/kissat ref_bins/kissat
+          cp ref_sources/cadical/build/cadical ref_bins/cadical
+          git -C ref_sources/kissat rev-parse HEAD > ref_bins/kissat_commit.txt
+          git -C ref_sources/cadical rev-parse HEAD > ref_bins/cadical_commit.txt
+      - name: Install CryptoMiniSat5 for reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y cryptominisat
+          found="$(command -v cryptominisat5 || command -v cryptominisat)"
+          cp "$found" ref_bins/cryptominisat5
+          dpkg -s cryptominisat | grep '^Version:' > ref_bins/cryptominisat_version.txt
+          ldd "$found" > ref_bins/cryptominisat_ldd.txt
+          # Include non-core shared dependencies for local reproduction.
+          for lib in $(ldd "$found" | awk '/=> \//{print $3}'); do
+            case "$(basename "$lib")" in
+              libcryptominisat*|libboost*|libm4ri*|libsqlite*|libgmp*|libz3*) cp -L "$lib" ref_bins/lib/ ;;
+            esac
+          done
+      - name: Record build environment and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          uname -a > ref_bins/build_environment.txt
+          ldd --version | head -1 >> ref_bins/build_environment.txt
+          sha256sum ref_bins/kissat ref_bins/cadical ref_bins/cryptominisat5 > ref_bins/binary_sha256.txt
+          ls -lh ref_bins/
+          file ref_bins/{kissat,cadical,cryptominisat5}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: atlas3-reference-solver-binaries
+          retention-days: 14
+          path: ref_bins/
