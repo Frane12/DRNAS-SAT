@@ -1,0 +1,79 @@
+name: DRNAS DELTA2-C final four-case proof and Kissat CaDiCaL audit
+on:
+  push:
+    branches:
+      - experiment/circuitcheck-delta2c-inductive-blocks-20261124
+    paths:
+      - '.github/workflows/drnas-delta2c-final-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  original_proof_replay:
+    name: All four original source cases, recheck proofs and both SAT baselines
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45245092918
+          name: circuitcheck-stress-frozen-rtl
+          github-token: ${{ github.token }}
+          path: frozen
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45286501965
+          name: DRNAS-DELTA2C-CRC-64-equal-PROOFS-AND-SAT-BASELINES
+          github-token: ${{ github.token }}
+          path: combined/crc64equal
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45286501965
+          name: DRNAS-DELTA2C-CRC-64-fault-PROOFS-AND-SAT-BASELINES
+          github-token: ${{ github.token }}
+          path: combined/crc64fault
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45286501965
+          name: DRNAS-DELTA2C-CRC-2048-equal-PROOFS-AND-SAT-BASELINES
+          github-token: ${{ github.token }}
+          path: combined/crc2048equal
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45286969991
+          name: DRNAS-DELTA2C-CRC-2048-fault-RETRY-PROOFS-KISSAT-CADICAL
+          github-token: ${{ github.token }}
+          path: combined/crc2048fault
+      - name: Recheck SHA-frozen source manifest
+        run: |
+          set -euo pipefail
+          (cd frozen && sha256sum -c sources.sha256)
+      - name: Independent 4x4 proof replay and full result aggregation without rerunning solvers
+        run: |
+          set -euo pipefail
+          python3 -m py_compile apps/circuitcheck/delta2c_final_audit.py
+          python3 -u apps/circuitcheck/delta2c_final_audit.py \
+            --root combined --frozen frozen \
+            --output DELTA2C_FINAL_RESULTS.json \
+            --report DELTA2C_FINAL_REPORT.md | tee final-audit.log
+          cat DELTA2C_FINAL_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-DELTA2C-4-CRC-SOURCE-INDUCTION-AND-KISSAT-CADICAL-FINAL-AUDIT
+          path: |
+            DELTA2C_FINAL_RESULTS.json
+            DELTA2C_FINAL_REPORT.md
+            final-audit.log
+            frozen/manifest.json
+          if-no-files-found: warn
+          retention-days: 90
