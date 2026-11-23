@@ -47,9 +47,12 @@ jobs:
                       if not f:continue
                       raw=f.read()
                       if not raw:continue
-                      # Canonical input: remove only SATLIB's trailing '%' sentinel lines.
-                      lines=raw.decode('ascii').splitlines(keepends=True)
-                      cleaned=''.join(line for line in lines if not line.lstrip().startswith('%')).encode('ascii')
+                      # Canonical input: remove SATLIB '%' sentinel and following DIMACS-terminator tail.
+                      cut=[]
+                      for line in raw.decode('ascii').splitlines(keepends=True):
+                          if line.lstrip().startswith('%'):break
+                          cut.append(line)
+                      cleaned=''.join(cut).encode('ascii')
                       try:
                           rows=cleaned.decode('ascii').splitlines()
                           header=next(l for l in rows if l.startswith('p cnf '))
@@ -72,7 +75,7 @@ jobs:
                   (root/'canonical'/fname).write_bytes(cleaned)
                   manifest.append({'family':fam,'source_member':name,'file':fname,'sha256_raw':sha,
                       'sha256_canonical':hashlib.sha256(cleaned).hexdigest(),
-                      'nvars':nv,'nclauses':nc,'format_note':"original SATLIB bytes, canonical removes standalone percent sentinel lines only"})
+                      'nvars':nv,'nclauses':nc,'format_note':"original SATLIB bytes, canonical truncates from standalone '%' sentinel through tail"})
           assert len(manifest)==100
           assert len({r['sha256_raw'] for r in manifest})==100
           summary={'family_counts':{fam:25 for fam in families},'total':100,
