@@ -1,0 +1,82 @@
+name: DRNAS ATLAS5 permuted original-source proof
+
+on:
+  push:
+    branches:
+      - experiment/drnas-atlas5-structure-recovery-20261123
+    paths:
+      - '.github/workflows/drnas-atlas5-permuted-proof.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  thirdparty_permutation_certificate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct exact permuted Petersen from source, without numerical metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          python3 - <<'PY'
+          import sys,random,pathlib,hashlib
+          sys.path.insert(0,'research')
+          from ipg1_fixtures import petersen
+          raw=petersen().encode('ascii')
+          assert hashlib.sha256(raw).hexdigest()=='c2fefeffc1f9644ffd6f85728106a21c82dfc01d0d021f32d4d73569cc2bfb70'
+          (pathlib.Path('evidence')/'original_petersen.cnf').write_bytes(raw)
+          lines=raw.decode('ascii').splitlines()
+          header=next(s for s in lines if s.startswith('p cnf '))
+          _,typ,nvars,ncls=header.split()
+          n=int(nvars);cl=[]
+          for s in lines:
+              if not s or s[0] in 'cp':continue
+              xs=[int(x) for x in s.split()]
+              assert xs[-1]==0
+              cl.append(tuple(xs[:-1]))
+          assert len(cl)==int(ncls)==300
+          rng=random.Random(202611231505)
+          permutation=list(range(1,n+1));rng.shuffle(permutation)
+          clauses=[tuple((1 if x>0 else -1)*permutation[abs(x)-1] for x in c) for c in cl]
+          for i in range(len(clauses)):
+              c=list(clauses[i]);rng.shuffle(c);clauses[i]=tuple(c)
+          rng.shuffle(clauses)
+          transformed=(f'p cnf {n} {len(clauses)}\n'+''.join(' '.join(map(str,c))+' 0\n' for c in clauses)).encode('ascii')
+          sha=hashlib.sha256(transformed).hexdigest()
+          print('PERMUTED_SOURCE_SHA256',sha)
+          assert sha=='76d249f4d1e521a01013d52288e84921857f1e4cf1096f66f014c10bfaacf9fa'
+          (pathlib.Path('evidence')/'permuted_petersen_00.cnf').write_bytes(transformed)
+          PY
+      - name: Build standalone reference Kissat and independent DRAT-trim
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/arminbiere/kissat.git third_party/kissat_atlas5
+          (cd third_party/kissat_atlas5 && ./configure && make -j2)
+          git clone --depth 1 https://github.com/marijnheule/drat-trim.git third_party/drat-trim_atlas5
+          make -C third_party/drat-trim_atlas5 drat-trim
+          git -C third_party/kissat_atlas5 rev-parse HEAD > evidence/kissat_commit.txt
+          git -C third_party/drat-trim_atlas5 rev-parse HEAD > evidence/drat_trim_commit.txt
+      - name: Obtain standard DRAT certificate of exactly the same original-CNF permutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          third_party/kissat_atlas5/build/kissat -q evidence/permuted_petersen_00.cnf evidence/permuted_petersen_00.drat > evidence/kissat.log 2>&1
+          rc=$?
+          set -e
+          test "$rc" -eq 20
+          test -s evidence/permuted_petersen_00.drat
+          third_party/drat-trim_atlas5/drat-trim evidence/permuted_petersen_00.cnf evidence/permuted_petersen_00.drat 2>&1 | tee evidence/drat_trim_check.log
+          tr -d '\r' < evidence/drat_trim_check.log | grep -qx 's VERIFIED'
+      - name: Archive source SHA, proof, checker logs and checker commits
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas5-permuted-petersen-standard-drat-evidence
+          retention-days: 30
+          path: evidence/
