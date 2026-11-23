@@ -1,0 +1,78 @@
+name: DRNAS DELTA2-A changed-feedback-polynomial negative control
+
+on:
+  push:
+    branches:
+      - experiment/circuitcheck-delta2-transition
+    paths:
+      - '.github/workflows/drnas-delta2-novel-tap-control.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  alternate_feedback:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: circuitcheck-stress-frozen-rtl
+          repository: Frane12/DRNAS-SAT
+          run-id: 45245092918
+          github-token: ${{ github.token }}
+          path: frozen
+      - name: Install Yosys (bounded apt)
+        run: |
+          set -euo pipefail
+          sudo DEBIAN_FRONTEND=noninteractive timeout 100s apt-get install -y -qq yosys || {
+            sudo timeout 110s apt-get update -qq
+            sudo DEBIAN_FRONTEND=noninteractive timeout 100s apt-get install -y -qq yosys
+          }
+          yosys -V
+      - name: Change unknown step feedback in reference only, keep independent candidate
+        run: |
+          set -euo pipefail
+          (cd frozen && sha256sum -c sources.sha256)
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          src=Path('frozen/crc_64_equal.v').read_text()
+          assert src.count("32'hEDB88320")==1
+          mutant=src.replace("32'hEDB88320","32'h82F63B78")
+          p=Path('crc64_alternate_feedback.v')
+          p.write_text(mutant)
+          print("CONTROL_MUTATED_SHA256",hashlib.sha256(p.read_bytes()).hexdigest())
+          PY
+      - name: Verify extracted model vs real altered reference; reject old candidate
+        run: |
+          set -euo pipefail
+          python3 -u apps/circuitcheck/delta2_auto.py \
+            --rtl crc64_alternate_feedback.v \
+            --reference reference --candidate candidate \
+            --out changed_polynomial --full-rtl-audit | tee delta2-altered-live.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open("changed_polynomial/delta2_report.json"))
+          assert d["transition_kind"]=="SHIFT_RIGHT_FEEDBACK",d
+          assert d["extracted_polynomial_hex"].lower()=="0x82f63b78",d
+          assert d["status"]=="DIFFERENT_EXTRACTED_MODEL",d
+          assert d["full_original_rtl_audit"]=="CHECKED_EQUIVALENT_NETLIST",d
+          assert d["first_difference_output"] is not None,d
+          print("DELTA2_ALTERNATE_POLYNOMIAL_REJECT_OLD_CANDIDATE_PASS",d["seconds"])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-DELTA2-A-DIFFERENT-POLYNOMIAL-CONTROL
+          path: |
+            changed_polynomial/
+            crc64_alternate_feedback.v
+            delta2-altered-live.log
+          retention-days: 90
+          if-no-files-found: warn
