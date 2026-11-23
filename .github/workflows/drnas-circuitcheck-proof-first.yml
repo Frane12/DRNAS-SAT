@@ -1,0 +1,43 @@
+name: DRNAS CircuitCheck proof-first RTL verification demo
+on:
+  push:
+    branches:
+      - experiment/drnas-circuitcheck-proof-first-20261123
+    paths:
+      - 'apps/circuitcheck/**'
+      - '.github/workflows/drnas-circuitcheck-proof-first.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  circuitcheck:
+    name: Compare real RTL, replay exact ANF certificates, reject tampering
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Yosys RTL netlist exporter
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq yosys
+          python3 --version
+          yosys -V
+      - name: Python syntax, deterministic examples, algebraic cert replay
+        run: |
+          set -euo pipefail
+          python3 -m py_compile apps/circuitcheck/proof_engine.py apps/circuitcheck/circuitcheck.py apps/circuitcheck/verify_certificate.py apps/circuitcheck/generate_examples.py apps/circuitcheck/ci_test.py
+          python3 -u apps/circuitcheck/ci_test.py | tee circuitcheck-ci.log
+          cat circuitcheck-ci-results/AUDIT.md >> "$GITHUB_STEP_SUMMARY"
+          cat circuitcheck-ci-results/AUDIT.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-CIRCUITCHECK-V01-PROOFS-AND-FAILURES
+          path: |
+            circuitcheck-ci-results/
+            circuitcheck-ci.log
+          retention-days: 90
+          if-no-files-found: warn
