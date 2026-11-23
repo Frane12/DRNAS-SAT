@@ -47,13 +47,23 @@ def main():
     altered("DIFFERENT_INITIAL_STATE",lambda d:d.update(iterations=7))
     files=[
         (proof/"k2/block.v","RAW_RTL_MODIFICATION",b"\n// mutated"),
-        (proof/"k4/block_meta.json","BLOCK_META_MODIFICATION",b" "),
         (proof/"k8/proof/netlist.json","GATE_NETLIST_MODIFICATION",b"\n"),
-        (proof/"base/delta2b_composition.json","BASE_COMPOSITION_MODIFICATION",b" "),
     ]
     for path,name,mutation in files:
         raw=path.read_bytes()
         path.write_bytes(raw+mutation)
+        try:expect_reject(name,lambda:replay(proof,orig,"reference"))
+        finally:path.write_bytes(raw)
+    # A JSON whitespace append is not semantic tampering. Mutate values,
+    # not harmless serialization, to check logical proof integrity.
+    metapath=proof/"k4/block_meta.json"
+    basepath=proof/"base/delta2b_composition.json"
+    for path,name,field in [(metapath,"BLOCK_META_COEFFICIENT_TAMPERING","output_rows_hex"),
+                            (basepath,"BASE_MATRIX_TAMPERING","A_rows_hex")]:
+        raw=path.read_bytes()
+        data=json.loads(raw)
+        data[field][0]=hex(int(data[field][0],16)^1)
+        path.write_text(json.dumps(data))
         try:expect_reject(name,lambda:replay(proof,orig,"reference"))
         finally:path.write_bytes(raw)
     changed=orig.with_name("altered_source.v")
