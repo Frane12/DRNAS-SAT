@@ -32,7 +32,7 @@ jobs:
           set -euo pipefail
           cd experiments/atlas_separator3
           ../../third_party/drat-trim/drat-trim original_mixed_graph_xor_pcmax_unsat.cnf mixed_graph_xor_pcmax_unsat.drup 2>&1 | tee drat_verification.log
-          grep -q '^s VERIFIED$' drat_verification.log
+          tr -d '\r' < drat_verification.log | grep -qx 's VERIFIED'
       - name: Check LRAT (ASCII, independent third-party implementation)
         shell: bash
         run: |
