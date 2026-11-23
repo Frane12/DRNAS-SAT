@@ -79,4 +79,11 @@ jobs:
         with:
           name: atlas5-permuted-petersen-standard-drat-evidence
           retention-days: 30
-          path: evidence/
+          path: |
+            evidence/original_petersen.cnf
+            evidence/permuted_petersen_00.cnf
+            evidence/permuted_petersen_00.drat
+            evidence/kissat.log
+            evidence/kissat_commit.txt
+            evidence/drat_trim_commit.txt
+            evidence/drat_trim_check.log
