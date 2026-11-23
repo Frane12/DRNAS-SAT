@@ -1,0 +1,85 @@
+name: DRNAS DELTA2-B independent proof tampering control
+
+on:
+  push:
+    branches:
+      - experiment/circuitcheck-delta2b-compose-20261123
+    paths:
+      - '.github/workflows/drnas-delta2b-tamper.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  corrupt_composition_proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: circuitcheck-stress-frozen-rtl
+          repository: Frane12/DRNAS-SAT
+          run-id: 45245092918
+          github-token: ${{ github.token }}
+          path: frozen
+      - uses: actions/download-artifact@v4
+        with:
+          name: DRNAS-DELTA2B-CRC-2048-fault-FAST-AND-FULL
+          repository: Frane12/DRNAS-SAT
+          run-id: 45284415353
+          github-token: ${{ github.token }}
+          path: testproof
+      - name: Cert replay must pass before corruption
+        run: |
+          set -euo pipefail
+          (cd frozen && sha256sum -c sources.sha256)
+          python3 apps/circuitcheck/delta2b_verify.py \
+            testproof/fast_0 frozen/crc_2048_fault.v
+      - name: Corrupt source hash, matrix row, candidate coefficients and netlist
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,subprocess,pathlib,sys
+          proof=pathlib.Path("testproof/fast_0")
+          original=json.loads((proof/"delta2b_composition.json").read_text())
+          source="frozen/crc_2048_fault.v"
+          def assert_rejected(name,data):
+              testfile=proof/"delta2b_composition.json"
+              testfile.write_text(json.dumps(data))
+              p=subprocess.run([sys.executable,"apps/circuitcheck/delta2b_verify.py",
+                                str(proof),source],capture_output=True,text=True)
+              if p.returncode==0:
+                  raise RuntimeError("TAMPERING_ACCEPTED "+name)
+              print("DELTA2B_TAMPERING_REJECTED",name,p.stdout.strip()[:300])
+          try:
+              a=json.loads(json.dumps(original));a["original_sha256"]="0"*64
+              assert_rejected("source_hash",a)
+              a=json.loads(json.dumps(original));a["A_rows_hex"][0]=hex(int(a["A_rows_hex"][0],16)^1)
+              assert_rejected("transition_matrix_row",a)
+              a=json.loads(json.dumps(original));a["candidate_masks_hex"][0]=hex(int(a["candidate_masks_hex"][0],16)^1)
+              assert_rejected("candidate_coefficients",a)
+              a=json.loads(json.dumps(original));a["final_model_masks_hex"][0]=hex(int(a["final_model_masks_hex"][0],16)^1)
+              assert_rejected("final_composition",a)
+              (proof/"delta2b_composition.json").write_text(json.dumps(original,indent=2)+"\n")
+              net=proof/"cert_drnas_delta2_step/netlist.json"
+              raw=net.read_bytes()
+              net.write_bytes(raw+b"\n")
+              p=subprocess.run([sys.executable,"apps/circuitcheck/delta2b_verify.py",
+                                str(proof),source],capture_output=True,text=True)
+              net.write_bytes(raw)
+              if p.returncode==0:
+                  raise RuntimeError("NETLIST_HASH_TAMPERING_ACCEPTED")
+              print("DELTA2B_TAMPERING_REJECTED","gate_netlist_hash")
+          finally:
+              (proof/"delta2b_composition.json").write_text(json.dumps(original,indent=2)+"\n")
+          q=subprocess.run([sys.executable,"apps/circuitcheck/delta2b_verify.py",
+                            str(proof),source],capture_output=True,text=True)
+          if q.returncode:
+              raise RuntimeError("ORIGINAL_CERT_REJECTED_AFTER_RESTORATION "+q.stdout)
+          print("DELTA2B_ALL_TAMPER_CONTROLS_PASS")
+          PY
