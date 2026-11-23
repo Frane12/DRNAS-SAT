@@ -44,7 +44,7 @@ jobs:
             -o compiled/r28_exact_gf2.cpp
           g++ -std=c++17 -O3 -Wall -Wextra -pedantic compiled/r28_exact_gf2.cpp -o compiled/r28_gf2
           chmod +x compiled/r28_gf2 compiled/kissat
-          sha256sum compiled/r28_gf2.cpp compiled/r28_gf2 compiled/kissat | tee compiled/SHA256SUMS
+          sha256sum compiled/r28_exact_gf2.cpp compiled/r28_gf2 compiled/kissat | tee compiled/SHA256SUMS
           yosys -V | tee compiled/tool-versions.txt
           (cadical --version || true) 2>&1 | tee -a compiled/tool-versions.txt
           (cryptominisat5 --version || true) 2>&1 | tee -a compiled/tool-versions.txt
