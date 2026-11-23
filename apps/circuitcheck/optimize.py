@@ -250,6 +250,15 @@ def main():
         report["status"]=("PROVED_LOWER_GATE_COUNT"
                           if candidate_metrics["gate_count"]<original_metrics["gate_count"]
                           else "PROVED_NO_GATE_COUNT_GAIN")
+        # Guard against an equivalent but larger/slower-looking implementation.
+        # Only publish a named "recommended" replacement for strict gate-count
+        # improvement after the independent certificate replay.
+        report["replacement_recommended"]=report["status"]=="PROVED_LOWER_GATE_COUNT"
+        if report["replacement_recommended"]:
+            shutil.copyfile(work/"optimized.v",work/"recommended.v")
+            report["recommended_rtl_sha256"]=sha(work/"recommended.v")
+        else:
+            report["recommendation"]="KEEP_ORIGINAL_NO_GENERIC_GATE_GAIN"
     except (Unsupported, ValueError,KeyError,RuntimeError,
             subprocess.TimeoutExpired,RecursionError) as e:
         report["status"]="UNKNOWN"
