@@ -142,7 +142,7 @@ def discover(source: str, name="reference") -> dict:
     input_reference=re.compile(r"\b"+re.escape(input_name)+r"\s*\[\s*"+re.escape(ivar)+r"\s*\]")
     if len(input_reference.findall(inner)) != 1:
         fail("expected exactly one scalar input reference per step")
-    inner_replaced=input_reference.sub("drnas_input_bit",inner)
+    inner_replaced=input_reference.sub("b_input_bit",inner)
     if re.search(r"\b"+re.escape(input_name)+r"\b",inner_replaced) or re.search(
             r"\b"+re.escape(ivar)+r"\b",inner_replaced):
         fail("dynamic loop input/index not completely abstracted")
@@ -159,7 +159,7 @@ def discover(source: str, name="reference") -> dict:
             fail("helper must be assigned exactly once per iteration")
     # Any variable read from source before its first write is not admitted
     # except the state and current scalar input.
-    allowed={state_name,"drnas_input_bit"}|set(helper_regs)
+    allowed={state_name,"b_input_bit"}|set(helper_regs)
     for reg_width,reg in vector_regs:
         if reg!=state_name and re.search(r"\b"+re.escape(reg)+r"\b",inner):
             fail("extra vector state register not supported")
@@ -167,15 +167,15 @@ def discover(source: str, name="reference") -> dict:
     if unexpected_assignments:
         fail("unmodelled stage assignments "+str(sorted(unexpected_assignments)))
     helpers="\n".join("  reg "+name+";" for name in helper_regs if name!=state_name)
-    step=("\nmodule drnas_delta2_step(input wire ["+str(state_width-1)+":0] drnas_state_in,"
-          " input wire drnas_input_bit, output reg ["+str(state_width-1)+":0] drnas_state_out);\n"
+    step=("\nmodule drnas_delta2_step(input wire ["+str(state_width-1)+":0] a_state_in,"
+          " input wire b_input_bit, output reg ["+str(state_width-1)+":0] drnas_state_out);\n"
           "  reg ["+str(state_width-1)+":0] "+state_name+";\n"
-          +helpers+"\n  always @* begin\n  "+state_name+" = drnas_state_in;\n"
+          +helpers+"\n  always @* begin\n  "+state_name+" = a_state_in;\n"
           +inner_replaced+"\n  drnas_state_out = "+state_name+";\n  end\nendmodule\n")
-    finish=("\nmodule drnas_delta2_finish(input wire ["+str(state_width-1)+":0] drnas_state_in,"
+    finish=("\nmodule drnas_delta2_finish(input wire ["+str(state_width-1)+":0] a_state_in,"
             " output reg ["+str(output_width-1)+":0] drnas_output);\n"
             " reg ["+str(state_width-1)+":0] "+state_name+";\n"
-            " always @* begin\n "+state_name+" = drnas_state_in;\n"
+            " always @* begin\n "+state_name+" = a_state_in;\n"
             " drnas_output = "+finals[0].strip()+";\n end\nendmodule\n")
     return {"module":name,"input_name":input_name,"output_name":out_name,
             "input_bits":input_width,"output_bits":output_width,
@@ -301,14 +301,14 @@ def main():
         w=schema["state_bits"];n=schema["input_bits"]
         step,meta_step=exact_affine_rows(out,schema["transition_rtl"],
             "drnas_delta2_step","drnas_state_out",
-            [("drnas_state_in",w),("drnas_input_bit",1)])
+            [("a_state_in",w),("b_input_bit",1)])
         init=schema["initial_state"]
         A=[(m>>1)&((1<<w)-1) for m in step]
         B=[(m>>(w+1)) for m in step]
         c=[m&1 for m in step]
         if any(b not in (0,1) for b in B):fail("unexpected multi-bit stage input")
         finish,meta_finish=exact_affine_rows(out,schema["finish_rtl"],
-             "drnas_delta2_finish","drnas_output",[("drnas_state_in",w)])
+             "drnas_delta2_finish","drnas_output",[("a_state_in",w)])
         state=compose(A,B,c,init,n,n)
         outputs=finish_outputs(state,finish,w)
         if len(outputs)!=schema["output_bits"]:fail("incomplete final output")
