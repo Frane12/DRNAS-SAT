@@ -41,6 +41,11 @@ def main():
                                    json.dumps(report,indent=2)+"\n"+r.stdout[-3000:])
             if report["proof"]!="CHECKED_EQUIVALENT_NETLIST":
                 raise RuntimeError("not independently replayable")
+            has_gain=report["candidate"]["gate_count"]<report["original"]["gate_count"]
+            if report.get("replacement_recommended") is not has_gain:
+                raise RuntimeError("replacement gate improvement guard failed")
+            if (out/"recommended.v").exists() is not has_gain:
+                raise RuntimeError("recommended.v must exist only for proven improvement")
             again=run([sys.executable,APP/"verify_certificate.py",out/"proof"])
             if again.returncode:raise RuntimeError("proof verifier rejected emitted candidate")
             # Alter a previously verified certificate: independent checker must reject it.
