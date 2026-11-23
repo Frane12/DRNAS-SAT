@@ -1,0 +1,181 @@
+name: DRNAS DELTA2-C single and multi-step inductive CRC vs Kissat CaDiCaL
+on:
+  push:
+    branches:
+      - experiment/circuitcheck-delta2c-inductive-blocks-20261124
+    paths:
+      - 'apps/circuitcheck/delta2c*.py'
+      - '.github/workflows/drnas-delta2c-induction.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  guards:
+    name: Check strict RTL grammar and 500 affine systems
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Python source and independent algebra tests
+        run: |
+          set -euo pipefail
+          python3 -m py_compile apps/circuitcheck/delta2c_source_guard.py apps/circuitcheck/delta2c.py apps/circuitcheck/delta2c_verify.py apps/circuitcheck/delta2c_selftest.py apps/circuitcheck/delta2c_baselines.py
+          python3 -u apps/circuitcheck/delta2c_selftest.py | tee delta2c-selftest.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-DELTA2C-SOURCE-GRAMMAR-AND-MATH
+          path: delta2c-selftest.log
+          retention-days: 90
+
+  crc:
+    needs: guards
+    name: Induction original CRC ${{ matrix.width }} ${{ matrix.state }} with Kissat and CaDiCaL
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - width: 64
+            state: equal
+            expected: UNSAT
+          - width: 64
+            state: fault
+            expected: SAT
+          - width: 2048
+            state: equal
+            expected: UNSAT
+          - width: 2048
+            state: fault
+            expected: SAT
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: circuitcheck-stress-frozen-rtl
+          repository: Frane12/DRNAS-SAT
+          run-id: 45245092918
+          github-token: ${{ github.token }}
+          path: frozen
+      - name: Install Yosys CaDiCaL time and C++ compiler
+        run: |
+          set -euo pipefail
+          sudo DEBIAN_FRONTEND=noninteractive timeout 100s apt-get install -y -qq yosys cadical time build-essential || {
+            sudo timeout 110s apt-get update -qq
+            sudo DEBIAN_FRONTEND=noninteractive timeout 100s apt-get install -y -qq yosys cadical time build-essential
+          }
+          yosys -V
+          cadical --version
+      - name: Build exact pinned Kissat 8af8e56f
+        run: |
+          set -euo pipefail
+          mkdir -p compiled
+          git clone -q https://github.com/arminbiere/kissat.git /tmp/delta2c-kissat
+          git -C /tmp/delta2c-kissat checkout -q --detach 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          test "$(git -C /tmp/delta2c-kissat rev-parse HEAD)" = 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          (cd /tmp/delta2c-kissat && ./configure && make -j2 >/tmp/kissat-build.log)
+          cp /tmp/delta2c-kissat/build/kissat compiled/kissat
+          chmod +x compiled/kissat
+          sha256sum compiled/kissat | tee compiled/kissat.sha256
+      - name: Verify source induction and K 1 2 4 8 gate proofs
+        env:
+          WIDTH: ${{ matrix.width }}
+          STATE: ${{ matrix.state }}
+        run: |
+          set -euo pipefail
+          (cd frozen && sha256sum -c sources.sha256)
+          CPU=$(python3 - <<'PY'
+          import os
+          print(min(os.sched_getaffinity(0)))
+          PY
+          )
+          mkdir -p result
+          /usr/bin/time -v -o result/fast_resources.txt timeout 90s taskset -c "$CPU" \
+            python3 -u apps/circuitcheck/delta2c.py \
+              --rtl "frozen/crc_${WIDTH}_${STATE}.v" \
+              --reference reference --candidate candidate \
+              --out result/fast | tee result/fast.log
+          /usr/bin/time -v -o result/full_resources.txt timeout 180s taskset -c "$CPU" \
+            python3 -u apps/circuitcheck/delta2c.py \
+              --rtl "frozen/crc_${WIDTH}_${STATE}.v" \
+              --reference reference --candidate candidate \
+              --out result/full --full-rtl-audit | tee result/full.log
+          python3 - <<'PY'
+          import os,json,pathlib
+          width=int(os.environ["WIDTH"]);state=os.environ["STATE"]
+          for mode in ("fast","full"):
+              f=pathlib.Path("result")/mode
+              r=json.loads((f/"delta2c_report.json").read_text())
+              assert r["status"]=="CHECKED_RESTRICTED_INDUCTION",r
+              assert r["iterations"]==width and r["state_bits"]==32,r
+              assert sorted(r["groups"].keys())==["1","2","4","8"],r
+              assert r["candidate_verdict"]==("EQUIVALENT_EXTRACTED_MODEL" if state=="equal" else "DIFFERENT_EXTRACTED_MODEL"),r
+              assert r["full_original_yosys_audit"]==("CHECKED_ORIGINAL_NETLIST" if mode=="full" else "NOT_RUN"),r
+              independent=json.loads((f/"delta2c_verification.json").read_text())
+              assert independent["status"]=="CHECKED_RESTRICTED_INDUCTION",independent
+              print("DELTA2C_INDUCTION_FULL_ORIGINAL_PASS",width,state,mode,r["total_elapsed_s"],flush=True)
+          PY
+      - name: Kissat and CaDiCaL original DIMACS plus four local block DIMACS controls
+        env:
+          WIDTH: ${{ matrix.width }}
+          STATE: ${{ matrix.state }}
+          EXPECTED: ${{ matrix.expected }}
+        run: |
+          set -euo pipefail
+          CPU=$(python3 - <<'PY'
+          import os
+          print(min(os.sched_getaffinity(0)))
+          PY
+          )
+          taskset -c "$CPU" python3 -u apps/circuitcheck/delta2c_baselines.py \
+            --rtl "frozen/crc_${WIDTH}_${STATE}.v" \
+            --proofs result/fast \
+            --out result/baselines \
+            --kissat "$(pwd)/compiled/kissat" \
+            --cadical "$(command -v cadical)" \
+            --expected "$EXPECTED" | tee result/baselines-live.log
+      - name: Record timings and source SHA in visible summary
+        env:
+          WIDTH: ${{ matrix.width }}
+          STATE: ${{ matrix.state }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,pathlib
+          r=pathlib.Path("result")
+          b=json.loads((r/"baselines/baseline.json").read_text())
+          fast=json.loads((r/"fast/delta2c_report.json").read_text())
+          full=json.loads((r/"full/delta2c_report.json").read_text())
+          out=["## DELTA2-C original CRC {} {}".format(os.environ["WIDTH"],os.environ["STATE"]),
+              "Original RTL SHA256: "+b["source_sha256"],
+              "Original CNF: "+str(b["full"]["cnf"]),
+              "DELTA2-C restriction-guarded proof (s): "+str(fast["total_elapsed_s"]),
+              "DELTA2-C + complete Yosys original reference audit (s): "+str(full["total_elapsed_s"]),
+              "| Scope | Arm | Verdict | Seconds | SAT witness |",
+              "|---|---|---|---:|---|"]
+          for t in b["full"]["trials"]:
+              out.append("| Original CNF r{} | {} | {} | {:.3f} | {} |".format(t["repeat"],t["arm"],t["status"],t["seconds"],t["sat_witness_checked"]))
+          for k,block in b["blocks"].items():
+              for t in block["trials"]:
+                  out.append("| K{} local CNF | {} | {} | {:.3f} | {} |".format(k,t["arm"],t["status"],t["seconds"],t["sat_witness_checked"]))
+          p=r/"RESULTS.md"
+          p.write_text("\n".join(out)+"\n")
+          print(p.read_text())
+          PY
+          cat result/RESULTS.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-DELTA2C-CRC-${{ matrix.width }}-${{ matrix.state }}-PROOFS-AND-SAT-BASELINES
+          path: |
+            result/
+            compiled/kissat.sha256
+          if-no-files-found: warn
+          retention-days: 90
