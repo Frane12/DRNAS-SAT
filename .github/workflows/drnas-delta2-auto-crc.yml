@@ -1,0 +1,107 @@
+name: DRNAS DELTA2-A automatic CRC stage discovery and source audit
+
+on:
+  push:
+    branches:
+      - experiment/circuitcheck-delta2-transition
+    paths:
+      - 'apps/circuitcheck/delta2_*.py'
+      - '.github/workflows/drnas-delta2-auto-crc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  source_detector:
+    name: Automatic loop cut inference and adversarial matrix tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Syntax and adversarial checks
+        run: |
+          set -euo pipefail
+          python3 -m py_compile apps/circuitcheck/delta2_auto.py apps/circuitcheck/delta2_selftest.py
+          python3 -u apps/circuitcheck/delta2_selftest.py
+
+  crc_original:
+    needs: source_detector
+    name: Original CRC WIDTH STATUS with inferred transition and independent full RTL check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - width: 64
+            state: equal
+          - width: 64
+            state: fault
+          - width: 2048
+            state: equal
+          - width: 2048
+            state: fault
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: circuitcheck-stress-frozen-rtl
+          repository: Frane12/DRNAS-SAT
+          run-id: 45245092918
+          github-token: ${{ github.token }}
+          path: frozen
+      - name: Install Yosys and resource-time tool
+        run: |
+          set -euo pipefail
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq yosys time || {
+            sudo apt-get update -qq
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq yosys time
+          }
+          yosys -V
+      - name: Freeze and infer CRC transition without class constants
+        env:
+          WIDTH: ${{ matrix.width }}
+          EXPECTED: ${{ matrix.state }}
+        run: |
+          set -euo pipefail
+          (cd frozen && sha256sum -c sources.sha256)
+          python3 -u apps/circuitcheck/delta2_auto.py \
+            --rtl "frozen/crc_\${WIDTH}_\${EXPECTED}.v" \
+            --reference reference --candidate candidate \
+            --out "delta2_results/crc_\${WIDTH}_\${EXPECTED}" \
+            --full-rtl-audit | tee delta2-live.log
+          python3 - <<'PY'
+          import json,os,pathlib,hashlib
+          w=int(os.environ["WIDTH"])
+          state=os.environ["EXPECTED"]
+          root=pathlib.Path(f"delta2_results/crc_{w}_{state}")
+          d=json.loads((root/"delta2_report.json").read_text())
+          assert d["status"]==("EQUIVALENT_EXTRACTED_MODEL" if state=="equal" else "DIFFERENT_EXTRACTED_MODEL"), d
+          assert d["full_original_rtl_audit"]=="CHECKED_EQUIVALENT_NETLIST"
+          assert d["iterations"]==w and d["state_bits"]==32
+          assert d["transition_kind"]=="SHIFT_RIGHT_FEEDBACK", d
+          # Only an external control checks the discovered polynomial. The
+          # detector itself never receives or hardcodes this polynomial.
+          assert d["extracted_polynomial_hex"].lower()=="0xedb88320",d
+          assert d["first_difference_output"] is None if state=="equal" else d["first_difference_output"]==0
+          assert all(d[phase]["independent_replay"]=="CHECKED_EQUIVALENT_NETLIST"
+                     for phase in ("step_proof","finish_proof","candidate_proof"))
+          print("DELTA2_CRC_ORIGINAL_FULL_RTL_AUDIT_PASS",w,state,
+                "elapsed_s",d["seconds"],"discovered_transition",d["transition_kind"])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DELTA2-A-CRC-${{ matrix.width }}-${{ matrix.state }}-DISCOVERED-AND-PROVED
+          path: |
+            delta2_results/
+            delta2-live.log
+          retention-days: 90
+          if-no-files-found: warn
