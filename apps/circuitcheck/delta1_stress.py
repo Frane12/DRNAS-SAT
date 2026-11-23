@@ -28,6 +28,8 @@ def sha(path:Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 def bounded(cmd, cwd, seconds, path):
+    cwd=Path(cwd).resolve()
+    path=Path(path).resolve()
     start=time.perf_counter()
     path.parent.mkdir(exist_ok=True,parents=True)
     rssfile=path.with_suffix(".rss")
@@ -105,6 +107,7 @@ def shard(args):
     assert frozen["protocol"]=="CIRCUITCHECK_STRESS_FIXED_20261123"
     assert len(frozen["cases"])==20
     root=Path(__file__).resolve().parent
+    args.out=args.out.resolve()
     args.out.mkdir(parents=True,exist_ok=True)
     manifest_sha=sha(args.manifest)
     report={"protocol":"DRNAS_DELTA1_AFFINE_STRESS_V1",
@@ -119,7 +122,7 @@ def shard(args):
         (args.out/"rows.json").write_text(json.dumps(report,indent=2)+"\n")
     for i,case in enumerate(frozen["cases"]):
         if i%args.shards!=args.shard:continue
-        src=Path(case["rtl"])
+        src=Path(case["rtl"]).resolve()
         if not src.is_file() or sha(src)!=case["sha256"]:
             raise RuntimeError("MISMATCHED_FROZEN_INPUT "+str(src))
         row={"id":case["id"],"family":case["family"],
