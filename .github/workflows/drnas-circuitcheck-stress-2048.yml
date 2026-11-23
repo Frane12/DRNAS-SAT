@@ -1,0 +1,145 @@
+name: DRNAS CircuitCheck stress 64 to 2048 bit CRC LFSR versus Kissat
+
+on:
+  push:
+    branches:
+      - experiment/circuitcheck-stress64-2048-20261123
+    paths:
+      - 'apps/circuitcheck/stress_*.py'
+      - '.github/workflows/drnas-circuitcheck-stress-2048.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  freeze:
+    name: Freeze 20 CRC/LFSR original Verilog cases before results
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate generator and pin RTL SHA-256
+        run: |
+          set -euo pipefail
+          python3 -m py_compile apps/circuitcheck/stress_generate.py apps/circuitcheck/stress_run.py
+          python3 apps/circuitcheck/stress_generate.py --out frozen
+          (cd frozen && sha256sum *.v > sources.sha256 && sha256sum -c sources.sha256)
+          sha256sum frozen/manifest.json
+          python3 - <<'PY'
+          import json
+          m=json.load(open("frozen/manifest.json"))
+          assert len(m["cases"]) == 20
+          assert max(c["input_bits"] for c in m["cases"]) == 2048
+          assert sum(c["fault"] for c in m["cases"]) == 10
+          assert len(set(c["sha256"] for c in m["cases"])) == 20
+          print("DRNAS_STRESS_COHORT_FROZEN")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: circuitcheck-stress-frozen-rtl
+          path: frozen/
+          if-no-files-found: error
+          retention-days: 90
+
+  trials:
+    needs: freeze
+    name: Stress shard ${{ matrix.shard }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        shard: [0,1,2,3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: circuitcheck-stress-frozen-rtl
+          path: frozen
+      - name: Verify exact source before trial
+        run: |
+          set -euo pipefail
+          (cd frozen && sha256sum -c sources.sha256)
+          python3 -m py_compile apps/circuitcheck/stress_run.py
+      - name: Install Yosys CaDiCaL time and toolchain
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq yosys cadical time build-essential
+          yosys -V
+          cadical --version
+          /usr/bin/time --version | head -1
+      - name: Pin and build original clean Kissat
+        run: |
+          set -euo pipefail
+          mkdir -p compiled
+          git clone -q https://github.com/arminbiere/kissat.git /tmp/drnas-stress-kissat
+          git -C /tmp/drnas-stress-kissat checkout -q --detach 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          test "$(git -C /tmp/drnas-stress-kissat rev-parse HEAD)" = 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          (cd /tmp/drnas-stress-kissat && ./configure && make -j2 >/tmp/kissat-build.log)
+          cp /tmp/drnas-stress-kissat/build/kissat compiled/kissat
+          chmod +x compiled/kissat
+          sha256sum compiled/kissat | tee compiled/SHA256SUMS
+      - name: Full Yosys RTL / DRNAS proof / Kissat / CaDiCaL stress, two repeats, one CPU
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          python3 -u apps/circuitcheck/stress_run.py shard \
+            --manifest frozen/manifest.json \
+            --out results \
+            --shard "$SHARD" --shards 4 \
+            --kissat "$(pwd)/compiled/kissat" \
+            --cadical "$(command -v cadical)" \
+            | tee stress-live.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: circuitcheck-stress-shard-${{ matrix.shard }}
+          path: |
+            results/
+            stress-live.log
+            compiled/SHA256SUMS
+          if-no-files-found: warn
+          retention-days: 90
+
+  final_audit:
+    needs: [freeze,trials]
+    if: always()
+    name: Strict final audit, no hiding timeout or regression
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: circuitcheck-stress-frozen-rtl
+          path: frozen
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: circuitcheck-stress-shard-*
+          path: combined
+      - name: Check complete 120 attempts and write report
+        run: |
+          set -euo pipefail
+          (cd frozen && sha256sum -c sources.sha256)
+          python3 -u apps/circuitcheck/stress_run.py aggregate \
+            --manifest frozen/manifest.json --combined combined \
+            --shards 4 --output stress-results.json --report STRESS_REPORT.md
+          cat STRESS_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-CIRCUITCHECK-STRESS-2048-FINAL
+          path: |
+            STRESS_REPORT.md
+            stress-results.json
+            frozen/manifest.json
+          retention-days: 90
+          if-no-files-found: warn
