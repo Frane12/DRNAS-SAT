@@ -226,7 +226,8 @@ def aggregate(args):
     frozen=json.loads(args.manifest.read_text())
     by_id={}
     for shard_id in range(args.shards):
-        base=args.combined/("shard-"+str(shard_id))
+        # Download-artifact retains the full artifact name as its folder.
+        base=args.combined/("circuitcheck-stress-shard-"+str(shard_id))
         file=base/"rows.json"
         if not file.exists():file=base/"results"/"rows.json"
         if not file.exists():raise RuntimeError("MISSING_SHARD_FILE "+str(base))
@@ -238,7 +239,7 @@ def aggregate(args):
             by_id[row["id"]]=row
     if set(by_id)!={r["id"] for r in frozen["cases"]}:
         raise RuntimeError("MISSING_CASES")
-    results={"protocol":frozen["protocol"],"manifest_sha256":sha(args.manifest),
+    results={"audit_only":True,"original_ci_run_id":45245092918,"protocol":frozen["protocol"],"manifest_sha256":sha(args.manifest),
              "comparison_note":"same RTL, distinct proof-vs-CNF representations; SAT backends exclude Yosys CNF export cost",
              "cases":by_id,"matched":{}}
     report=["# DRNAS CircuitCheck stress: 64..2048 input bits",
@@ -261,7 +262,9 @@ def aggregate(args):
         if len(trials)!=REPEATS*len(ARMS):
             raise RuntimeError("INCOMPLETE_TRIALS "+case["id"])
         string={}
-        comparable=row["cnf"] is not None
+        comparable=(row["cnf"] is not None and
+                    row["cnf_export"]["return_code"]==0 and
+                    not row["cnf_export"]["timeout"])
         for arm in ARMS:
             arm_trials=sorted([t for t in trials if t["arm"]==arm],key=lambda t:t["repeat"])
             if [t["repeat"] for t in arm_trials]!=list(range(REPEATS)):
