@@ -1,0 +1,113 @@
+name: DRNAS DELTA2-C CRC2048 fault retry after apt installation interruption
+
+on:
+  push:
+    branches:
+      - experiment/circuitcheck-delta2c-inductive-blocks-20261124
+    paths:
+      - '.github/workflows/drnas-delta2c-crc2048-fault-retry.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  crc2048_fault_retry:
+    name: Retry exact CRC 2048 fault induction with Kissat CaDiCaL
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: circuitcheck-stress-frozen-rtl
+          repository: Frane12/DRNAS-SAT
+          run-id: 45245092918
+          github-token: ${{ github.token }}
+          path: frozen
+      - name: Recover interrupted Ubuntu dpkg and install deterministic tools
+        run: |
+          set -euo pipefail
+          sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a || true
+          if ! sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq yosys cadical time build-essential; then
+            sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a
+            sudo apt-get update -qq
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq yosys cadical time build-essential
+          fi
+          yosys -V
+          cadical --version
+      - name: Build same pinned Kissat
+        run: |
+          set -euo pipefail
+          mkdir -p compiled
+          git clone -q https://github.com/arminbiere/kissat.git /tmp/delta2c-retry-kissat
+          git -C /tmp/delta2c-retry-kissat checkout -q --detach 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          test "$(git -C /tmp/delta2c-retry-kissat rev-parse HEAD)" = 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          (cd /tmp/delta2c-retry-kissat && ./configure && make -j2 >/tmp/kissat-build.log)
+          cp /tmp/delta2c-retry-kissat/build/kissat compiled/kissat
+          chmod +x compiled/kissat
+          sha256sum compiled/kissat | tee compiled/kissat.sha256
+      - name: Run exact SHA frozen DELTA2-C restricted induction fast and full
+        run: |
+          set -euo pipefail
+          (cd frozen && sha256sum -c sources.sha256)
+          CPU=$(python3 - <<'PY'
+          import os
+          print(min(os.sched_getaffinity(0)))
+          PY
+          )
+          mkdir -p result
+          /usr/bin/time -v -o result/fast_resources.txt timeout 90s taskset -c "$CPU" \
+            python3 -u apps/circuitcheck/delta2c.py \
+              --rtl frozen/crc_2048_fault.v --reference reference --candidate candidate \
+              --out result/fast | tee result/fast.log
+          /usr/bin/time -v -o result/full_resources.txt timeout 180s taskset -c "$CPU" \
+            python3 -u apps/circuitcheck/delta2c.py \
+              --rtl frozen/crc_2048_fault.v --reference reference --candidate candidate \
+              --out result/full --full-rtl-audit | tee result/full.log
+          python3 - <<'PY'
+          import json
+          for mode in ("fast","full"):
+              x=json.load(open(f"result/{mode}/delta2c_report.json"))
+              assert x["status"]=="CHECKED_RESTRICTED_INDUCTION",x
+              assert x["state_bits"]==32 and x["iterations"]==2048,x
+              assert x["candidate_verdict"]=="DIFFERENT_EXTRACTED_MODEL"
+              assert sorted(x["groups"])==["1","2","4","8"]
+              assert x["full_original_yosys_audit"]==("NOT_RUN" if mode=="fast" else "CHECKED_ORIGINAL_NETLIST")
+              print("DELTA2C_RETRY_INDUCTION_PASS",mode,x["total_elapsed_s"],flush=True)
+          PY
+      - name: Rerun both SAT baselines, preserve 30s and 10s limits
+        run: |
+          set -euo pipefail
+          CPU=$(python3 - <<'PY'
+          import os
+          print(min(os.sched_getaffinity(0)))
+          PY
+          )
+          taskset -c "$CPU" python3 -u apps/circuitcheck/delta2c_baselines.py \
+            --rtl frozen/crc_2048_fault.v \
+            --proofs result/fast --out result/baselines \
+            --kissat "$(pwd)/compiled/kissat" \
+            --cadical "$(command -v cadical)" \
+            --expected SAT | tee result/baselines-live.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open("result/baselines/baseline.json"))
+          assert d["full"]["cnf"]["vars"]>=800000
+          assert len(d["full"]["trials"])==4
+          assert all(t["status"]=="SAT" and t["sat_witness_checked"] for t in d["full"]["trials"])
+          assert set(d["blocks"])=={"1","2","4","8"}
+          print("DELTA2C_RETRY_BOTH_SAT_CONTROLS_PASS")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-DELTA2C-CRC-2048-fault-RETRY-PROOFS-KISSAT-CADICAL
+          path: |
+            result/
+            compiled/kissat.sha256
+          if-no-files-found: warn
+          retention-days: 90
