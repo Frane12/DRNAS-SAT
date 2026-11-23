@@ -114,6 +114,9 @@ def aggregate(args):
     rows={}
     for shard in range(args.shards):
         f=args.combined/f"shard-{shard}"/"shard.json"
+        if not f.exists():
+            # Multi-path upload-artifact stores the results/ prefix.
+            f=args.combined/f"shard-{shard}"/"results"/"shard.json"
         if not f.exists():raise RuntimeError("Missing shard "+str(shard))
         piece=json.loads(f.read_text())
         assert piece['shard']==shard and piece['shards']==args.shards
