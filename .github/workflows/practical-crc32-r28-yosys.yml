@@ -1,4 +1,4 @@
-name: DRNAS practical CRC32 RTL-to-CNF R28 pilot
+name: DRNAS practical CRC32 expanded MIX2 source-checked study
 
 on:
   push:
@@ -14,9 +14,9 @@ permissions:
 
 jobs:
   native-crc32-pilot:
-    name: Generate genuine Yosys CNF and benchmark original R28
+    name: Benchmark original R28, new MIX2, Kissat and CaDiCaL
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,16 +43,17 @@ jobs:
             https://raw.githubusercontent.com/Frane12/AndroidGameTest/95b2b06f16efc68827ed34de9cbc1bda7b6a0a37/experiments/drnas_v16/r28_exact_gf2.cpp \
             -o compiled/r28_exact_gf2.cpp
           g++ -std=c++17 -O3 -Wall -Wextra -pedantic compiled/r28_exact_gf2.cpp -o compiled/r28_gf2
-          chmod +x compiled/r28_gf2 compiled/kissat
-          sha256sum compiled/r28_exact_gf2.cpp compiled/r28_gf2 compiled/kissat | tee compiled/SHA256SUMS
+          g++ -std=c++17 -O3 -Wall -Wextra -pedantic research/practical_crc32/r28_mixed.cpp -o compiled/r28_mixed
+          chmod +x compiled/r28_gf2 compiled/r28_mixed compiled/kissat
+          sha256sum compiled/r28_exact_gf2.cpp research/practical_crc32/r28_mixed.cpp compiled/r28_gf2 compiled/r28_mixed compiled/kissat | tee compiled/SHA256SUMS
           yosys -V | tee compiled/tool-versions.txt
           (cadical --version || true) 2>&1 | tee -a compiled/tool-versions.txt
           (cryptominisat5 --version || true) 2>&1 | tee -a compiled/tool-versions.txt
       - name: Generate two mathematically equivalent real Ethernet CRC RTL circuits and fault control
         run: |
           set -euo pipefail
-          python3 -m py_compile research/practical_crc32/generate_rtl.py research/practical_crc32/pilot.py
-          python3 research/practical_crc32/generate_rtl.py --sizes 1 2 4 --out rtl
+          python3 -m py_compile research/practical_crc32/generate_rtl.py research/practical_crc32/pilot.py research/practical_crc32/source_checker.py
+          python3 research/practical_crc32/generate_rtl.py --sizes 1 2 4 8 16 --out rtl
           sha256sum rtl/*.v > rtl/SHA256SUMS
           cat rtl/manifest.json
       - name: Export Yosys-native DIMACS and run matched single-core SAT pilot
@@ -61,6 +62,8 @@ jobs:
           python3 -u research/practical_crc32/pilot.py \
             --manifest rtl/manifest.json --out results \
             --r28 "$(pwd)/compiled/r28_gf2" \
+            --mix2 "$(pwd)/compiled/r28_mixed" \
+            --checker "$(pwd)/research/practical_crc32/source_checker.py" \
             --kissat "$(pwd)/compiled/kissat" \
             --time-cap 12 | tee results-live.log
           cat results/REPORT.md >> "$GITHUB_STEP_SUMMARY"
@@ -68,7 +71,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: DRNAS-CRC32-R28-YOSYS-PILOT
+          name: DRNAS-CRC32-MIX2-EXPANDED
           path: |
             results/
             rtl/
