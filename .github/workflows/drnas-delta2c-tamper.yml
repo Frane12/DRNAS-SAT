@@ -1,0 +1,50 @@
+name: DRNAS DELTA2-C independent induction proof tampering
+on:
+  push:
+    branches:
+      - experiment/circuitcheck-delta2c-inductive-blocks-20261124
+    paths:
+      - 'research/delta2c_tamper/**'
+      - '.github/workflows/drnas-delta2c-tamper.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  strict_replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: DRNAS-DELTA2C-CRC-64-fault-PROOFS-AND-SAT-BASELINES
+          repository: Frane12/DRNAS-SAT
+          run-id: 45286501965
+          github-token: ${{ github.token }}
+          path: bundle
+      - uses: actions/download-artifact@v4
+        with:
+          name: circuitcheck-stress-frozen-rtl
+          repository: Frane12/DRNAS-SAT
+          run-id: 45245092918
+          github-token: ${{ github.token }}
+          path: frozen
+      - name: Require original SHA then reject independently altered induction certificates
+        run: |
+          set -euo pipefail
+          (cd frozen && sha256sum -c sources.sha256)
+          find bundle -type f -name delta2c_certificate.json
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess,sys
+          proofs=list(Path("bundle").rglob("delta2c_certificate.json"))
+          assert proofs, "MISSING_PROOF"
+          selected=[p.parent for p in proofs if p.parent.name=="fast"]
+          assert len(selected)==1,selected
+          cmd=[sys.executable,"research/delta2c_tamper/test_inductive_cert.py",
+               str(selected[0]),"frozen/crc_64_fault.v"]
+          subprocess.run(cmd,check=True)
+          PY
