@@ -1,0 +1,57 @@
+name: DRNAS MIX3 unseen holdout final audit replay only
+
+on:
+  push:
+    branches:
+      - experiment/practical-mix3-blind-families-20261123
+    paths:
+      - '.github/workflows/drnas-mix3-holdout-audit-replay.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  final_from_original_frozen_run:
+    name: Audit 96 unmodified original run attempts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve frozen RTL+manifest from ORIGINAL run (not a new cohort)
+        uses: actions/download-artifact@v4
+        with:
+          name: unseen-holdout-frozen-rtl
+          run-id: 45212451026
+          repository: Frane12/DRNAS-SAT
+          github-token: ${{ github.token }}
+          path: rtl
+      - name: Retrieve original four successful shard result artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: shard-*
+          run-id: 45212451026
+          repository: Frane12/DRNAS-SAT
+          github-token: ${{ github.token }}
+          path: combined
+      - name: Freeze and aggregate original run inputs without re-running solvers
+        run: |
+          set -euo pipefail
+          (cd rtl && sha256sum -c sources.sha256)
+          python3 -u research/practical_crc32/holdout_run.py aggregate \
+            --manifest rtl/manifest.json \
+            --combined combined --shards 4 \
+            --output holdout-results.json \
+            --report HOLDOUT_REPORT.md
+          cat HOLDOUT_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-MIX3-ORIGINAL-UNSEEN-HOLDOUT-AUDIT
+          path: |
+            holdout-results.json
+            HOLDOUT_REPORT.md
+            rtl/manifest.json
+          if-no-files-found: warn
+          retention-days: 90
