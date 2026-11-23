@@ -31,10 +31,10 @@ def sha(p):
     return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 
 def export(source:Path,cnf:Path,top:str,cpu:int,log:Path):
-    script=("read_verilog -sv "+source.name+
+    script=("read_verilog -sv "+str(source.resolve())+
             "; hierarchy -check -top "+top+
             "; proc; flatten; opt; sat -timeout 1 -set mismatch 1 -dump_cnf "+
-            cnf.name)
+            str(cnf.resolve()))
     r=run(["yosys","-p",script],cpu,120,log)
     meta={"seconds":r["seconds"],"timeout":r["timeout"],"return_code":r["return_code"],
           "max_rss_kb":r["max_rss_kb"]}
