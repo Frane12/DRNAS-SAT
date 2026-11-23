@@ -37,3 +37,38 @@ Exit codes of `circuitcheck.py`: 0 proved equivalent, 10 demonstrated difference
 ## Plan
 
 Standard certificates / independent RTL frontend audit, real third-party hardware benchmarks and robust end-to-end comparisons with open-source hardware verification suites remain future work.
+
+
+---
+
+## DRNAS CircuitCheck Optimize v0.2 (experimental)
+
+New subproject: automatically **rewrite** an affine/XOR-rich FPGA combinational circuit,
+then **recheck** the candidate's logic against the unchanged original.
+
+Example:
+
+`python3 apps/circuitcheck/generate_examples.py --out examples`
+
+`python3 apps/circuitcheck/optimize.py --rtl examples/lfsr_64_equal.v --reference reference --out build/optimized-lfsr64`
+
+Outputs:
+
+- `optimized.v` – generated Verilog with shared XOR subexpressions
+- `reference_gates.json` and `optimized_gates.json` – Yosys-mapped gate netlists
+- `optimization.json` – input hashes, raw gate counts, max gate depths, proof status
+- `proof/` – exact ANF equivalence certificate and **independent** replay log
+
+A candidate is reported as `PROVED_LOWER_GATE_COUNT` **only if** its original-vs-generated
+equivalence certificate passes the separately implemented checker and generic Yosys
+logic cell count is lower. Otherwise it is `PROVED_NO_GATE_COUNT_GAIN` or `UNKNOWN`.
+The original source is never overwritten, and no optimized code is merged into `main`.
+
+**Scope:** exact affine ANFs of supported combinational gates over GF(2).
+Nonlinear expressions, sequential circuits, unknown nets and size blowups return
+`UNKNOWN`. Gate count and depth are generic Yosys mapped gate statistics, not
+FPGA LUT usage, placed-route timing, power, or vendor-specific chip-area metrics.
+
+For a real product, the next verification layer should include source-Verilog
+semantics, independent formal equivalence tooling (e.g. EQY/SBY),
+target-FPGA synthesis, place-and-route timing, and test vectors from hardware.
