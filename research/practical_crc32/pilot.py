@@ -20,17 +20,19 @@ def dimacs_meta(p):
     raise ValueError('DIMACS header not found')
 
 def one_command(cmd,cpu,timeout_s):
+    # SAT assignments for 50,000 variables can exceed 150 KB.
+    # Never truncate a complete witness before original-CNF verification.
     command=['taskset','-c',str(cpu)]+[str(x) for x in cmd]
     t=time.perf_counter()
     try:
         p=subprocess.run(command,text=True,capture_output=True,timeout=timeout_s,check=False)
         out=p.stdout+'\n'+p.stderr
         return {'seconds':time.perf_counter()-t,'return_code':p.returncode,
-                'timeout':False,'output':out[-150000:]}
+                'timeout':False,'output':out[-2000000:]}
     except subprocess.TimeoutExpired as e:
         return {'seconds':time.perf_counter()-t,'return_code':None,
-                'timeout':True,'output':(e.stdout or b'').decode(errors='replace')[-150000:]
-                if isinstance(e.stdout,bytes) else str(e.stdout or '')[-150000:]}
+                'timeout':True,'output':(e.stdout or b'').decode(errors='replace')[-2000000:]
+                if isinstance(e.stdout,bytes) else str(e.stdout or '')[-2000000:]}
 
 def sat_status(out,rc,timeout=False):
     if timeout:return 'TIMEOUT'
