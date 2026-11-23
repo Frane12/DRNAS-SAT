@@ -1,0 +1,25 @@
+name: DRNAS CircuitCheck v02 affine algebra safety tests
+on:
+  push:
+    branches:
+      - experiment/circuitcheck-optimize-v02-20261123
+    paths:
+      - 'apps/circuitcheck/test_affine_optimizer.py'
+      - '.github/workflows/drnas-circuitcheck-optimize-math.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  algebra:
+    name: Exhaustive small-circuit XOR sharing truth tables
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compile and evaluate all 8-bit rewrite assignments
+        run: |
+          set -euo pipefail
+          python3 -m py_compile apps/circuitcheck/optimize.py apps/circuitcheck/test_affine_optimizer.py
+          python3 apps/circuitcheck/test_affine_optimizer.py
