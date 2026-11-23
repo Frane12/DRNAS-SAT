@@ -99,6 +99,7 @@ def main():
 
         stage=time.perf_counter()
         composition={
+            "candidate_name":args.candidate,
             "schema":{"input_name":schema["input_name"],
                       "output_name":schema["output_name"],
                       "input_bits":n,"state_bits":width,
