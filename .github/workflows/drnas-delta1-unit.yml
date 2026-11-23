@@ -1,0 +1,26 @@
+name: DRNAS DELTA1 standalone adversarial algebra tests
+
+on:
+  push:
+    branches:
+      - experiment/circuitcheck-delta1-affine-20261123
+    paths:
+      - 'research/delta1_unit/**'
+      - '.github/workflows/drnas-delta1-unit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: 2048 input proof, nonlinear fail-closed and independent tamper rejection
+        run: |
+          set -euo pipefail
+          python3 research/delta1_unit/test_delta1_math.py
