@@ -1,0 +1,149 @@
+name: DRNAS MIX3 untouched-family holdout Gray LFSR Adder
+
+on:
+  push:
+    branches:
+      - experiment/practical-mix3-blind-families-20261123
+    paths:
+      - 'research/practical_crc32/holdout_*.py'
+      - '.github/workflows/drnas-mix3-unseen-holdout.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  freeze_inputs:
+    name: Freeze prospective unseen RTL and source hashes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify fresh-families generator and freeze before results
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/practical_crc32/holdout_generate.py research/practical_crc32/holdout_run.py research/practical_crc32/selective_mix3.py
+          python3 research/practical_crc32/test_selective_mix3.py -v
+          python3 research/practical_crc32/holdout_generate.py --out rtl
+          (cd rtl && sha256sum *.v > sources.sha256 && sha256sum -c sources.sha256)
+          sha256sum rtl/manifest.json
+          sha256sum research/practical_crc32/holdout_generate.py research/practical_crc32/holdout_run.py research/practical_crc32/selective_mix3.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unseen-holdout-frozen-rtl
+          path: rtl/
+          if-no-files-found: error
+          retention-days: 90
+
+  matched_shard:
+    needs: freeze_inputs
+    name: SHA-frozen unseen shard ${{ matrix.shard }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: unseen-holdout-frozen-rtl
+          path: rtl
+      - name: Check frozen source hashes (no post-outcome modification)
+        run: |
+          set -euo pipefail
+          (cd rtl && sha256sum -c sources.sha256)
+          python3 - <<'PY'
+          import json
+          m=json.load(open("rtl/manifest.json"))
+          assert len(m['cases'])==16
+          assert len(set(x['rtl_sha256'] for x in m['cases']))==16
+          assert set(x['family'] for x in m['cases'])=={'gray','lfsr','adder'}
+          assert sum(x['expected']=='SAT' for x in m['cases'])==8
+          assert sum(x['expected']=='UNSAT' for x in m['cases'])==8
+          print('HOLDOUT_INPUT_FREEZE_PASS')
+          PY
+      - name: Install genuine Yosys and CaDiCaL
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq yosys cadical build-essential
+          yosys -V
+          cadical --version
+      - name: Compile pin-verified Kissat and frozen DRNAS-MIX2 engine
+        run: |
+          set -euo pipefail
+          mkdir -p compiled
+          git clone -q https://github.com/arminbiere/kissat.git /tmp/mix3-holdout-kissat
+          git -C /tmp/mix3-holdout-kissat checkout -q --detach 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          test "$(git -C /tmp/mix3-holdout-kissat rev-parse HEAD)" = 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          (cd /tmp/mix3-holdout-kissat && ./configure && make -j2 >/tmp/kissat-build-holdout.log)
+          cp /tmp/mix3-holdout-kissat/build/kissat compiled/kissat
+          g++ -std=c++17 -O3 -Wall -Wextra -pedantic research/practical_crc32/r28_mixed.cpp -o compiled/r28_mixed
+          chmod +x compiled/r28_mixed compiled/kissat
+          sha256sum compiled/kissat compiled/r28_mixed research/practical_crc32/r28_mixed.cpp | tee compiled/SHA256SUMS
+      - name: Matched one-CPU two-repeat untouched holdout
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          python3 -u research/practical_crc32/holdout_run.py shard \
+            --manifest rtl/manifest.json \
+            --out results \
+            --shard "$SHARD" --shards 4 \
+            --mix3 "$(pwd)/research/practical_crc32/selective_mix3.py" \
+            --mix2 "$(pwd)/compiled/r28_mixed" \
+            --kissat "$(pwd)/compiled/kissat" \
+            --cadical "$(command -v cadical)" \
+            --checker "$(pwd)/research/practical_crc32/source_checker.py" \
+            | tee holdout-shard.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shard-${{ matrix.shard }}
+          path: |
+            results/
+            holdout-shard.log
+            compiled/SHA256SUMS
+          if-no-files-found: warn
+          retention-days: 90
+
+  final_audit:
+    needs: [freeze_inputs, matched_shard]
+    if: always()
+    name: Publish all 96 paired outcomes and regressions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: unseen-holdout-frozen-rtl
+          path: rtl
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: shard-*
+          path: combined
+      - name: Aggregate frozen original source results or fail explicitly
+        run: |
+          set -euo pipefail
+          python3 -u research/practical_crc32/holdout_run.py aggregate \
+            --manifest rtl/manifest.json --combined combined \
+            --shards 4 --output holdout-results.json --report HOLDOUT_REPORT.md
+          cat HOLDOUT_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-MIX3-UNSEEN-FROZEN-FINAL
+          path: |
+            holdout-results.json
+            HOLDOUT_REPORT.md
+            rtl/manifest.json
+          if-no-files-found: warn
+          retention-days: 90
