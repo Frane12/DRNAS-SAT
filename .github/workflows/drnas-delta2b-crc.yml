@@ -1,0 +1,123 @@
+name: DRNAS DELTA2-B CRC original RTL fast compositional vs full source audit
+
+on:
+  push:
+    branches:
+      - experiment/circuitcheck-delta2b-compose-20261123
+    paths:
+      - 'apps/circuitcheck/delta2b*.py'
+      - '.github/workflows/drnas-delta2b-crc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  algebra:
+    name: Matrix-power affine proof regression independent of RTL synthesis
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: 300 deterministic randomized transition systems
+        run: |
+          set -euo pipefail
+          python3 -m py_compile apps/circuitcheck/delta2b_math.py apps/circuitcheck/delta2b.py apps/circuitcheck/delta2b_verify.py apps/circuitcheck/delta2b_selftest.py
+          python3 -u apps/circuitcheck/delta2b_selftest.py
+
+  frozen_crc:
+    needs: algebra
+    name: DELTA2-B WIDTH bits STATE with independent proof and full-source audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - width: 64
+            state: equal
+          - width: 64
+            state: fault
+          - width: 2048
+            state: equal
+          - width: 2048
+            state: fault
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: circuitcheck-stress-frozen-rtl
+          repository: Frane12/DRNAS-SAT
+          run-id: 45245092918
+          github-token: ${{ github.token }}
+          path: frozen
+      - name: Install Yosys with bounded mirror fallback
+        run: |
+          set -euo pipefail
+          sudo DEBIAN_FRONTEND=noninteractive timeout 100s apt-get install -y -qq yosys time || {
+            sudo timeout 110s apt-get update -qq
+            sudo DEBIAN_FRONTEND=noninteractive timeout 100s apt-get install -y -qq yosys time
+          }
+          yosys -V
+      - name: Run exact original CRC with two fast trials and one full RTL audit
+        env:
+          WIDTH: ${{ matrix.width }}
+          STATE: ${{ matrix.state }}
+        run: |
+          set -euo pipefail
+          (cd frozen && sha256sum -c sources.sha256)
+          CPU=$(python3 - <<'PY'
+          import os
+          print(min(os.sched_getaffinity(0)))
+          PY
+          )
+          mkdir -p delta2b_results
+          for REPEAT in 0 1; do
+            /usr/bin/time -v -o "delta2b_results/fast_${REPEAT}_resources.txt" \
+              timeout 45s taskset -c "$CPU" \
+              python3 -u apps/circuitcheck/delta2b.py \
+                --rtl "frozen/crc_${WIDTH}_${STATE}.v" \
+                --reference reference --candidate candidate \
+                --out "delta2b_results/fast_${REPEAT}" \
+              | tee "delta2b_results/fast_${REPEAT}.log"
+          done
+          /usr/bin/time -v -o "delta2b_results/full_resources.txt" \
+            timeout 180s taskset -c "$CPU" \
+            python3 -u apps/circuitcheck/delta2b.py \
+              --rtl "frozen/crc_${WIDTH}_${STATE}.v" \
+              --reference reference --candidate candidate \
+              --out delta2b_results/full --full-rtl-audit \
+            | tee delta2b_results/full.log
+          python3 - <<'PY'
+          import json,os,pathlib
+          width=int(os.environ["WIDTH"]);state=os.environ["STATE"]
+          expected="EQUIVALENT_EXTRACTED_MODEL" if state=="equal" else "DIFFERENT_EXTRACTED_MODEL"
+          root=pathlib.Path("delta2b_results")
+          rows=[json.loads((root/f"fast_{j}/delta2b_report.json").read_text()) for j in range(2)]
+          rows.append(json.loads((root/"full/delta2b_report.json").read_text()))
+          for j,r in enumerate(rows):
+              assert r["status"]==expected,r
+              assert r["independently_verified"] is True,r
+              assert r["input_bits"]==width,r
+              assert r["structure"]=="SHIFT_RIGHT_FEEDBACK",r
+              assert r["extracted_polynomial_hex"].lower()=="0xedb88320",r
+              assert r["first_difference_bit"] is None if state=="equal" else r["first_difference_bit"]==0
+              assert r["source_audit"]==("CHECKED_ORIGINAL_NETLIST" if j==2 else "NOT_RUN"),r
+              print("DELTA2B_FROZEN_ORIGINAL_PASS",width,state,j,round(r["seconds"],6),
+                    "matrix_s",r["timings_s"]["matrix_composition"],
+                    "proof",r["source_audit"],flush=True)
+          (root/"summary.json").write_text(json.dumps({"width":width,"type":state,"results":rows},indent=2)+"\n")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-DELTA2B-CRC-${{ matrix.width }}-${{ matrix.state }}-FAST-AND-FULL
+          path: delta2b_results/
+          if-no-files-found: warn
+          retention-days: 90
