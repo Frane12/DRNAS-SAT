@@ -1,0 +1,84 @@
+name: DRNAS SELECTIVE-MIX3 CRC32 paired study
+
+on:
+  push:
+    branches:
+      - experiment/practical-crc32-mix3-20261123
+    paths:
+      - 'research/practical_crc32/**'
+      - '.github/workflows/practical-crc32-selective-mix3.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-crc32-pilot:
+    name: Same-CNF MIX3, MIX2, Kissat, CaDiCaL under 12 s cap
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install RTL exporter and available SAT backends
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq yosys cadical curl build-essential
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq cryptominisat5 || echo "CryptoMiniSat unavailable from this package index; report n/a"
+          command -v yosys
+          command -v cadical
+          command -v cryptominisat5 || true
+      - name: Compile SHA-pinned clean Kissat and historical genuine R28 C++
+        run: |
+          set -euo pipefail
+          mkdir -p compiled
+          git clone -q https://github.com/arminbiere/kissat.git /tmp/drnas-crc-kissat
+          git -C /tmp/drnas-crc-kissat checkout -q --detach 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          test "$(git -C /tmp/drnas-crc-kissat rev-parse HEAD)" = "8af8e56f174b778aef3aa45af9f739b2a5f492c2"
+          (cd /tmp/drnas-crc-kissat && ./configure && make -j2)
+          cp /tmp/drnas-crc-kissat/build/kissat compiled/kissat
+          curl --fail --location --silent --show-error --retry 3 \
+            https://raw.githubusercontent.com/Frane12/AndroidGameTest/95b2b06f16efc68827ed34de9cbc1bda7b6a0a37/experiments/drnas_v16/r28_exact_gf2.cpp \
+            -o compiled/r28_exact_gf2.cpp
+          g++ -std=c++17 -O3 -Wall -Wextra -pedantic compiled/r28_exact_gf2.cpp -o compiled/r28_gf2
+          g++ -std=c++17 -O3 -Wall -Wextra -pedantic research/practical_crc32/r28_mixed.cpp -o compiled/r28_mixed
+          chmod +x compiled/r28_gf2 compiled/r28_mixed compiled/kissat
+          sha256sum compiled/r28_exact_gf2.cpp research/practical_crc32/r28_mixed.cpp compiled/r28_gf2 compiled/r28_mixed compiled/kissat | tee compiled/SHA256SUMS
+          yosys -V | tee compiled/tool-versions.txt
+          (cadical --version || true) 2>&1 | tee -a compiled/tool-versions.txt
+          (cryptominisat5 --version || true) 2>&1 | tee -a compiled/tool-versions.txt
+      - name: Generate two mathematically equivalent real Ethernet CRC RTL circuits and fault control
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/practical_crc32/generate_rtl.py research/practical_crc32/pilot.py research/practical_crc32/source_checker.py research/practical_crc32/selective_mix3.py research/practical_crc32/test_selective_mix3.py
+          python3 research/practical_crc32/test_selective_mix3.py -v
+          python3 research/practical_crc32/generate_rtl.py --sizes 1 2 4 8 16 --out rtl
+          sha256sum rtl/*.v > rtl/SHA256SUMS
+          cat rtl/manifest.json
+      - name: Export Yosys-native DIMACS and run matched single-core SAT pilot
+        run: |
+          set -euo pipefail
+          python3 -u research/practical_crc32/pilot.py \
+            --manifest rtl/manifest.json --out results \
+            --r28 "$(pwd)/compiled/r28_gf2" \
+            --mix2 "$(pwd)/compiled/r28_mixed" \
+            --mix3 "$(pwd)/research/practical_crc32/selective_mix3.py" \
+            --checker "$(pwd)/research/practical_crc32/source_checker.py" \
+            --kissat "$(pwd)/compiled/kissat" \
+            --time-cap 12 | tee results-live.log
+          cat results/REPORT.md >> "$GITHUB_STEP_SUMMARY"
+          cat results/REPORT.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-CRC32-SELECTIVE-MIX3
+          path: |
+            results/
+            rtl/
+            compiled/SHA256SUMS
+            compiled/tool-versions.txt
+            results-live.log
+          if-no-files-found: warn
+          retention-days: 30
