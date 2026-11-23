@@ -73,9 +73,9 @@ jobs:
           set -euo pipefail
           (cd frozen && sha256sum -c sources.sha256)
           python3 -u apps/circuitcheck/delta2_auto.py \
-            --rtl "frozen/crc_\${WIDTH}_\${EXPECTED}.v" \
+            --rtl "frozen/crc_${WIDTH}_${EXPECTED}.v" \
             --reference reference --candidate candidate \
-            --out "delta2_results/crc_\${WIDTH}_\${EXPECTED}" \
+            --out "delta2_results/crc_${WIDTH}_${EXPECTED}" \
             --full-rtl-audit | tee delta2-live.log
           python3 - <<'PY'
           import json,os,pathlib,hashlib
