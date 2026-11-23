@@ -1,0 +1,42 @@
+name: DRNAS CircuitCheck v02 proof-gated RTL optimizer
+on:
+  push:
+    branches:
+      - experiment/circuitcheck-optimize-v02-20261123
+    paths:
+      - 'apps/circuitcheck/**'
+      - '.github/workflows/drnas-circuitcheck-optimize-v02.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  proof_optimized_rtl:
+    name: Generate candidate RTL, replay proof, measure gate counts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Yosys gate synthesis
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq yosys
+          yosys -V
+      - name: Verify syntax, optimize real examples and replay proof
+        run: |
+          set -euo pipefail
+          python3 -m py_compile apps/circuitcheck/optimize.py apps/circuitcheck/ci_optimize.py
+          python3 -u apps/circuitcheck/ci_optimize.py | tee circuitcheck-optimize-ci.log
+          cat circuitcheck-opt-v02-results/AUDIT.md >> "$GITHUB_STEP_SUMMARY"
+          cat circuitcheck-opt-v02-results/AUDIT.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-CIRCUITCHECK-V02-OPTIMIZED-RTL-AND-PROOFS
+          path: |
+            circuitcheck-opt-v02-results/
+            circuitcheck-optimize-ci.log
+          if-no-files-found: warn
+          retention-days: 90
