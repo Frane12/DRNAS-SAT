@@ -20,7 +20,8 @@ MAX_DEPTH=32
 MAX_SEEDS=10000
 MAX_BDD_NODES=30000
 MAX_PATHS=8
-MAX_CHECKS=42000
+MAX_CHECKS=220000
+MAX_ACCEPTED_NEXT_STAGE_CANDIDATES=3
 
 class Budget(Exception):pass
 class Unsupported(Exception):pass
@@ -168,8 +169,12 @@ def detect(original,base,top=None):
                         max_bdd=max(max_bdd,nodes)
                     except (Budget,Unsupported,RecursionError):
                         budget_hits+=1;continue
-                    if ok:found.append(candidate)
-                if checks>MAX_CHECKS:break
+                    if ok:
+                        found.append(candidate)
+                        # Purely a search heuristic. Each retained path is
+                        # independently proved; completeness is not claimed.
+                        if len(found)>=MAX_ACCEPTED_NEXT_STAGE_CANDIDATES:break
+                if checks>MAX_CHECKS or len(found)>=MAX_ACCEPTED_NEXT_STAGE_CANDIDATES:break
             found.sort(key=lambda p:(abs(p[-1]["sum_bit"]-last),p[-1]["sum_bit"]))
             next_paths.extend(found[:MAX_PATHS])
             if checks>MAX_CHECKS:break
@@ -200,7 +205,10 @@ def detect(original,base,top=None):
                        "xor_sum_seeds":len(seedlist),"raw_xor_seed_sightings":raw,
                        "direct_two_stage_anchors":len(edges),"longest_proposed_sum_bits":max((len(p) for p in best),default=0),
                        "candidate_checks":checks,"bdd_max_nodes":max_bdd,
-                       "budget_exceeded_or_unknown":budget_hits,"search_progress":depths,
+                       "unverifiable_candidate_attempts":budget_hits,
+                       "search_budget_reached":checks>MAX_CHECKS,
+                       "heuristic_next_stage_candidates_per_path":MAX_ACCEPTED_NEXT_STAGE_CANDIDATES,
+                       "search_progress":depths,
                        "not_a_new_blind_holdout":True}}
     return result
 
