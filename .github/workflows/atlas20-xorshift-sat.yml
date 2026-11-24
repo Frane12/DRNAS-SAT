@@ -1,0 +1,102 @@
+name: DRNAS ATLAS20 XOR-shift original source circuit SAT witness
+on:
+  push:
+    branches:
+      - experiment/atlas20-xorshift-circuit-sat-20261124
+    paths:
+      - .github/workflows/atlas20-xorshift-sat.yml
+      - research/atlas20_circuit/**
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-cnf-sat:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout isolated source branch
+        uses: actions/checkout@v4
+      - name: Freeze code and independent SAT model checker SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas20_circuit/{extract,check_model,run,benchmark}.py
+          sha256sum research/atlas20_circuit/{extract,check_model,run,benchmark}.py > atlas20-code-sha256.txt
+          git rev-parse HEAD > atlas20-commit.txt
+          lscpu > atlas20-runner-cpu.txt
+      - name: Restore prespecified public original CNF before any model search
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/atlas17_probe/freeze.py | tee atlas20-original-freeze.log
+          python3 - <<'PY'
+          import json,hashlib,pathlib
+          d=json.load(open('atlas17_original_inputs/manifest.json'))
+          assert d['status']=='FROZEN_BEFORE_ANY_SOLVER'
+          t=[x for x in d['sources'] if x['name']=='xor-shift-2026']
+          assert len(t)==1 and not d['failures']
+          s=t[0]
+          assert s['sha256']=='450b963e0ebebe3c08049067e2c954304712b1601711223bbfff1807c74b236e'
+          assert (s['variables'],s['clauses'])==(2430,8868)
+          assert hashlib.sha256(pathlib.Path(s['path']).read_bytes()).hexdigest()==s['sha256']
+          print('ATLAS20_FROZEN_SOURCE_OK',s['sha256'])
+          PY
+      - name: Build pinned reference Kissat 4.0.4 and CaDiCaL 2.1.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q --depth 1 --branch rel-4.0.4 https://github.com/arminbiere/kissat.git kissat-src
+          test "$(git -C kissat-src rev-parse HEAD)" = "8af8e56f174b778aef3aa45af9f739b2a5f492c2"
+          (cd kissat-src && ./configure >/dev/null && make -j2 >/dev/null)
+          git clone -q --depth 1 --branch rel-2.1.3 https://github.com/arminbiere/cadical.git cadical-src
+          test "$(git -C cadical-src rev-parse HEAD)" = "f13d74439a5b5c963ac5b02d05ce93a8098018b8"
+          (cd cadical-src && ./configure >/dev/null && make -j2 >/dev/null)
+          sha256sum kissat-src/build/kissat cadical-src/build/cadical > atlas20-refs-sha256.txt
+      - name: Execute native 32-bit source-circuit search twice and verify full DIMACS models
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/atlas20_circuit/benchmark.py | tee atlas20-benchmark.log
+          python3 - <<'PY'
+          import json,hashlib,pathlib
+          d=json.load(open('atlas20_results/summary.json'))
+          assert d['status']=='COMPLETE'
+          assert d['source_vars']==2430 and d['source_clauses']==8868
+          assert d['verified_models']==2
+          assert d['full_original_model_check'] and d['source_grammar_exact']
+          assert d['source_clause_and_model_negative_controls_passed']
+          assert d['no_cdcl_fallback'] and d['main_unmodified']
+          assert d['exhaustive_primary_input_search_not_a_polynomial_algorithm']
+          for j in (0,1):
+            model=pathlib.Path(f'atlas20_results/atlas20_rep{j}/full_model.dimacs')
+            chk=pathlib.Path(f'atlas20_results/atlas20_rep{j}/independent_replay.json')
+            assert model.is_file() and chk.is_file()
+            assert json.loads(chk.read_text())['status']=='SAT_MODEL_VERIFIED'
+          print('ATLAS20_ORIGINAL_SOURCE_SAT_WITNESS_CONFIRMED',json.dumps({
+              k:v for k,v in d.items() if k!='rows'},sort_keys=True))
+          PY
+      - name: Hash all original-source, search and model evidence
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find atlas20_results -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas20-evidence-sha256.txt
+          sha256sum atlas17_original_inputs/xor-shift-2026.cnf > atlas20-source-sha256.txt
+          date -u +'%FT%TZ' > atlas20-finished-utc.txt
+      - name: Upload all verified models and negative controls
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS20-XORSHIFT-ORIGINAL-SAT-MODEL
+          path: |
+            atlas20_results/
+            atlas20-benchmark.log
+            atlas20-original-freeze.log
+            atlas20-code-sha256.txt
+            atlas20-refs-sha256.txt
+            atlas20-source-sha256.txt
+            atlas20-evidence-sha256.txt
+            atlas20-commit.txt
+            atlas20-runner-cpu.txt
+            atlas20-finished-utc.txt
+          retention-days: 30
