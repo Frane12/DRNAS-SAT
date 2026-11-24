@@ -1,0 +1,23 @@
+{
+  "distinct": 1000,
+  "raw_cutset": {
+    "SAT_VERIFIED": 1000
+  },
+  "methods": {
+    "ATLAS": {
+      "verified": 1000,
+      "unresolved": {},
+      "median_verified_s": 0.012883499999999999
+    },
+    "Kissat4.0.4": {
+      "verified": 1000,
+      "unresolved": {},
+      "median_verified_s": 0.003811
+    },
+    "CaDiCaL2.1.3": {
+      "verified": 1000,
+      "unresolved": {},
+      "median_verified_s": 0.003254
+    }
+  }
+}

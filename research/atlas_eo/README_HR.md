@@ -36,7 +36,7 @@ Zastavica `--eo-only` pokreće samo putove koji koriste ovu integraciju, uz jedi
 | XOR | Točno jedan od k potpisanih izbora povlači neparan broj istinitih članova. Uspoređujemo to s potpunom izvornom XOR tablicom na istim varijablama širine 2–4, uz uračunate predznake. | Ako se pariteti protive, dokazujemo zabranu svakog izbora te praznu klauzulu. |
 | Konačne domene i egzaktno pokrivanje | Pretražuju se samo potvrđene domene. Grupe se smiju preklapati. Kod jednakog preostalog broja opcija prednost imaju domene povezane s kraćim zabranama. Binarne ekvivalencije prvenstveno se propagiraju. | SAT prolazi provjeru svih izvornih klauzula, uključujući pomoćne varijable. Za zatvoreno stablo UNSAT zaključak traži vanjski prihvaćen dokaz. |
 
-Uobičajeni redoslijed zadržava izvorne putove GRAPH, GRAPH/XOR/Hall i ponderirani PCMAX. Zatim dolazi novi EO put. Ponderirani PCMAX zadržava vlastiti izvorni dekoder težina. Razmjena EO činjenica sada radi za graf, jedinične kapacitete, lokalni paritet i pretraživanje konačnih domena. Širi moduli za opću aritmetiku, vremenske odnose, BDD i simetrije zahtijevaju daljnju integraciju.
+Puni ATLAS prvo ispituje izvorne putove GRAPH, GRAPH/XOR/Hall i ponderirani PCMAX. Slijede EO i ograničena redukcija na 2-SAT. Ponderirani PCMAX zadržava vlastiti izvorni dekoder težina. Razmjena EO činjenica sada radi za graf, jedinične kapacitete, lokalni paritet i pretraživanje konačnih domena. Širi moduli za opću aritmetiku, vremenske odnose, BDD i simetrije zahtijevaju daljnju integraciju.
 
 ## Značenje izlaza
 
@@ -58,7 +58,7 @@ PySAT služi za neovisno kodiranje kontrola i provjeru malih projekcija. Kissat 
 
 Usporedba prepoznavanja koristi izravnu sintaktičku provjeru parnih zabrana iz `structure_atlas3/source_facts.py`. Raniji `structure_atlas1/semantic_eo.py` već je isprobavao parovni RUP na izravnom i sekvencijskom kodiranju. Ova promjena dodaje prenosiv trag dokaza, potrošače u routeru, alternativnu konstrukciju ALO-a i mjerenja s neovisnim koderima. Skup uključuje retrospektivne originale i kontrolirane konstrukcije.
 
-## Rezultati od 24. studenoga 2026.
+## Početno mjerenje od 24. studenoga 2026.
 
 Usporedba obuhvaća devet PySAT kodiranja pod nazivima `pairwise`, `seqcounter`, `sortnetwrk`, `cardnetwrk`, `bitwise`, `ladder`, `totalizer`, `mtotalizer` i `kmtotalizer`. Svako je ispitano za k ∈ {2, 3, 5, 8, 16}, u izvornom obliku i nakon preimenovanja, promjene predznaka i miješanja redoslijeda. Novi dekoder dokazao je ciljnu grupu u 90/90 zapisa, a prethodna izravna provjera parnih klauzula u 26/90. Za svako od devet kodiranja uklonjen je najmanje jedan redak, a zasebni rješavač potvrdio je da oslabljena formula dopušta dva istinita izbora. U svih devet oslabljenih formula dekoder je odbio ciljnu grupu. [Pojedinačni zapisi](../../evidence/atlas-eo/encodings.csv) · [Oslabljene formule](../../evidence/atlas-eo/mutations.json)
 
@@ -82,4 +82,28 @@ drat-trim-src/drat-trim evidence/ipg7b-petersen/original.cnf evidence/atlas-eo/p
 drat-trim-src/lrat-check evidence/ipg7b-petersen/original.cnf evidence/atlas-eo/petersen.lrat
 ```
 
-Petersen s novim sekvencijskim brojačima također daje provjeren UNSAT. Slučajna UF20-01 ostaje `UNKNOWN` za ATLAS. Na primjeru pet zahtjeva za četiri mjesta parovni i sekvencijski zapis aktiviraju izravni Hallov dokaz. Kardinalitetna mreža za isti deficit zasad se zatvara pretragom 11 čvorova konačnih domena. Za K11 i m00 puni ATLAS i dalje koristi postojeće module. Puna vremena uključuju provjeru odgovarajućeg dokaza ili modela, a omjeri ovise i o trošku provjerivača. [Medijani za svaki ulaz i metodu](../../evidence/atlas-eo/summary.csv) · [CI s izvornim zapisima svih pokušaja](https://github.com/Frane12/DRNAS-SAT/actions/runs/45301992914)
+Petersen s novim sekvencijskim brojačima također daje provjeren UNSAT. U prvom mjerenju ATLAS je na UF20-01 vratio `UNKNOWN`. Na primjeru pet zahtjeva za četiri mjesta parovni i sekvencijski zapis aktiviraju izravni Hallov dokaz. U prvom mjerenju kardinalitetna mreža za isti deficit zahtijevala je 11 čvorova pretrage. Za K11 i m00 puni ATLAS i dalje koristi postojeće module. Puna vremena uključuju provjeru odgovarajućeg dokaza ili modela, a omjeri ovise i o trošku provjerivača. [Medijani za svaki ulaz i metodu](../../evidence/atlas-eo/summary.csv) · [CI s izvornim zapisima svih pokušaja](https://github.com/Frane12/DRNAS-SAT/actions/runs/45301992914)
+
+## Izravni Hallov dokaz na mrežama i SAT modeli za UF20
+
+U kardinalitetnoj mreži iz prvog mjerenja izvor ima 111 varijabli i 155 klauzula. Propagacija bez pretpostavki određuje 51 varijablu. Dekoder među 66 potvrđenih EO grupa nalazi deset grupa širine tri. Pet ih ima barem jedan već određeni izbor. Kad detektor kapaciteta najprije razmotri grupe čiji su svi izbori otvoreni, dobije pet disjunktnih zahtjeva. Unakrsne zabrane dijele njihovih 15 literala na četiri skupa veličine 4, 4, 3 i 4. U svakom je dopušten najviše jedan istinit literal. Zbrajanje zahtjeva daje pet, a zbrajanje kapaciteta gornju granicu četiri. Za izračun tog dokaza nije potrebno granati po mogućim dodjelama. Stare projekcije i dalje su dostupne kad prva projekcija ne daje potvrdu.
+
+Za SAT mreže pretraga može dovršiti preostale pomoćne varijable pravilom čistoga literala. Provjerivač pritom čita sve izvorne klauzule, uključujući ponovljene literale. Kad lokalna dovršenja ne uspiju, prijavljuje se puni model samo ako izvorni CNF prolazi provjeru. [Izvor, potpisane grupe i dokaz](../../evidence/atlas-eo/network-fix)
+
+```sh
+veripb --cnf evidence/atlas-eo/network-fix/five-jobs.cnf evidence/atlas-eo/network-fix/five-jobs.pbp
+```
+
+Nakon EO modula puni ATLAS može pokušati ograničenu redukciju na 2-SAT. Pohlepno bira varijable dok svaka klauzula izvan odabranog skupa ima najviše dva literala. Za pojedinu dodjelu odabranog skupa postojeći postupak za jake komponente implikacijskog grafa traži model preostalog 2-CNF-a. ATLAS vraća vrijednosti iz skupa u model i provjerava sve klauzule. Na UF20-01 skupu od 11 varijabli isprobao je 1 018 dodjela, uključujući 173 poziva postupka za 2-SAT. Granice ovog puta su najviše 12 odabranih varijabli i jedna sekunda unutar preostalog ukupnog vremena. U najgorem slučaju broj dodjela eksponencijalan je u veličini odabranog skupa. Kad model izostane, ovaj put vraća `UNKNOWN`. [Provjerljiv model UF20-01](../../evidence/atlas-eo/network-fix/uf20-01-model.json)
+
+U završnom pokusu na izvornih 15 ulaza puni ATLAS potvrdio je 15/15 u sva tri ponavljanja. Samostalni EO put potvrdio je 12/15, Kissat 14/15 i CaDiCaL 13/15. Na mreži s pet zahtjeva VeriPB je prihvatio izravan dokaz od 881 bajta. U dodatnom pokusu pet kodiranja, tri veličine i tri potpisane permutacije dalo je 45 izravnih Hallovih dokaza i 45 potvrđenih SAT modela za izvedive parnjake. Promjena jednog predznaka u zahtjevu rezultirala je SAT modelom i odbijanjem izvornog UNSAT dokaza.
+
+| Mjerenje | ATLAS | Kissat 4.0.4 | CaDiCaL 2.1.3 |
+|---|---:|---:|---:|
+| Mreža pet zahtjeva za četiri mjesta, UNSAT | 26,30 ms | 70,84 ms | 68,60 ms |
+| Arhivski UF20-01, SAT | 18,16 ms | 3,82 ms | 3,25 ms |
+| Svih 1 000 formula UF20-91, sve SAT | 12,88 ms | 3,81 ms | 3,25 ms |
+
+Prva dva retka prikazuju medijan triju ponavljanja, a zadnji medijan po 1 000 različitih formula, s jednim pokušajem po formuli i metodi. Svaka metoda koristi jedan logički CPU. Svi su rješavači u istoj zbirci potvrdili 1 000/1 000 modela. Vrijeme uključuje provjeru na zajedničkom DIMACS zapisu. Za usporedbu se samo formatira isti popis izvornih klauzula jer referentni programi odbijaju završni znak postotka iz SATLIB-a. Svaki je model zasebno provjeren i nad datotekom iz zbirke. Novi postupak za 2-SAT dodatno je izravno primio svih 1 000 datoteka s njihovim izvornim bajtovima.
+
+[Rezultati za svaku od 15 formula](../../evidence/atlas-eo/network-fix/pilot.csv) · [Vremena i svi modeli za 1 000 formula](../../evidence/atlas-eo/network-fix/uf20-results.csv.gz) · [CI s dokazima i izvorima](https://github.com/Frane12/DRNAS-SAT/actions/runs/45340635259)
