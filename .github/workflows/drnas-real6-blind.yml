@@ -1,0 +1,154 @@
+name: DRNAS REAL6 five unseen FPGA motifs full independent proof and SAT
+
+on:
+  push:
+    branches:
+      - experiment/real6-motif-linking-20261124
+    paths:
+      - 'apps/circuitcheck/real6_blind_freeze.py'
+      - 'apps/circuitcheck/real6_blind_run.py'
+      - 'apps/circuitcheck/real6_blind_audit.py'
+      - '.github/workflows/drnas-real6-blind.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  freeze_new:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate prelocked algebra engines before selecting new external modules
+        run: |
+          set -euo pipefail
+          echo 'fc0ed0b1a57bd5b0df75ba3f307faccef7a763edb39408e20e278cd09d40d35a  apps/circuitcheck/real5q_anf.py' | sha256sum -c -
+          echo 'a7203de8c48148dc24a9bb37f593e1b924b5e3d24c8cdf767e6bbd91c117738b  apps/circuitcheck/real5q_verify.py' | sha256sum -c -
+          echo 'f27a4a3f2efc73d0c8aa35fcca8092acf5d973a8b46004de2c1d90706ebb4365  apps/circuitcheck/real6_motifs.py' | sha256sum -c -
+          echo '28d660b8486f8590ea3fa2091a18e6df9cec7cd95c76b59d8315ecf5956ab803  apps/circuitcheck/real6_verify.py' | sha256sum -c -
+          python3 -m py_compile apps/circuitcheck/real6_blind_freeze.py apps/circuitcheck/real6_blind_run.py apps/circuitcheck/real6_blind_audit.py
+      - name: Freeze all five original third-party HDL files with commit and SHA1 blob pins
+        run: |
+          set -euo pipefail
+          python3 -u apps/circuitcheck/real6_blind_freeze.py --out frozen | tee FREEZE_PROVENANCE.log
+          python3 - <<'PY'
+          import json
+          r=json.load(open("frozen/manifest.json"))
+          assert r["engine_prelock_run"]==45347547028
+          assert len(r["cases"])==5
+          assert len(set(x["id"] for x in r["cases"]))==5
+          print("REAL6_PROSPECTIVE_SOURCE_COHORT_PINNED")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: real6-five-new-original-rtl-pins
+          path: frozen/
+          retention-days: 90
+          if-no-files-found: error
+
+  analysis:
+    needs: freeze_new
+    runs-on: ubuntu-22.04
+    name: REAL6 prospective original FPGA shard ${{ matrix.shard }}
+    timeout-minutes: 27
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        shard: [0,1,2]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: real6-five-new-original-rtl-pins
+          path: frozen
+      - name: Install Yosys and build prerequisites (no HDL mutation)
+        run: |
+          set -euo pipefail
+          sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a || true
+          if ! sudo DEBIAN_FRONTEND=noninteractive timeout 130s apt-get install -y -qq yosys time build-essential; then
+            sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a
+            sudo timeout 120s apt-get update -qq
+            sudo DEBIAN_FRONTEND=noninteractive timeout 130s apt-get install -y -qq yosys time build-essential
+          fi
+          yosys -V
+      - name: Build pinned Kissat and CaDiCaL from original upstream releases
+        run: |
+          set -euo pipefail
+          mkdir -p compiled
+          git clone -q https://github.com/arminbiere/cadical.git /tmp/real6-cadical
+          git -C /tmp/real6-cadical checkout -q --detach rel-1.7.3
+          (cd /tmp/real6-cadical && ./configure && make -j2 >/tmp/cadical-build.log)
+          cp /tmp/real6-cadical/build/cadical compiled/cadical
+          chmod +x compiled/cadical
+          git clone -q https://github.com/arminbiere/kissat.git /tmp/real6-kissat
+          git -C /tmp/real6-kissat checkout -q --detach 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          test "$(git -C /tmp/real6-kissat rev-parse HEAD)" = 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          (cd /tmp/real6-kissat && ./configure && make -j2 >/tmp/kissat-build.log)
+          cp /tmp/real6-kissat/build/kissat compiled/kissat
+          chmod +x compiled/kissat
+          sha256sum compiled/kissat compiled/cadical | tee compiled/SOLVER_PINS.txt
+      - name: Original HDL to Yosys and prelocked exact GF2 motifs, standalone replay and SAT
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          python3 -u apps/circuitcheck/real6_blind_run.py \
+            --frozen frozen --out results \
+            --shard "$SHARD" --shards 3 \
+            --kissat "$(pwd)/compiled/kissat" \
+            --cadical "$(pwd)/compiled/cadical" \
+            | tee REAL6_SHARD_LIVE.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real6-shard-${{ matrix.shard }}
+          path: |
+            results/
+            REAL6_SHARD_LIVE.log
+            compiled/SOLVER_PINS.txt
+          if-no-files-found: warn
+          retention-days: 90
+
+  audit:
+    needs: [freeze_new,analysis]
+    if: always()
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: real6-five-new-original-rtl-pins
+          path: frozen
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: real6-shard-*
+          path: combined
+      - name: Independent five-source CH MAJ ADDER proof and same-CNF SAT audit
+        run: |
+          set -euo pipefail
+          python3 -u apps/circuitcheck/real6_blind_audit.py \
+            --frozen frozen --combined combined \
+            --out REAL6_FINAL_RESULTS.json \
+            --report REAL6_FINAL_REPORT.md | tee REAL6_AUDIT.log
+          cat REAL6_FINAL_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-REAL6-PROSPECTIVE-FIVE-ORIGINAL-FPGA-FINAL-AUDIT
+          path: |
+            REAL6_FINAL_RESULTS.json
+            REAL6_FINAL_REPORT.md
+            REAL6_AUDIT.log
+            frozen/manifest.json
+          if-no-files-found: warn
+          retention-days: 90
