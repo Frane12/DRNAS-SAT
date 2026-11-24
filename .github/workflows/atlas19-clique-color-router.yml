@@ -1,0 +1,134 @@
+name: DRNAS ATLAS19 clique-color proof router original-source paired audit
+on:
+  push:
+    branches:
+      - experiment/atlas19-clique-color-er-router-20261124
+    paths:
+      - .github/workflows/atlas19-clique-color-router.yml
+      - research/atlas19_clique/**
+      - research/atlas18_probe/router.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-clique-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout isolated ATLAS19 experimental source
+        uses: actions/checkout@v4
+      - name: Preflight and pin proof producer, baseline and router
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas19_clique/{source_gate,router_atlas18_frozen,benchmark}.py
+          python3 -m py_compile research/atlas18_probe/router.py
+          python3 -m py_compile research/clique_color_er/{source_check,emit_veripb,selftest}.py
+          sha256sum research/atlas19_clique/{source_gate,router_atlas18_frozen,benchmark}.py \
+              research/clique_color_er/{source_check,emit_veripb,selftest}.py \
+              research/atlas18_probe/router.py > atlas19-code-sha256.txt
+          git rev-parse HEAD > atlas19-commit.txt
+          lscpu > atlas19-runner-cpu.txt
+      - name: Freeze original public source cohort before any solver/proof trial
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/atlas17_probe/freeze.py | tee atlas19-freeze.log
+          python3 - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          d=json.load(open('atlas17_original_inputs/manifest.json'))
+          assert d['status']=='FROZEN_BEFORE_ANY_SOLVER'
+          assert d['public_downloaded']==6 and d['known_retrospective']==6
+          assert not d['failures'] and d['no_source_substitution']
+          target=[x for x in d['sources'] if x['name']=='clique-color-2025']
+          assert len(target)==1
+          x=target[0]
+          assert x['sha256']=='92d69a56836e0abbc2381d8ad1f00d5b409e4627685080e869c4432b8de36188'
+          assert x['variables']==6050 and x['clauses']==205556
+          assert hashlib.sha256(Path(x['path']).read_bytes()).hexdigest()==x['sha256']
+          print('ATLAS19_FROZEN_ORIGINAL_SOURCE_SHA_PASS')
+          PY
+          python3 research/atlas19_clique/source_gate.py atlas17_original_inputs/clique-color-2025.cnf
+          python3 research/clique_color_er/source_check.py atlas17_original_inputs/clique-color-2025.cnf
+      - name: Build pinned Kissat 4.0.4 and CaDiCaL 2.1.3 references
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q --depth 1 --branch rel-4.0.4 https://github.com/arminbiere/kissat.git kissat-src
+          test "$(git -C kissat-src rev-parse HEAD)" = "8af8e56f174b778aef3aa45af9f739b2a5f492c2"
+          (cd kissat-src && ./configure >/dev/null && make -j2 >/dev/null)
+          git clone -q --depth 1 --branch rel-2.1.3 https://github.com/arminbiere/cadical.git cadical-src
+          test "$(git -C cadical-src rev-parse HEAD)" = "f13d74439a5b5c963ac5b02d05ce93a8098018b8"
+          (cd cadical-src && ./configure >/dev/null && make -j2 >/dev/null)
+          sha256sum kissat-src/build/kissat cadical-src/build/cadical > atlas19-ref-sha256.txt
+      - name: Build pinned independent DRAT checker
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q https://github.com/marijnheule/drat-trim.git drat-trim-src
+          (cd drat-trim-src && git checkout -q 2e3b2dc0ecf938addbd779d42877b6ed69d9a985 && make -j2 >/dev/null)
+          sha256sum drat-trim-src/drat-trim > atlas19-drat-sha256.txt
+      - name: Install pinned external VeriPB 3.0.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version > atlas19-veripb-version.txt 2>&1
+          mkdir -p veripb-tool/bin
+          ln -s "$(command -v veripb)" veripb-tool/bin/veripb
+      - name: Validate source grammar and 80 satisfiable adversarial controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          taskset -c "$cpu" python3 -u research/clique_color_er/selftest.py | tee atlas19-selftest.log
+          grep -q 'CLIQUE_COLOR_ER_SAFETY_PASS' atlas19-selftest.log
+      - name: Paired ATLAS18 vs ATLAS19, two repeats, Kissat and CaDiCaL
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          taskset -c "$cpu" python3 -u research/atlas19_clique/benchmark.py | tee atlas19-benchmark.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open('atlas19_results/summary.json'))
+          assert d['status']=='COMPLETE'
+          assert d['repetitions']==2
+          assert d['original_variables']==6050 and d['original_clauses']==205556
+          assert d['standard_original_external_proofs_only']
+          assert d['no_cdcl_fallback_in_atlas'] and d['main_unmodified']
+          assert d['ATLAS19_strict_success']==2
+          assert d['ATLAS18_strict_success']==0
+          assert len(d['controls'])==5
+          print('ATLAS19_PAIRS_STANDARD_SOURCE_VERIPB_SUCCESS',json.dumps({
+             k:v for k,v in d.items() if k not in ('rows','controls')},sort_keys=True))
+          PY
+      - name: Hash original and new source-bound standard proofs
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find atlas19_results -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas19-evidence-sha256.txt
+          sha256sum atlas17_original_inputs/clique-color-2025.cnf > atlas19-original-sha256.txt
+          date -u +'%FT%TZ' > atlas19-finished-utc.txt
+      - name: Upload accepted proofs, original SHA, controls and paired benchmarks
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS19-CLIQUE-COLOR-ORIGINAL-VERIPB-PROOFS
+          path: |
+            atlas19_results/
+            atlas19-benchmark.log
+            atlas19-selftest.log
+            atlas19-code-sha256.txt
+            atlas19-original-sha256.txt
+            atlas19-commit.txt
+            atlas19-runner-cpu.txt
+            atlas19-freeze.log
+            atlas19-ref-sha256.txt
+            atlas19-drat-sha256.txt
+            atlas19-veripb-version.txt
+            atlas19-evidence-sha256.txt
+            atlas19-finished-utc.txt
+          retention-days: 30
