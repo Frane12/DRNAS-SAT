@@ -1,0 +1,65 @@
+name: DRNAS REAL6.1 local carry-chain proof and retrospective source audit
+on:
+  push:
+    branches:
+      - experiment/real6-1-carry-chain-20261124
+    paths:
+      - 'apps/circuitcheck/real6_1_*.py'
+      - '.github/workflows/drnas-real6-1-carry.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  controlled:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Four-bit ripple exact truth table and adversarial proof tests
+        run: |
+          set -euo pipefail
+          python3 -u apps/circuitcheck/real6_1_selftest.py | tee REAL6_1_SELFTEST.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: real6-1-controlled-source-only
+          path: REAL6_1_SELFTEST.log
+  original_retrospective:
+    needs: controlled
+    runs-on: ubuntu-22.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recover unchanged REAL6 original gate JSON artifacts
+        uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45348217885
+          github-token: ${{ github.token }}
+          pattern: real6-shard-*
+          path: previous-real6
+          merge-multiple: false
+      - name: Detect carry on unchanged previous source gates, never drop zero or unknown
+        run: |
+          set -euo pipefail
+          mkdir -p real6-1-retrospective
+          count=0
+          for net in previous-real6/real6-shard-*/results/*/netlist.json; do
+            if [ ! -f "$net" ]; then continue; fi
+            case_id="$(basename "$(dirname "$net")")"
+            target="real6-1-retrospective/$case_id"
+            mkdir -p "$target"
+            echo "REAL6_1_RETROSPECTIVE_ORIGINAL $case_id"
+            python3 -u apps/circuitcheck/real6_1_carry.py --netlist "$net" --out "$target/certificate.json" | tee "$target/detector.log"
+            python3 -u apps/circuitcheck/real6_1_verify.py --netlist "$net" --certificate "$target/certificate.json" --out "$target/verification.json" | tee "$target/verifier.log"
+            count=$((count+1))
+          done
+          echo "$count" >real6-1-retrospective/synthesized_count.txt
+          test "$count" -eq 4
+          printf '%s\n' 'sha512_core: FRONTEND_OR_DEPENDENCY_UNSUPPORTED in REAL6, remains UNKNOWN in this retrospective' >real6-1-retrospective/unsupported_source.txt
+          echo "RETROSPECTIVE_NOT_NEW_BLIND_HOLDOUT: original files previously used by REAL6" >real6-1-retrospective/SCOPE.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real6-1-retrospective-four-netlists-independent-certificates
+          path: real6-1-retrospective/
