@@ -17,7 +17,7 @@ import os
 import sys
 import tempfile
 import time
-from collections import Counter, defaultdict
+from collections import Counter, defaultdict, deque
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[2]
@@ -33,6 +33,8 @@ MAX_CLAUSES=250000
 MAX_OPTIONS=360
 MAX_FACTS=1400
 MAX_CANDIDATES=600
+MAX_UCP_CLAUSES=20000
+MAX_UCP_SELECTORS=360
 
 class Unknown(ValueError): pass
 
@@ -104,6 +106,58 @@ def graph_lemmata(selected,owners,binary,direct):
                 if len(result)>MAX_FACTS:raise Unknown("GRAPH_FACT_BUDGET")
     return result
 
+def ucp_lemmata(n,clauses,selected,direct):
+    """Original-source unit propagation derives proof-carrying binary mutexes.
+
+    For selector a, propagation of original F and assumption a to ~b is a
+    RUP witness of (-a or -b). No decisions beyond the single source
+    assumption, no clause learning, no external SAT/CDCL oracle.
+    """
+    need(len(clauses)<=MAX_UCP_CLAUSES and len(selected)<=MAX_UCP_SELECTORS,
+         "UCP_STRUCTURAL_SCAN_BUDGET")
+    occurrence=defaultdict(list)
+    roots=[]
+    for i,clause in enumerate(clauses):
+        if not clause:raise Unknown("EMPTY_INPUT_CLAUSE_NEEDS_SEPARATE_PROOF")
+        if len(clause)==1:roots.append(clause[0])
+        for lit in clause: occurrence[-lit].append(i)
+    def propagate(assumption):
+        assigned=[0]*(n+1)
+        q=deque([*roots,assumption])
+        while q:
+            lit=q.popleft()
+            v=abs(lit);value=1 if lit>0 else -1
+            if assigned[v]:
+                if assigned[v]!=value:return True,assigned
+                continue
+            assigned[v]=value
+            for clause_id in occurrence[lit]:
+                clause=clauses[clause_id]
+                remaining=0;unit=0;satisfied=False
+                for x in clause:
+                    val=assigned[abs(x)]
+                    if val==0:remaining+=1;unit=x
+                    elif val==(1 if x>0 else -1):
+                        satisfied=True
+                        break
+                if satisfied:continue
+                if remaining==0:return True,assigned
+                if remaining==1:q.append(unit)
+        return False,assigned
+    result={}
+    for a in sorted(selected):
+        contradiction,forced=propagate(a)
+        if contradiction:
+            raise Unknown("UCP_SINGLE_SELECTOR_ALREADY_CONTRADICTS_SOURCE")
+        for b in selected:
+            if b==a or forced[b]!=-1:continue
+            pair=tuple(sorted((a,b)))
+            if pair not in direct:
+                result.setdefault(pair,{"a":pair[0],"b":pair[1],
+                    "kind":"UCP_RUP","source_premises":["unit-propagation-original"]})
+                need(len(result)<=MAX_FACTS,"UCP_FACT_BUDGET")
+    return result
+
 def xor_lemmata(selected,owners,triples,units,index,direct):
     result={}
     for vs,rows in triples.items():
@@ -153,7 +207,7 @@ def coloring(selected,pairs):
 
 def build(source,mode,output,metadata):
     start=time.perf_counter()
-    need(mode in ("DIRECT","GRAPH","XOR","JOINT"),"UNKNOWN_MODE")
+    need(mode in ("DIRECT","GRAPH","XOR","JOINT","UCP","JOINT_UCP"),"UNKNOWN_MODE")
     raw=Path(source).read_bytes()
     n,cs,positive,direct,index,binary,triples,units=read_source(raw)
     candidates=candidate_groups(positive)
@@ -162,18 +216,23 @@ def build(source,mode,output,metadata):
     for strategy,groups,selected in candidates:
         owners={v:i for i,row in enumerate(groups) for v in row}
         asserted=set((a,b) for a,b in direct if a in selected and b in selected)
-        graph={};xor={}
-        if mode in ("GRAPH","JOINT"):
+        graph={};xor={};ucp={}
+        if mode in ("GRAPH","JOINT","JOINT_UCP"):
             try:graph=graph_lemmata(selected,owners,binary,direct)
             except Unknown as e:
                 attempts.append({"strategy":strategy,"reason":str(e)})
                 continue
-        if mode in ("XOR","JOINT"):
+        if mode in ("XOR","JOINT","JOINT_UCP"):
             try:xor=xor_lemmata(selected,owners,triples,units,index,direct)
             except Unknown as e:
                 attempts.append({"strategy":strategy,"reason":str(e)})
                 continue
-        facts={**graph,**xor}
+        if mode in ("UCP","JOINT_UCP"):
+            try:ucp=ucp_lemmata(n,cs,selected,direct)
+            except Unknown as e:
+                attempts.append({"strategy":strategy,"reason":str(e)})
+                continue
+        facts={**ucp,**graph,**xor}
         # If both producers claim the same lemma, either one suffices.
         # Preserve proof origin and do not treat a duplicate as a new fact.
         if len(asserted)+len(facts)>MAX_CANDIDATES*12:
@@ -182,7 +241,7 @@ def build(source,mode,output,metadata):
         resources=coloring(selected,pairs)
         detail={"strategy":strategy,"groups":len(groups),"selectors":len(selected),
                 "resources":len(resources),"original_pairs":len(asserted),
-                "graph_new":len(graph),"xor_new":len(xor)}
+                "graph_new":len(graph),"xor_new":len(xor),"ucp_new":len(ucp)}
         if len(resources)>=len(groups):
             attempts.append({**detail,"reason":"NO_CAPACITY_DEFICIT"});continue
         if any(len(resource)<2 for resource in resources):
@@ -237,6 +296,7 @@ def build(source,mode,output,metadata):
        "derived_RUP_lemmata":len(missing),
        "graph_RUP_used":sum(x["kind"]=="GRAPH_RUP" for x in missing.values()),
        "xor_RUP_used":sum(x["kind"]=="XOR_RUP" for x in missing.values()),
+       "ucp_RUP_used":sum(x["kind"]=="UCP_RUP" for x in missing.values()),
        "direct_source_mutex_pairs":detail["original_pairs"],
        "source_sha_unchanged":True,
        "proof_sha256":sha(complete.encode()),"proof_bytes":len(complete),
@@ -249,7 +309,7 @@ def build(source,mode,output,metadata):
 def main():
     a=argparse.ArgumentParser()
     a.add_argument("--cnf",required=True,type=Path)
-    a.add_argument("--mode",required=True,choices=("DIRECT","GRAPH","XOR","JOINT"))
+    a.add_argument("--mode",required=True,choices=("DIRECT","GRAPH","XOR","JOINT","UCP","JOINT_UCP"))
     a.add_argument("--proof",required=True,type=Path)
     a.add_argument("--meta",required=True,type=Path)
     p=a.parse_args()
