@@ -1,0 +1,33 @@
+name: ATLAS28.7 partitioned BDD
+on:
+  push:
+    branches: [experiment/atlas287-partitioned-bdd]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  partition:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45391230217
+          github-token: ${{ github.token }}
+          name: ATLAS285-core-and-proof-results
+          path: frozen
+      - name: Paired partition and independent replay
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cpu=$(python3 -c 'import os;print(min(os.sched_getaffinity(0)))')
+          taskset -c "$cpu" python3 -u research/atlas287/partition.py frozen results | tee results/solve.log
+          taskset -c "$cpu" python3 -u research/atlas287/check.py frozen results | tee results/audit.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ATLAS287-partitioned-bdd-results
+          path: results/
