@@ -1,0 +1,39 @@
+name: ATLAS25 raw CNF category map and proof closure
+on:
+  push:
+    branches: [experiment/atlas25-category-map-20261124]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  map:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45360211946
+          github-token: ${{ github.token }}
+          name: DRNAS-ATLAS22-ORIGINAL-CHACHA32-CNF-CERTIFIED-PAIRED
+          path: frozen
+      - name: Raw DIMACS only, pinned CPU, independent replay
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          taskset -c "$cpu" python3 -u research/atlas25_map/bench.py results frozen | tee results/run.log
+          python3 - <<'PY'
+          import json
+          r=json.load(open("results/rows.json"))
+          assert sum(x["family"]!="CHACHA_DERIVED_RAW" for x in r)==128
+          assert sum(x["family"]=="CHACHA_DERIVED_RAW" for x in r)==3
+          assert all(x["audit"] in ("SAT_MODEL_VERIFIED","UNSAT_RELATION_TRACE_VERIFIED","UNKNOWN") for x in r)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ATLAS25-category-map-independent-results
+          path: results/
