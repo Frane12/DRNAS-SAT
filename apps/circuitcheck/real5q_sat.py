@@ -25,6 +25,7 @@ def main():
     p.add_argument("--out",required=True,type=Path)
     p.add_argument("--kissat",required=True,type=Path)
     p.add_argument("--cadical",required=True,type=Path)
+    p.add_argument("--only",default=None,help="comma separated original gate netlist project IDs")
     a=p.parse_args()
     root=a.originals.resolve()
     a.out=a.out.resolve();a.out.mkdir(parents=True,exist_ok=True)
@@ -35,7 +36,10 @@ def main():
              "one_cpu":cpu,"per_sat_limit_seconds":CAP,
              "binary_sha256":{"Kissat":sha(kissat),"CaDiCaL":sha(cadical)},
              "cases":{}}
-    for name in CASES:
+    cases=tuple(a.only.split(",")) if a.only else CASES
+    if not cases or any((not item) or "/" in item or ".." in item for item in cases):
+        raise RuntimeError("BAD_CASE_SET")
+    for name in cases:
         source=root/name
         assert source.is_dir() and (source/"real5q_certificate.json").is_file(),name
         assert (source/"netlist.json").is_file()
@@ -99,7 +103,7 @@ def main():
         persist()
         print("REAL5Q_SAT_DEVELOPMENT_CASE_COMPLETE",name,
               "sampled",len(manifest),"solver_attempts",len(record["trials"]),flush=True)
-    assert set(summary["cases"])==set(CASES)
+    assert set(summary["cases"])==set(cases)
     lines=["# REAL5-Q real ORIGINAL gate-cone SAT check (development, not blind)",
            "",
            "REAL5Q examines Yosys 0.9 originally frozen external RTL gate-netlists.",
