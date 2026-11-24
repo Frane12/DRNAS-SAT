@@ -89,7 +89,6 @@ def candidate_groups(positive):
     return options
 
 def graph_lemmata(selected,owners,binary,direct):
-    aux=set(range(1,1+max([*selected,*[abs(x) for x in binary] or [0]])))-selected
     result={}
     # Any 2-hop source implication -a|t, -t|-b derives -a|-b by RUP.
     for first in sorted(selected):
