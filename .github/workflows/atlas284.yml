@@ -1,0 +1,58 @@
+name: ATLAS28.4 60s recursive reduction
+on:
+  push:
+    branches: [experiment/atlas284-long-cap]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  paired:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45348217885
+          github-token: ${{ github.token }}
+          pattern: real6-shard-*
+          path: real6
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45360211946
+          github-token: ${{ github.token }}
+          name: DRNAS-ATLAS22-ORIGINAL-CHACHA32-CNF-CERTIFIED-PAIRED
+          path: baseline
+      - name: Paired tests
+        run: |
+          mkdir -p results
+          chmod +x baseline/atlas22_artifacts/solvers/{kissat,cadical}
+          cpu=$(python3 -c 'import os;print(min(os.sched_getaffinity(0)))')
+          taskset -c "$cpu" python3 -u - <<'PY' | tee results/log.txt
+          import sys,time,json,hashlib,subprocess,pathlib
+          sys.path.insert(0,'research/atlas284')
+          from recursive import solve
+          seen=set()
+          for f in sorted(pathlib.Path('real6').rglob('*.cnf')):
+              raw=f.read_bytes();h=hashlib.sha256(raw).hexdigest()
+              if h in seen:continue
+              seen.add(h)
+              for arm in ('kissat','cadical','elimination','recursive'):
+                  t=time.monotonic();stats={};proof=pathlib.Path('results')/(h[:12]+'_'+arm+'.proof')
+                  if arm in ('kissat','cadical'):
+                      try:
+                          p=subprocess.run(['baseline/atlas22_artifacts/solvers/'+arm,'--no-binary',str(f),str(proof)],capture_output=True,timeout=60)
+                          s={10:'SAT',20:'UNSAT',0:'UNKNOWN'}.get(p.returncode,'ERROR')
+                      except subprocess.TimeoutExpired:s='TIMEOUT'
+                  else:
+                      s,p,stats=solve(raw,60,arm=='recursive')
+                      if s=='UNSAT':proof.write_text(''.join(' '.join(map(str,c))+' 0\n' for c in p))
+                  print('ATLAS284',json.dumps(dict(sha=h,file=str(f),arm=arm,status=s,seconds=time.monotonic()-t,**stats)),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: atlas284-paired-results
+          path: results/
