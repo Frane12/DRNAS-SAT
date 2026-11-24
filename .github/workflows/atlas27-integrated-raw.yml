@@ -1,0 +1,60 @@
+name: ATLAS27 integrated raw CNF shared discovery
+on:
+  push:
+    branches: [experiment/atlas27-integrated-raw-20261124]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  integrated:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45360211946
+          github-token: ${{ github.token }}
+          name: DRNAS-ATLAS22-ORIGINAL-CHACHA32-CNF-CERTIFIED-PAIRED
+          path: regression
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45348217885
+          github-token: ${{ github.token }}
+          pattern: real6-shard-*
+          path: real6
+      - name: Freeze six previously selected public original CNFs
+        run: |
+          set -euo pipefail
+          mkdir -p public results
+          python3 -u - <<'PY'
+          import urllib.request, pathlib, json, lzma, hashlib
+          p=json.load(open('research/atlas17_probe/prespec.json'))
+          report=[]
+          for x in p['public_originals']:
+              try:
+                  u='https://benchmark-database.de/file/'+x['gbd_hash']+'?context=cnf'
+                  req=urllib.request.Request(u,headers={'User-Agent':'DRNAS-ATLAS27/1.0'})
+                  with urllib.request.urlopen(req,timeout=15) as r: data=r.read(18000001)
+                  assert len(data)<=18000000
+                  if data.startswith(b'\xfd7zXZ\x00'):data=lzma.decompress(data)
+                  assert len(data)<=24000000 and b'p cnf' in data[:1000000]
+                  dst=pathlib.Path('public')/(x['id']+'.cnf');dst.write_bytes(data)
+                  report.append(dict(id=x['id'],sha256=hashlib.sha256(data).hexdigest(),url=u))
+              except Exception as e:report.append(dict(id=x['id'],error=str(e)))
+          pathlib.Path('results/public_manifest.json').write_text(json.dumps(report,indent=2))
+          print('ATLAS27_PUBLIC_FREEZE',json.dumps(report),flush=True)
+          PY
+      - name: Independent checks on frozen and compact raw CNFs
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          taskset -c "$cpu" python3 -u research/atlas27_integrated/bench.py results regression real6 public | tee results/run.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ATLAS27-shared-discovery-proof-results
+          path: results/
