@@ -1,0 +1,37 @@
+name: DRNAS REAL4 frozen generic gate-cut detector before unknown holdout
+
+on:
+  push:
+    branches:
+      - experiment/real4-blind-gate-cuts-20261124
+    paths:
+      - 'apps/circuitcheck/real4_islands.py'
+      - 'apps/circuitcheck/real4_verify.py'
+      - 'apps/circuitcheck/real4_selftest.py'
+      - '.github/workflows/drnas-real4-prelock.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+jobs:
+  frozen_math:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Syntax checks and independent 80-case tests
+        run: |
+          set -euo pipefail
+          python3 -m py_compile apps/circuitcheck/real4_islands.py apps/circuitcheck/real4_verify.py apps/circuitcheck/real4_selftest.py
+          python3 -u apps/circuitcheck/real4_selftest.py | tee REAL4_PRELOCK_TESTS.log
+          sha256sum apps/circuitcheck/real4_islands.py apps/circuitcheck/real4_verify.py apps/circuitcheck/real4_selftest.py | tee REAL4_PRELOCK_SHA256.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: REAL4-PRELOCK-ENGINE-AND-VERIFIER
+          path: |
+            REAL4_PRELOCK_TESTS.log
+            REAL4_PRELOCK_SHA256.txt
+          retention-days: 90
