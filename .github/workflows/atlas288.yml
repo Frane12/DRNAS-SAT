@@ -1,0 +1,52 @@
+name: ATLAS28.8 integrated paired benchmark
+on:
+  push:
+    branches: [experiment/atlas288-integrated-paired]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  paired:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45348217885
+          github-token: ${{ github.token }}
+          pattern: real6-shard-*
+          path: real6
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45360211946
+          github-token: ${{ github.token }}
+          name: DRNAS-ATLAS22-ORIGINAL-CHACHA32-CNF-CERTIFIED-PAIRED
+          path: baseline
+      - name: Build checker and pin CPU
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/marijnheule/drat-trim.git /tmp/drat-trim
+          git -C /tmp/drat-trim rev-parse HEAD
+          gcc -O2 /tmp/drat-trim/drat-trim.c -o /tmp/drat-check
+          chmod +x baseline/atlas22_artifacts/solvers/{kissat,cadical}
+      - name: Original CNF paired end-to-end benchmark
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          taskset -c "$cpu" python3 -u research/atlas288/bench.py real6 baseline/atlas22_artifacts/cnf baseline/atlas22_artifacts/solvers results | tee results/run.log
+          python3 - <<'PY'
+          import json
+          r=json.load(open('results/rows.json'))
+          assert len(r)==44
+          print('ATLAS288_COUNTS', {a:{s:sum(x['arm']==a and x['status']==s for x in r) for s in ('SAT','UNSAT','UNKNOWN','TIMEOUT','ERROR')} for a in sorted({x['arm'] for x in r})})
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ATLAS288-integrated-paired-results
+          path: results/
