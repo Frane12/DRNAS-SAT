@@ -1,0 +1,146 @@
+name: DRNAS ATLAS22 original ChaCha 32-bit CNF structural vs Kissat CaDiCaL
+on:
+  push:
+    branches:
+      - experiment/atlas22-cha32-certified-cnf-20261124
+    paths:
+      - 'research/atlas22_cha32/**'
+      - 'apps/circuitcheck/real6_1_verify.py'
+      - 'apps/circuitcheck/real6_3_verify.py'
+      - 'apps/circuitcheck/real6_3_32_lsb_verify.py'
+      - '.github/workflows/atlas22-cha32-cnf.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  source_fact_to_cnf:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recover unchanged original ChaCha gate netlist from REAL6
+        uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45348217885
+          github-token: ${{ github.token }}
+          name: real6-shard-0
+          path: evidence/real6-original
+      - name: Recover original independent stage certificate
+        uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45351123208
+          github-token: ${{ github.token }}
+          name: real6-1-retrospective-four-netlists-independent-certificates
+          path: evidence/real61
+      - name: Recover original independently verified 31-bit carry chain
+        uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45357525568
+          github-token: ${{ github.token }}
+          name: real6-3-32bit-frozen-chacha-independent-proof
+          path: evidence/real632-prior
+      - name: Recover complete 32-bit source-specific output theorem
+        uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45358257308
+          github-token: ${{ github.token }}
+          name: DRNAS-REAL6-3-CHACHA-ORIGINAL-32-BIT-INDEPENDENT-PROOF
+          path: evidence/real632-complete
+      - name: Independently replay 32-bit source gate theorem
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas22_cha32/*.py apps/circuitcheck/real6_1_verify.py apps/circuitcheck/real6_3_verify.py apps/circuitcheck/real6_3_32_lsb_verify.py
+          mkdir -p atlas22_artifacts
+          python3 -u apps/circuitcheck/real6_3_32_lsb_verify.py \
+            --netlist evidence/real6-original/results/chacha_qr/netlist.json \
+            --base-certificate evidence/real61/chacha_qr/certificate.json \
+            --previous-paths evidence/real632-prior/cha_candidate_paths.json \
+            --proposal evidence/real632-complete/proposed.json \
+            --out atlas22_artifacts/source_proof_replay.json | tee atlas22_artifacts/source_replay.log
+          sha256sum evidence/real6-original/results/chacha_qr/netlist.json evidence/real61/chacha_qr/certificate.json \
+            evidence/real632-prior/cha_candidate_paths.json evidence/real632-complete/proposed.json \
+            evidence/real632-complete/independent.json >atlas22_artifacts/FROZEN_SOURCE_SHA256.txt
+      - name: Encode unchanged source gates into three challenge CNFs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/atlas22_cha32/encode.py \
+            --netlist evidence/real6-original/results/chacha_qr/netlist.json \
+            --base-certificate evidence/real61/chacha_qr/certificate.json \
+            --prior-paths evidence/real632-prior/cha_candidate_paths.json \
+            --proposal evidence/real632-complete/proposed.json \
+            --original32-verification evidence/real632-complete/independent.json \
+            --port a_prim --out atlas22_artifacts/cnf | tee atlas22_artifacts/encode.log
+          for case in original_mismatch wrong_lsb_mismatch correct_equal; do
+            python3 -u research/atlas22_cha32/audit.py \
+              --netlist evidence/real6-original/results/chacha_qr/netlist.json \
+              --base-certificate evidence/real61/chacha_qr/certificate.json \
+              --prior-paths evidence/real632-prior/cha_candidate_paths.json \
+              --proposal evidence/real632-complete/proposed.json \
+              --original32-verification evidence/real632-complete/independent.json \
+              --cnf "atlas22_artifacts/cnf/$case.cnf" \
+              --manifest "atlas22_artifacts/cnf/$case"_manifest.json \
+              --out "atlas22_artifacts/$case"_audit.json \
+              | tee "atlas22_artifacts/$case"_audit.log
+          done
+          python3 -u research/atlas22_cha32/negative.py | tee atlas22_artifacts/adversarial.log
+      - name: Build exactly pinned original Kissat and CaDiCaL sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p atlas22_artifacts/solvers
+          git clone -q https://github.com/arminbiere/kissat.git /tmp/atlas22-kissat
+          git -C /tmp/atlas22-kissat checkout -q --detach 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          test "$(git -C /tmp/atlas22-kissat rev-parse HEAD)" = 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          (cd /tmp/atlas22-kissat && ./configure >/dev/null && make -j2 >/dev/null)
+          cp /tmp/atlas22-kissat/build/kissat atlas22_artifacts/solvers/kissat
+          git clone -q https://github.com/arminbiere/cadical.git /tmp/atlas22-cadical
+          git -C /tmp/atlas22-cadical checkout -q --detach rel-1.7.3
+          (cd /tmp/atlas22-cadical && ./configure >/dev/null && make -j2 >/dev/null)
+          cp /tmp/atlas22-cadical/build/cadical atlas22_artifacts/solvers/cadical
+          sha256sum atlas22_artifacts/solvers/kissat atlas22_artifacts/solvers/cadical >atlas22_artifacts/SOLVER_PINS.txt
+      - name: Fair exact-original-CNF paired 1 CPU benchmark with two repetitions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/atlas22_cha32/bench.py \
+            --netlist evidence/real6-original/results/chacha_qr/netlist.json \
+            --base-certificate evidence/real61/chacha_qr/certificate.json \
+            --prior-paths evidence/real632-prior/cha_candidate_paths.json \
+            --proposal evidence/real632-complete/proposed.json \
+            --original32-verification evidence/real632-complete/independent.json \
+            --cnfdir atlas22_artifacts/cnf \
+            --kissat atlas22_artifacts/solvers/kissat \
+            --cadical atlas22_artifacts/solvers/cadical \
+            --cap 15 --out atlas22_artifacts/benchmarks | tee atlas22_artifacts/benchmarks.log
+          python3 - <<'PY'
+          import json
+          x=json.load(open("atlas22_artifacts/benchmarks/summary.json"))
+          assert x["status"]=="COMPLETE" and x["trials"]==6
+          assert x["ATLAS22_UNSAT_rows"]==2 and x["ATLAS22_SAT_rows"]==4
+          assert x["same_exact_CNF_for_Kissat_CaDiCaL"]
+          assert x["all_ATLAS22_structural_proofs_independently_replayed"]
+          assert x["no_CDCL_fallback"] and x["standard_DRAT_LRAT_UNSAT_certificates"]==0
+          print("ATLAS22_ORIGINAL_CNF_FACT_ROUTER_PASS",flush=True)
+          PY
+      - name: SHA evidence
+        if: always()
+        run: |
+          set +e
+          find atlas22_artifacts -type f ! -name kissat ! -name cadical -print0 | xargs -0 -r sha256sum > atlas22-evidence-sha256.txt
+          git rev-parse HEAD > atlas22-code-commit.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-ATLAS22-ORIGINAL-CHACHA32-CNF-CERTIFIED-PAIRED
+          path: |
+            atlas22_artifacts/
+            atlas22-evidence-sha256.txt
+            atlas22-code-commit.txt
+          retention-days: 60
