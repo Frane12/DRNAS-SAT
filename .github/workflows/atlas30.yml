@@ -1,0 +1,86 @@
+name: ATLAS30 Scientific Core random 3SAT
+on:
+  push:
+    branches: [experiment/atlas30-random-scientific-core]
+    paths: ['.github/workflows/atlas30.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  paired:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        n: [24, 48, 80, 120]
+        rho: ['3.5', '4.26', '5.0']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45360211946
+          github-token: ${{ github.token }}
+          name: DRNAS-ATLAS22-ORIGINAL-CHACHA32-CNF-CERTIFIED-PAIRED
+          path: baseline
+      - name: Independent standard checker
+        run: |
+          set -euo pipefail
+          git clone https://github.com/marijnheule/drat-trim.git /tmp/drat-trim
+          git -C /tmp/drat-trim checkout 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+          gcc -O2 -D_GNU_SOURCE /tmp/drat-trim/drat-trim.c -o /tmp/drat-check
+          chmod +x baseline/atlas22_artifacts/solvers/{kissat,cadical}
+          sha256sum baseline/atlas22_artifacts/solvers/{kissat,cadical}
+          python3 -m py_compile research/atlas30/*.py
+          printf 'p cnf 1 2\n1 0\n-1 0\n' >/tmp/unsat.cnf
+          python3 research/atlas30/solve.py /tmp/unsat.cnf /tmp/smoke30 1 10
+          /tmp/drat-check /tmp/unsat.cnf /tmp/smoke30/projection.drup | grep 's VERIFIED'
+      - name: Same CPU frozen matrix
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cpu=$(python3 -c 'import os;print(min(os.sched_getaffinity(0)))')
+          ulimit -v 6000000
+          taskset -c "$cpu" python3 -u research/atlas30/bench.py '${{ matrix.n }}' '${{ matrix.rho }}' results baseline/atlas22_artifacts/solvers | tee results/run.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: atlas30-${{ matrix.n }}-${{ matrix.rho }}
+          path: results/
+  aggregate:
+    needs: paired
+    if: always()
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: atlas30-*
+          path: shards
+      - name: Count all planned cases, missing included
+        run: |
+          python3 - <<'PY'
+          import json,pathlib,collections
+          rows=[r for p in pathlib.Path('shards').rglob('rows.json') for r in json.loads(p.read_text())]
+          std={'MODEL_VERIFIED','STANDARD_DRAT'}
+          custom={'INDEPENDENT_PARTITION_UNSAT','AFFINE_CONTRADICTION_VERIFIED'}
+          for a in ('atlas30','atlas30_ablation','kissat','cadical'):
+              rr=[r for r in rows if r['arm']==a]
+              good=[r for r in rr if r['audit'] in std and r['status'] in ('SAT','UNSAT')]
+              c=[r for r in rr if r['audit'] in custom and r['status']=='UNSAT']
+              strict=[r for r in good if r['e2e_s']<=30]
+              print('ATLAS30_SUMMARY',a,json.dumps(dict(standard=len(good),custom_only=len(c),standard_e2e_30=len(strict),missing=36-len(rr),statuses=dict(collections.Counter(r['status'] for r in rr)),strict_e2e_par2=(sum(r['e2e_s'] for r in strict)+60*(36-len(strict)))/36)))
+          by=collections.defaultdict(set)
+          for r in rows:
+              if r['audit'] in std|custom and r['status'] in ('SAT','UNSAT'):by[r['sha']].add(r['status'])
+          contradictions=[h for h,v in by.items() if len(v)>1]
+          print('ATLAS30_CONTRADICTIONS',contradictions)
+          pathlib.Path('summary.json').write_text(json.dumps(rows,indent=2))
+          assert not contradictions
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ATLAS30-summary
+          path: summary.json
