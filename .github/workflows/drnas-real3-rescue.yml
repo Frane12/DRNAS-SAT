@@ -1,0 +1,122 @@
+name: DRNAS REAL3 remaining 12 cases runner fallback Yosys SAT
+on:
+  push:
+    branches:
+      - experiment/real3-unseen-rtl-parity-20261124
+    paths:
+      - '.github/workflows/drnas-real3-rescue.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  fallback:
+    runs-on: ubuntu-22.04
+    name: Frozen real3 paired shard ${{ matrix.shard }}
+    timeout-minutes: 22
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1,2]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: real3-external-frozen-and-smoke
+          repository: Frane12/DRNAS-SAT
+          run-id: 45301658957
+          github-token: ${{ github.token }}
+          path: frozen
+      - name: Install controls with bounded apt repair
+        run: |
+          set -euo pipefail
+          sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a || true
+          sudo DEBIAN_FRONTEND=noninteractive timeout 140s apt-get install -y -qq yosys cadical time build-essential || {
+            sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a
+            sudo timeout 120s apt-get update -qq
+            sudo DEBIAN_FRONTEND=noninteractive timeout 140s apt-get install -y -qq yosys cadical time build-essential
+          }
+          yosys -V
+          cadical --version
+      - name: Exact pinned Kissat
+        run: |
+          set -euo pipefail
+          mkdir -p compiled
+          git clone -q https://github.com/arminbiere/kissat.git /tmp/real3-retry-kissat
+          git -C /tmp/real3-retry-kissat checkout -q --detach 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          (cd /tmp/real3-retry-kissat && ./configure && make -j2 >/tmp/kissat-build.log)
+          cp /tmp/real3-retry-kissat/build/kissat compiled/kissat
+          chmod +x compiled/kissat
+          sha256sum compiled/kissat | tee compiled/KISSAT_SHA256
+      - name: Unchanged original frozen cases, same source and cap
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          python3 -u apps/circuitcheck/real3_bench.py \
+            --external frozen/real3-external --out results \
+            --shard "$SHARD" --shards 3 \
+            --kissat "$(pwd)/compiled/kissat" \
+            --cadical "$(command -v cadical)" \
+            | tee real3-retry-live.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real3-rescue-shard-${{ matrix.shard }}
+          path: |
+            results/
+            real3-retry-live.log
+            compiled/KISSAT_SHA256
+          if-no-files-found: warn
+          retention-days: 90
+
+  repair_audit:
+    needs: fallback
+    if: always()
+    runs-on: ubuntu-22.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: real3-external-frozen-and-smoke
+          repository: Frane12/DRNAS-SAT
+          run-id: 45301658957
+          github-token: ${{ github.token }}
+          path: frozen
+      - uses: actions/download-artifact@v4
+        with:
+          name: real3-shard-0
+          repository: Frane12/DRNAS-SAT
+          run-id: 45302265987
+          github-token: ${{ github.token }}
+          path: combined/real3-shard-0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: real3-rescue-shard-*
+          path: combined-rescue
+      - name: Merge only original source-frozen compatible shard records
+        run: |
+          set -euo pipefail
+          for i in 1 2; do
+            cp -a "combined-rescue/real3-rescue-shard-$i" "combined/real3-shard-$i"
+          done
+          python3 -u apps/circuitcheck/real3_audit.py \
+            --manifest frozen/real3-external/manifest.json \
+            --combined combined \
+            --output REAL3_RESULTS.json --report REAL3_REPORT.md \
+            | tee real3-rescue-audit.log
+          cat REAL3_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-REAL3-SOURCE-GENERALIZATION-RECOVERED-18-CASE-AUDIT
+          path: |
+            REAL3_RESULTS.json
+            REAL3_REPORT.md
+            real3-rescue-audit.log
+            frozen/real3-external/manifest.json
+          if-no-files-found: warn
+          retention-days: 90
