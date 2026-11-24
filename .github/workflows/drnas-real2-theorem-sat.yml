@@ -1,0 +1,66 @@
+name: DRNAS REAL2 symbolic parity theorem fresh Kissat CaDiCaL
+
+on:
+  push:
+    branches:
+      - experiment/real2-parity-proof-thirdparty-20261124
+    paths:
+      - 'apps/circuitcheck/real2_sat_controls.py'
+      - '.github/workflows/drnas-real2-theorem-sat.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  independent_sat_theorem:
+    name: Symbolic arbitrary masks 8 to 128 bits and altered-output SAT controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install SAT and Yosys prerequisites
+        run: |
+          set -euo pipefail
+          sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a || true
+          if ! sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq yosys cadical time build-essential; then
+            sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a
+            sudo apt-get update -qq
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq yosys cadical time build-essential
+          fi
+          yosys -V
+          cadical --version
+      - name: Build exact pinned Kissat from source
+        run: |
+          set -euo pipefail
+          mkdir -p compiled
+          git clone -q https://github.com/arminbiere/kissat.git /tmp/real2-kissat
+          git -C /tmp/real2-kissat checkout -q --detach 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          test "$(git -C /tmp/real2-kissat rev-parse HEAD)" = 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          (cd /tmp/real2-kissat && ./configure && make -j2 >/tmp/kissat-build.log)
+          cp /tmp/real2-kissat/build/kissat compiled/kissat
+          chmod +x compiled/kissat
+          sha256sum compiled/kissat | tee compiled/KISSAT_SHA256
+      - name: Run same-CNF independent symbolic mask theorem controls
+        run: |
+          set -euo pipefail
+          python3 -m py_compile apps/circuitcheck/real2_sat_controls.py
+          python3 -u apps/circuitcheck/real2_sat_controls.py \
+            --out parity-theorem-results \
+            --kissat "$(pwd)/compiled/kissat" \
+            --cadical "$(command -v cadical)" \
+            | tee real2-theorem-live.log
+          test -s parity-theorem-results/SAT_CONTROLS.md
+          cat parity-theorem-results/SAT_CONTROLS.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-REAL2-SYMBOLIC-PARITY-THEOREM-KISSAT-CADICAL
+          path: |
+            parity-theorem-results/
+            real2-theorem-live.log
+            compiled/KISSAT_SHA256
+          if-no-files-found: warn
+          retention-days: 90
