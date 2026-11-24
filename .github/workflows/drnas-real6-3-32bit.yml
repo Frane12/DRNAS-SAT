@@ -1,0 +1,87 @@
+name: DRNAS REAL6.3 32-bit indexed ChaCha original source proof
+on:
+  push:
+    branches: [experiment/real6-3-32bit-indexed-bdd-20261124]
+    paths:
+      - 'apps/circuitcheck/real6_3_32_*.py'
+      - '.github/workflows/drnas-real6-3-32bit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  synthetic_safety:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: 4 8 16 32-bit hidden carry with independent source-only ITE-BDD and tamper tests
+        run: |
+          set -euo pipefail
+          python3 -u apps/circuitcheck/real6_3_32_selftest.py | tee REAL6_3_32_CONTROLLED.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real6-3-32bit-hidden-carry-regression
+          path: REAL6_3_32_CONTROLLED.log
+  frozen_original:
+    needs: synthetic_safety
+    runs-on: ubuntu-22.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45348217885
+          github-token: ${{ github.token }}
+          pattern: real6-shard-*
+          path: original-real6
+          merge-multiple: false
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45351123208
+          github-token: ${{ github.token }}
+          name: real6-1-retrospective-four-netlists-independent-certificates
+          path: original-real61
+      - name: Unmodified ChaCha FPGA gate source with indexed carry discovery and independent proof
+        run: |
+          set -euo pipefail
+          mkdir -p real6-3-32-original
+          net="$(find original-real6 -path '*/chacha_qr/netlist.json' -print -quit)"
+          test -f "$net"
+          test -f original-real61/chacha_qr/certificate.json
+          python3 -u apps/circuitcheck/real6_3_32_indexed.py \
+            --netlist "$net" \
+            --base-certificate original-real61/chacha_qr/certificate.json \
+            --target-bits 32 \
+            --out real6-3-32-original/cha_candidate_paths.json \
+            | tee real6-3-32-original/detector.log
+          python3 -u apps/circuitcheck/real6_3_verify.py \
+            --netlist "$net" \
+            --base-certificate original-real61/chacha_qr/certificate.json \
+            --report real6-3-32-original/cha_candidate_paths.json \
+            --out real6-3-32-original/cha_independent_verification.json \
+            | tee real6-3-32-original/independent.log
+          python3 - <<'PY'
+          import json
+          p=json.load(open("real6-3-32-original/cha_candidate_paths.json"))
+          v=json.load(open("real6-3-32-original/cha_independent_verification.json"))
+          bits=v["longest_independently_verified_sum_bits"]
+          print("REAL6_3_32_FROZEN_CHACHA_INDEPENDENT_BITS",bits,flush=True)
+          print("REAL6_3_32_TARGET",("PASS" if bits>=32 else "UNKNOWN_NOT_YET_PROVED"),flush=True)
+          with open("real6-3-32-original/summary.json","w") as f:
+              json.dump({"target_bits":32,"independently_verified_bits":bits,
+                         "target_status":"PASS" if bits>=32 else "UNKNOWN_NOT_YET_PROVED",
+                         "source_unchanged":True,
+                         "source_sha256":p["original_netlist_sha256"],
+                         "scope":"LOCAL 2-state gate-cut arithmetic; not whole HDL/RTL or SAT/UNSAT"},
+                        f,indent=2)
+          PY
+          printf '%s\n' 'Retrospective original ChaCha netlist from REAL6, not new holdout. No CDCL. A shorter proof is a scientific UNKNOWN for 32-bit target.' >real6-3-32-original/LIMITATIONS.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real6-3-32bit-frozen-chacha-independent-proof
+          path: real6-3-32-original/
