@@ -12,6 +12,7 @@ from pathlib import Path
 from real4_islands import analyze
 from real5_relations import generate
 from real5_verify import verify,Invalid
+from real4_verify import Rejected as BaseRejected
 
 def cell(kind, inputs, out):
     conn={"Y":[out]}
@@ -97,7 +98,7 @@ def main():
         raw=gate.read_bytes();gate.write_bytes(raw+b"\n")
         try:
             verify(folder,path)
-        except (Invalid,ValueError):pass
+        except (Invalid,BaseRejected,ValueError):pass
         else:raise AssertionError("BAD_SOURCE_SHA_ACCEPTED")
         finally:gate.write_bytes(raw)
         proof,path=save(folder,source(triple=True))
