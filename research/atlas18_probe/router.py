@@ -55,7 +55,11 @@ def run(cnf,out):
       ("HALL_SUBSET_SOURCE",[py,ROOT/"research/atlas18_probe/hall_subset.py",
            "--cnf",cnf,"--mode","DIRECT","--proof",proof,"--meta",out/"subset.json"]),
       ("HALL_PROOF_BUS",[py,ROOT/"research/atlas18_probe/hall_subset.py",
-           "--cnf",cnf,"--mode","JOINT","--proof",proof,"--meta",out/"bus.json"])
+           "--cnf",cnf,"--mode","JOINT","--proof",proof,"--meta",out/"bus.json"]),
+      ("HALL_UP_PROPAGATION",[py,ROOT/"research/atlas18_probe/hall_subset.py",
+           "--cnf",cnf,"--mode","UCP","--proof",proof,"--meta",out/"ucp.json"]),
+      ("HALL_GRAPH_XOR_UP_BUS",[py,ROOT/"research/atlas18_probe/hall_subset.py",
+           "--cnf",cnf,"--mode","JOINT_UCP","--proof",proof,"--meta",out/"joint_ucp.json"])
     ]
     records=[]
     selected=None
