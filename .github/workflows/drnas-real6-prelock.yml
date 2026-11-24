@@ -1,0 +1,40 @@
+name: DRNAS REAL6 exact CH MAJ full adder motif link prelock
+
+on:
+  push:
+    branches:
+      - experiment/real6-motif-linking-20261124
+    paths:
+      - 'apps/circuitcheck/real6_motifs.py'
+      - 'apps/circuitcheck/real6_verify.py'
+      - 'apps/circuitcheck/real6_selftest.py'
+      - '.github/workflows/drnas-real6-prelock.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  mathematical_motifs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Exact one-step Boolean motifs, independent truth table replay, adversarial controls
+        run: |
+          set -euo pipefail
+          python3 -m py_compile apps/circuitcheck/real6_motifs.py apps/circuitcheck/real6_verify.py apps/circuitcheck/real6_selftest.py
+          python3 -u apps/circuitcheck/real6_selftest.py | tee REAL6_PRELOCK.log
+          sha256sum apps/circuitcheck/real6_motifs.py apps/circuitcheck/real6_verify.py | tee REAL6_LOCK_SHA256.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-REAL6-CH-MAJ-FULLADDER-PROOF-FIRST-PRELOCK
+          path: |
+            REAL6_PRELOCK.log
+            REAL6_LOCK_SHA256.txt
+          retention-days: 90
+          if-no-files-found: warn
