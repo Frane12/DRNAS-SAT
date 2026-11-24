@@ -1,0 +1,48 @@
+name: DRNAS REAL6.3 original ChaCha carry diagnostic
+on:
+  push:
+    branches: [experiment/real6-3-hidden-carry-20261124]
+    paths:
+      - '.github/workflows/drnas-real6-3-diagnostic.yml'
+      - 'apps/circuitcheck/real6_3_*.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnostic:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45348217885
+          github-token: ${{ github.token }}
+          pattern: real6-shard-*
+          path: original-real6
+          merge-multiple: false
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45351123208
+          github-token: ${{ github.token }}
+          name: real6-1-retrospective-four-netlists-independent-certificates
+          path: original-real61
+      - name: Diagnose original physical carry links ChaCha
+        run: |
+          set -euo pipefail
+          mkdir -p real6-3-diagnostics
+          find original-real6 -name netlist.json | sort | tee real6-3-diagnostics/original-netlist-paths.txt
+          for gate in $(find original-real6 -path '*/chacha_qr/netlist.json'); do
+            python3 -u apps/circuitcheck/real6_3_diagnostic.py \
+              --netlist "$gate" --certificate original-real61/chacha_qr/certificate.json \
+              --out real6-3-diagnostics/chacha.json | tee real6-3-diagnostics/chacha.log
+          done
+          test -f real6-3-diagnostics/chacha.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real6-3-original-chacha-diagnostic
+          path: real6-3-diagnostics/
