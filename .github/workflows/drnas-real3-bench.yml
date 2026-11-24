@@ -1,0 +1,138 @@
+name: DRNAS REAL3 holdout original RTL vs Kissat CaDiCaL independent proofs
+
+on:
+  push:
+    branches:
+      - experiment/real3-unseen-rtl-parity-20261124
+    paths:
+      - 'apps/circuitcheck/real3_bench.py'
+      - 'apps/circuitcheck/real3_replay.py'
+      - 'apps/circuitcheck/real3_audit.py'
+      - '.github/workflows/drnas-real3-bench.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  pairs:
+    name: Original public parity RTL paired shard ${{ matrix.shard }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        shard: [0,1,2]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45301658957
+          name: real3-external-frozen-and-smoke
+          github-token: ${{ github.token }}
+          path: frozen
+      - name: Verify exact frozen external source SHA-256 and scenario schedule
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,hashlib
+          root=Path('frozen/real3-external')
+          d=json.loads((root/'manifest.json').read_text())
+          assert d['protocol']=='DRNAS_REAL3_UNSEEN_EXTERNAL_PARITY_20261124'
+          assert len(d['sources'])==4 and len(d['cases'])==18
+          for s in d['sources']:
+              path=root/'upstream'/(s['name']+('.sv' if s['path'].endswith('.sv') else '.v'))
+              assert hashlib.sha256(path.read_bytes()).hexdigest()==s['sha256']
+          print('REAL3_ORIGINAL_PUBLIC_RTL_SOURCE_SHA_LOCK_PASS')
+          PY
+      - name: Install Yosys, CaDiCaL and resource monitor
+        run: |
+          set -euo pipefail
+          sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a || true
+          if ! sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq yosys cadical time build-essential; then
+            sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a
+            sudo apt-get update -qq
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq yosys cadical time build-essential
+          fi
+          yosys -V
+          cadical --version
+      - name: Build pinned Kissat reference binary
+        run: |
+          set -euo pipefail
+          mkdir -p compiled
+          git clone -q https://github.com/arminbiere/kissat.git /tmp/real3-kissat
+          git -C /tmp/real3-kissat checkout -q --detach 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          test "$(git -C /tmp/real3-kissat rev-parse HEAD)" = 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          (cd /tmp/real3-kissat && ./configure && make -j2 >/tmp/kissat-build.log)
+          cp /tmp/real3-kissat/build/kissat compiled/kissat
+          chmod +x compiled/kissat
+          sha256sum compiled/kissat | tee compiled/KISSAT_SHA256
+      - name: Same public RTL and independent reference for REAL3 Yosys and both SAT engines
+        env:
+          ${{ matrix.shard }}: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          python3 -m py_compile apps/circuitcheck/real3_bench.py apps/circuitcheck/real3_replay.py
+          python3 -u apps/circuitcheck/real3_bench.py \
+            --external frozen/real3-external \
+            --out results \
+            --shard "$${{ matrix.shard }}" --shards 3 \
+            --kissat "$(pwd)/compiled/kissat" \
+            --cadical "$(command -v cadical)" | tee real3-live.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real3-shard-${{ matrix.shard }}
+          path: |
+            results/
+            real3-live.log
+            compiled/KISSAT_SHA256
+          if-no-files-found: warn
+          retention-days: 90
+
+  audit:
+    needs: pairs
+    if: always()
+    name: Final all 18 real source and SAT baseline strict completeness audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45301658957
+          name: real3-external-frozen-and-smoke
+          github-token: ${{ github.token }}
+          path: frozen
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: real3-shard-*
+          path: combined
+      - name: Verify complete 18-case status including UNKNOWN and artifact hashes
+        run: |
+          set -euo pipefail
+          python3 -u apps/circuitcheck/real3_audit.py \
+            --manifest frozen/real3-external/manifest.json \
+            --combined combined \
+            --output REAL3_RESULTS.json --report REAL3_REPORT.md | tee real3-final.log
+          cat REAL3_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-REAL3-3-UNSEEN-FPGA-RTL-18-CASES-FINAL-AUDIT
+          path: |
+            REAL3_RESULTS.json
+            REAL3_REPORT.md
+            real3-final.log
+            frozen/real3-external/manifest.json
+          if-no-files-found: warn
+          retention-days: 90
