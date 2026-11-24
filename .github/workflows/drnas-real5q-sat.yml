@@ -1,0 +1,92 @@
+name: DRNAS REAL5Q original FPGA gate quadratic theorem vs Kissat CaDiCaL
+on:
+  push:
+    branches:
+      - experiment/real5-crosscone-gf2-relations-20261124
+    paths:
+      - 'apps/circuitcheck/real5q_miter.py'
+      - 'apps/circuitcheck/real5q_sat.py'
+      - '.github/workflows/drnas-real5q-sat.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  original_quadratic_sat:
+    name: Certified ORIGINAL Yosys gate quadratic cone miter paired SAT controls
+    runs-on: ubuntu-22.04
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45344738069
+          name: DRNAS-REAL5Q-FIVE-ORIGINAL-FPGA-ANF-BOUNDED-DEGREE2
+          github-token: ${{ github.token }}
+          path: original
+      - name: Verify source-locked original polynomial corpus
+        run: |
+          set -euo pipefail
+          python3 -m py_compile apps/circuitcheck/real5q_miter.py apps/circuitcheck/real5q_sat.py
+          python3 - <<'PY'
+          import pathlib,json
+          d=pathlib.Path("original/REAL5Q_RESULTS")
+          names={"aes_sbox","uart_tx","axis_fifo","picorv32","sha256_w_mem"}
+          assert {p.name for p in d.iterdir() if p.is_dir()}==names
+          for n in names:
+              c=json.loads((d/n/"real5q_certificate.json").read_text())
+              assert c["status"]=="EXACT_BOUNDED_POLYNOMIAL_CERTIFICATE_NOT_SAT_UNSAT"
+              v=json.loads((d/n/"real5q_verification.json").read_text())
+              assert v["status"]=="CHECKED_EXACT_BOUNDED_BOOLEAN_POLYNOMIALS"
+          print("REAL5Q_ORIGINAL_CERTIFICATES_ALL_FIVE_CHECKED")
+          PY
+      - name: Install Yosys and C compiler
+        run: |
+          set -euo pipefail
+          sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a || true
+          sudo DEBIAN_FRONTEND=noninteractive timeout 120s apt-get install -y -qq yosys time build-essential || {
+            sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a
+            sudo timeout 100s apt-get update -qq
+            sudo DEBIAN_FRONTEND=noninteractive timeout 120s apt-get install -y -qq yosys time build-essential
+          }
+          yosys -V
+      - name: Compile CaDiCaL 1.7.3 and pinned Kissat 8af8e56f
+        run: |
+          set -euo pipefail
+          mkdir -p compiled
+          git clone -q https://github.com/arminbiere/cadical.git /tmp/real5q-cadical
+          git -C /tmp/real5q-cadical checkout -q --detach rel-1.7.3
+          (cd /tmp/real5q-cadical && ./configure && make -j2 >/tmp/cadical-build.log)
+          cp /tmp/real5q-cadical/build/cadical compiled/cadical
+          chmod +x compiled/cadical
+          git clone -q https://github.com/arminbiere/kissat.git /tmp/real5q-kissat
+          git -C /tmp/real5q-kissat checkout -q --detach 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          test "$(git -C /tmp/real5q-kissat rev-parse HEAD)" = 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          (cd /tmp/real5q-kissat && ./configure && make -j2 >/tmp/kissat-build.log)
+          cp /tmp/real5q-kissat/build/kissat compiled/kissat
+          chmod +x compiled/kissat
+          ./compiled/cadical --version
+          sha256sum compiled/{kissat,cadical} | tee compiled/solver-sha256.txt
+      - name: Independent actual original gate-cone quadratic miter and paired SAT
+        run: |
+          set -euo pipefail
+          python3 -u apps/circuitcheck/real5q_sat.py \
+            --originals original/REAL5Q_RESULTS \
+            --out FINAL_QUADRATIC_SAT \
+            --kissat "$(pwd)/compiled/kissat" \
+            --cadical "$(pwd)/compiled/cadical" \
+            | tee real5q-sat-live.log
+          cat FINAL_QUADRATIC_SAT/SAT_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-REAL5Q-ORIGINAL-QUADRATIC-GATE-CONES-KISSAT-CADICAL
+          path: |
+            FINAL_QUADRATIC_SAT/
+            real5q-sat-live.log
+            compiled/solver-sha256.txt
+          if-no-files-found: warn
+          retention-days: 90
