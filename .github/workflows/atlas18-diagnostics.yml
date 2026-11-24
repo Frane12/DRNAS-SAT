@@ -1,0 +1,37 @@
+name: DRNAS ATLAS18 original-CNF structural diagnostics
+on:
+  push:
+    branches:
+      - experiment/atlas18-rup-hall-proofbus-20261124
+    paths:
+      - .github/workflows/atlas18-diagnostics.yml
+      - research/atlas18_probe/inspect.py
+permissions:
+  contents: read
+jobs:
+  diagnostic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout isolated experiment
+        uses: actions/checkout@v4
+      - name: Freeze exactly ATLAS17 source cohort before probe
+        run: |
+          set -euo pipefail
+          python3 research/atlas17_probe/freeze.py | tee atlas18-freeze.log
+          sha256sum research/atlas18_probe/inspect.py research/atlas17_probe/prespec.json > atlas18-code-sha256.txt
+      - name: Inspect source backed demand and pair clauses only
+        run: |
+          set -euo pipefail
+          python3 research/atlas18_probe/inspect.py | tee atlas18-diagnostic.log
+      - name: Upload source diagnostics for audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS18-PREPROOF-DIAGNOSTICS
+          path: |
+            atlas18_diagnostics/
+            atlas18-diagnostic.log
+            atlas18-freeze.log
+            atlas18-code-sha256.txt
+          retention-days: 30
