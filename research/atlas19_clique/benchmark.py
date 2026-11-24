@@ -163,8 +163,9 @@ def safety_control(case):
     if output["status"]=="UNSAT_VERIFIED":
         # Other public originals can be UNSAT; still enforce checker source.
         proof=dest/"out"/"result.pbp"
+        replay=dest/"replay.log";replay.write_text("")
         if proof_checker(source,proof,time.perf_counter()+20,
-                         dest/"replay.log","PBP")!="ACCEPTED":
+                         replay,"PBP")!="ACCEPTED":
             raise RuntimeError("CONTROL_PROOF_REPLAY_REJECTED")
     row={"name":case["name"],"status":output["status"],
          "gate":output.get("clique_color_source_gate"),
