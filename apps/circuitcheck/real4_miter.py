@@ -115,7 +115,7 @@ def miter(net,cert,probe):
             f" wire model = {spec};",
             " assign mismatch = actual ^ model;",
             "endmodule"]
-    return "\n".join(lines)+"\n",{"provenance":probe["kind"],"name":probe["name"],
+    return "\n".join(lines)+"\n",{"provenance":probe["kind"],"probe_name":probe["name"],
           "position":probe["position"],"net_bit":probe["yosys_bit"],
           "mask_hex":probe["mask_hex"],"local_cut_indices":probe.get("cut_indices",[]),
           "input_symbols":len(ids),"gate_count":len(operations),
