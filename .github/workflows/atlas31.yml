@@ -1,0 +1,122 @@
+name: ATLAS31 MRC relation closure
+on:
+  push:
+    branches: [experiment/atlas31-mrc-relation-closure]
+    paths: ['.github/workflows/atlas31.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  selftest:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build pinned independent checker
+        run: |
+          set -euo pipefail
+          git clone https://github.com/marijnheule/drat-trim.git /tmp/drat-trim
+          git -C /tmp/drat-trim checkout 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+          gcc -O2 -D_GNU_SOURCE /tmp/drat-trim/drat-trim.c -o /tmp/drat-check
+          python3 -m py_compile research/atlas31/*.py
+          python3 -u research/atlas31/bench.py selftest selftest
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: MRC-selftest
+          path: selftest/
+  paired:
+    needs: selftest
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include: [{"kind":"random","id":"r16-3.5","n":16,"rho":"3.5"},{"kind":"random","id":"r16-4.26","n":16,"rho":"4.26"},{"kind":"random","id":"r16-5.0","n":16,"rho":"5.0"},{"kind":"random","id":"r24-3.5","n":24,"rho":"3.5"},{"kind":"random","id":"r24-4.26","n":24,"rho":"4.26"},{"kind":"random","id":"r24-5.0","n":24,"rho":"5.0"},{"kind":"random","id":"r48-3.5","n":48,"rho":"3.5"},{"kind":"random","id":"r48-4.26","n":48,"rho":"4.26"},{"kind":"random","id":"r48-5.0","n":48,"rho":"5.0"},{"kind":"random","id":"r80-3.5","n":80,"rho":"3.5"},{"kind":"random","id":"r80-4.26","n":80,"rho":"4.26"},{"kind":"random","id":"r80-5.0","n":80,"rho":"5.0"},{"kind":"public","id":"p0","case":0},{"kind":"public","id":"p1","case":1},{"kind":"public","id":"p2","case":2},{"kind":"public","id":"p3","case":3},{"kind":"public","id":"p4","case":4},{"kind":"public","id":"p5","case":5},{"kind":"public","id":"p6","case":6},{"kind":"public","id":"p7","case":7},{"kind":"public","id":"p8","case":8},{"kind":"public","id":"p9","case":9}]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45360211946
+          github-token: ${{ github.token }}
+          name: DRNAS-ATLAS22-ORIGINAL-CHACHA32-CNF-CERTIFIED-PAIRED
+          path: baseline
+      - uses: actions/download-artifact@v4
+        if: matrix.kind == 'public'
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45395471536
+          github-token: ${{ github.token }}
+          name: ATLAS289-case-${{ matrix.case }}
+          path: public
+      - name: Build checker, freeze input and record baseline hashes
+        run: |
+          set -euo pipefail
+          git clone https://github.com/marijnheule/drat-trim.git /tmp/drat-trim
+          git -C /tmp/drat-trim checkout 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+          gcc -O2 -D_GNU_SOURCE /tmp/drat-trim/drat-trim.c -o /tmp/drat-check
+          chmod +x baseline/atlas22_artifacts/solvers/{kissat,cadical}
+          sha256sum baseline/atlas22_artifacts/solvers/{kissat,cadical}
+          lscpu
+      - name: Same CPU, raw DIMACS only
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cpu=$(python3 -c 'import os;print(min(os.sched_getaffinity(0)))')
+          ulimit -v 6000000
+          if [ '${{ matrix.kind }}' = random ]; then
+            taskset -c "$cpu" python3 -u research/atlas31/bench.py random '${{ matrix.n }}' '${{ matrix.rho }}' results baseline/atlas22_artifacts/solvers | tee results/log.txt
+          else
+            python3 -c 'import hashlib,json,sys; from pathlib import Path; x=json.loads(Path("research/atlas289/prespec.json").read_text())["cases"][int(sys.argv[1])]; assert hashlib.sha256(Path("public/input.cnf").read_bytes()).hexdigest()==x["sha256"]' '${{ matrix.case }}'
+            taskset -c "$cpu" python3 -u research/atlas31/bench.py public public/input.cnf results baseline/atlas22_artifacts/solvers 'public/${{ matrix.case }}' | tee results/log.txt
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: MRC-case-${{ matrix.id }}
+          path: results/
+  aggregate:
+    needs: [selftest,paired]
+    if: always()
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: MRC-case-*
+          path: shards
+      - name: Count verified results and invariant signatures
+        run: |
+          python3 - <<'PY'
+          import pathlib,json,collections
+          rows=[r for p in pathlib.Path('shards').rglob('rows.json') for r in json.loads(p.read_text())]
+          accepted={'MODEL_VERIFIED','STANDARD_DRAT'}
+          def group(r):
+              return 'public' if r['case'].startswith('public') else 'signed' if r['case'].endswith('/signed') else 'random'
+          for cohort,expected in [('random',36),('signed',12),('public',10)]:
+              for arm in ('MRC','MRC_FIXED','kissat','cadical'):
+                  rr=[r for r in rows if group(r)==cohort and r['arm']==arm]
+                  good=[r for r in rr if r['audit'] in accepted and r['status'] in ('SAT','UNSAT')]
+                  strict=[r for r in good if r['e2e_s']<=30]
+                  print('MRC_SUMMARY',cohort,arm,json.dumps(dict(verified=len(good),strict=len(strict),missing=expected-len(rr),counts=dict(collections.Counter(r['status'] for r in rr)),reasons=dict(collections.Counter(r.get('reason','none') for r in rr)),par2=(sum(r['e2e_s'] for r in strict)+60*(expected-len(strict)))/expected)))
+          by=collections.defaultdict(set)
+          for r in rows:
+              if r['audit'] in accepted and r['status'] in ('SAT','UNSAT'):by[r['sha']].add(r['status'])
+          contradictions=[h for h,v in by.items() if len(v)>1]
+          m={r['case']:r for r in rows if r['arm']=='MRC'}
+          pairs=[(m[k[:-7]],r) for k,r in m.items() if k.endswith('/signed') and k[:-7] in m]
+          checks=[a['initial_motifs']==b['initial_motifs'] for a,b in pairs if 'initial_motifs' in a and 'initial_motifs' in b]
+          print('MRC_INVARIANTS',sum(checks),'/',len(checks),'planned 12')
+          motifs=collections.defaultdict(set)
+          for r in m.values():
+              for sig in r.get('derived_motifs',{}):motifs[sig].add(group(r))
+          print('MRC_CROSS_COHORT_MOTIFS',json.dumps({s:sorted(g) for s,g in motifs.items() if len(g)>1}))
+          pathlib.Path('summary.json').write_text(json.dumps(rows,indent=2))
+          assert not contradictions and all(checks)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MRC-summary
+          path: summary.json
