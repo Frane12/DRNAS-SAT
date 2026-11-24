@@ -17,6 +17,8 @@ import sys
 import time
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
+sys.path.insert(0,str(ROOT/"research/atlas19_clique"))
+from source_gate import sniff as clique_color_source_gate
 CAP=15.0
 class Unsafe(Exception):pass
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -61,6 +63,14 @@ def run(cnf,out):
       ("HALL_GRAPH_XOR_UP_BUS",[py,ROOT/"research/atlas18_probe/hall_subset.py",
            "--cnf",cnf,"--mode","JOINT_UCP","--proof",proof,"--meta",out/"joint_ucp.json"])
     ]
+    # Content-only classifier: NO filename, family metadata or expected status.
+    # It only routes to a source-verified RED/RUP/CP producer; never asserts UNSAT.
+    clique_gate=clique_color_source_gate(cnf)
+    (out/"clique_color_gate.json").write_text(json.dumps(clique_gate,sort_keys=True,indent=2)+"\n")
+    if clique_gate["candidate"]:
+        stages.insert(0,("CLIQUE_COLOR_EXTENDED_PBP",[
+             py,ROOT/"research/clique_color_er/emit_veripb.py",
+             "--cnf",cnf,"--pbp",proof,"--meta",out/"clique_color_emitter.json"]))
     records=[]
     selected=None
     for name,cmd in stages:
@@ -111,6 +121,7 @@ def run(cnf,out):
     elapsed=round(time.perf_counter()-started,6)
     status="UNSAT_VERIFIED" if selected and elapsed<=CAP else "UNKNOWN"
     result={"status":status,"source_sha256":original,"source_original_not_modified":True,
+            "clique_color_source_gate":clique_gate,
             "router_E2E_s":elapsed,"strict_wall_cap_s":CAP,
             "CDCL_fallback_called":False,"selected":selected if status=="UNSAT_VERIFIED" else None,
             "stages":records}
