@@ -1,0 +1,87 @@
+name: DRNAS REAL6.2 full ripple local proof and original ChaCha audit
+on:
+  push:
+    branches:
+      - experiment/real6-2-independent-chain-audit-20261124
+    paths:
+      - 'apps/circuitcheck/real6_2_*.py'
+      - '.github/workflows/drnas-real6-2-chain.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  adversarial:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - name: Independent exhaustive 4-bit truth-table, reject forged evidence
+        run: |
+          set -euo pipefail
+          python3 -u apps/circuitcheck/real6_2_selftest.py | tee REAL6_2_SELFTEST.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: real6-2-4bit-independent-proof
+          path: REAL6_2_SELFTEST.log
+  original_cha_cha:
+    needs: adversarial
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recover unchanged REAL6 original gate netlists
+        uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45348217885
+          github-token: ${{ github.token }}
+          pattern: real6-shard-*
+          path: original-real6
+          merge-multiple: false
+      - name: Recover independently checked REAL6.1 stage certificates
+        uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45351123208
+          github-token: ${{ github.token }}
+          name: real6-1-retrospective-four-netlists-independent-certificates
+          path: original-real61
+      - name: Strict all four gate sources; audit true arithmetic stages and links
+        run: |
+          set -euo pipefail
+          mkdir -p real6-2-verified
+          count=0
+          for net in original-real6/real6-shard-*/results/*/netlist.json; do
+            if [ ! -f "$net" ]; then continue; fi
+            case_id="$(basename "$(dirname "$net")")"
+            previous="original-real61/$case_id/certificate.json"
+            test -f "$previous"
+            target="real6-2-verified/$case_id"
+            mkdir -p "$target"
+            echo "REAL6_2_ORIGINAL_SOURCE $case_id"
+            python3 -u apps/circuitcheck/real6_2_chain.py --netlist "$net" --certificate "$previous" --out "$target/chain_report.json" | tee "$target/detector.log"
+            python3 -u apps/circuitcheck/real6_2_verify.py --netlist "$net" --certificate "$previous" --chain-report "$target/chain_report.json" --out "$target/independent_verified.json" | tee "$target/independent.log"
+            count=$((count+1))
+          done
+          test "$count" -eq 4
+          printf '%s\n' 'sha512_core UNKNOWN: previous Yosys frontend or dependency unsupported; not a theorem or solver timeout.' >real6-2-verified/fifth_source_unknown.txt
+          printf '%s\n' 'RETROSPECTIVE! Original sources were used by REAL6. No new blind holdout; local free-cut identities only.' >real6-2-verified/LIMITATIONS.txt
+          python3 - <<'PY'
+          import json,glob
+          print("ORIGINAL_FPGA_REAL6_2_SUMMARY")
+          for path in sorted(glob.glob("real6-2-verified/*/chain_report.json")):
+              name=path.split("/")[1]
+              doc=json.load(open(path));m=doc["metrics"]
+              print(name,"pairs",m["base_stage_pairs"],
+                    "unique-input-triples",m["distinct_three_input_cuts"],
+                    "unique-sum-bits",m["distinct_sum_output_bits"],
+                    "unique-carry-bits",m["distinct_carry_output_bits"],
+                    "connected-chains",m["candidate_connected_chains"],
+                    "longest-bits",m["max_candidate_chain_bits"])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real6-2-original-netlist-chacha-chain-audit
+          path: real6-2-verified/
