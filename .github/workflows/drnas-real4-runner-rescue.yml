@@ -1,0 +1,121 @@
+name: DRNAS REAL4 blind external RTL alternate runner Yosys and source-built CaDiCaL
+on:
+  push:
+    branches:
+      - experiment/real4-blind-gate-cuts-20261124
+    paths:
+      - '.github/workflows/drnas-real4-runner-rescue.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  fallback:
+    name: REAL4 original six RTL blind alternative shard ${{ matrix.shard }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 24
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        shard: [0,1,2]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45340546714
+          name: real4-six-frozen-original-external-rtl
+          github-token: ${{ github.token }}
+          path: frozen
+      - name: Install Yosys build prerequisites with bounded APT
+        run: |
+          set -euo pipefail
+          sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a || true
+          if ! sudo DEBIAN_FRONTEND=noninteractive timeout 130s apt-get install -y -qq yosys time build-essential; then
+            sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a
+            sudo timeout 120s apt-get update -qq
+            sudo DEBIAN_FRONTEND=noninteractive timeout 130s apt-get install -y -qq yosys time build-essential
+          fi
+          yosys -V
+      - name: Compile CaDiCaL 1.7.3 and pinned Kissat
+        run: |
+          set -euo pipefail
+          mkdir -p compiled
+          git clone -q https://github.com/arminbiere/cadical.git /tmp/real4-fallback-cadical
+          git -C /tmp/real4-fallback-cadical checkout -q --detach rel-1.7.3
+          (cd /tmp/real4-fallback-cadical && ./configure && make -j2 >/tmp/cadical-build.log)
+          cp /tmp/real4-fallback-cadical/build/cadical compiled/cadical
+          chmod +x compiled/cadical
+          git clone -q https://github.com/arminbiere/kissat.git /tmp/real4-fallback-kissat
+          git -C /tmp/real4-fallback-kissat checkout -q --detach 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          (cd /tmp/real4-fallback-kissat && ./configure && make -j2 >/tmp/kissat-build.log)
+          cp /tmp/real4-fallback-kissat/build/kissat compiled/kissat
+          chmod +x compiled/kissat
+          ./compiled/cadical --version
+          sha256sum compiled/{cadical,kissat} | tee compiled/BINARIES_SHA256
+      - name: Exact prelocked engine and same six source files, no retuning
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          echo '0d2fd18b34c2c871b076f3f863982c11d91376ce0d4d9d4f5063f7dba50c4590  apps/circuitcheck/real4_islands.py' | sha256sum -c -
+          echo '85774fce3605280c4dbd771664f8eaf04d100d79e12792e5dbe36cffc9d48beb  apps/circuitcheck/real4_verify.py' | sha256sum -c -
+          python3 -u apps/circuitcheck/real4_run.py \
+            --manifest frozen/manifest.json --sources frozen \
+            --out results --shard "$SHARD" --shards 3 \
+            --kissat "$(pwd)/compiled/kissat" \
+            --cadical "$(pwd)/compiled/cadical" \
+            | tee real4-fallback-live.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real4-shard-${{ matrix.shard }}
+          path: |
+            results/
+            real4-fallback-live.log
+            compiled/BINARIES_SHA256
+          if-no-files-found: warn
+          retention-days: 90
+  audit:
+    needs: fallback
+    if: always()
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45340546714
+          name: real4-six-frozen-original-external-rtl
+          github-token: ${{ github.token }}
+          path: frozen
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: real4-shard-*
+          path: combined
+      - name: Final blind source and nonlinear-cut proof audit
+        run: |
+          set -euo pipefail
+          python3 -u apps/circuitcheck/real4_audit.py \
+            --manifest frozen/manifest.json --sources frozen \
+            --combined combined \
+            --output REAL4_RESULTS.json --report REAL4_REPORT.md \
+            | tee REAL4_AUDIT.log
+          cat REAL4_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-REAL4-BLIND-UNKNOWN-RTL-FALLBACK-INDEPENDENT-AUDIT
+          path: |
+            REAL4_RESULTS.json
+            REAL4_REPORT.md
+            REAL4_AUDIT.log
+            frozen/manifest.json
+          retention-days: 90
+          if-no-files-found: warn
