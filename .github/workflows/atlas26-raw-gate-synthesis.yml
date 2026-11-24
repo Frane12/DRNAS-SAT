@@ -1,0 +1,32 @@
+name: ATLAS26 raw CNF gate synthesis
+on:
+  push:
+    branches: [experiment/atlas26-raw-gate-synthesis-20261124]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  raw:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45360211946
+          github-token: ${{ github.token }}
+          name: DRNAS-ATLAS22-ORIGINAL-CHACHA32-CNF-CERTIFIED-PAIRED
+          path: frozen
+      - name: Original raw CNF plus permutations, independent replay
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          taskset -c "$cpu" python3 -u research/atlas26_raw/bench.py frozen results | tee results/run.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ATLAS26-raw-gate-proof-results
+          path: results/
