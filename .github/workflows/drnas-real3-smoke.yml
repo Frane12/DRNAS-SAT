@@ -1,0 +1,40 @@
+name: DRNAS REAL3 first unseen public RTL grammar gate
+on:
+  push:
+    branches:
+      - experiment/real3-unseen-rtl-parity-20261124
+    paths:
+      - 'apps/circuitcheck/real3_classifier.py'
+      - 'apps/circuitcheck/real3_freeze.py'
+      - 'apps/circuitcheck/real3_harness.py'
+      - 'apps/circuitcheck/real3_smoke.py'
+      - '.github/workflows/drnas-real3-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  frozen_holdout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fetch pinned public sources and validate syntax
+        run: |
+          set -euo pipefail
+          python3 -m py_compile apps/circuitcheck/real3_classifier.py apps/circuitcheck/real3_freeze.py apps/circuitcheck/real3_harness.py apps/circuitcheck/real3_smoke.py
+          python3 -u apps/circuitcheck/real3_freeze.py --out real3-external
+      - name: Validate name-agnostic 18 real RTL cases and source mutations
+        run: |
+          set -euo pipefail
+          python3 -u apps/circuitcheck/real3_smoke.py --external real3-external | tee real3-smoke.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real3-external-frozen-and-smoke
+          path: |
+            real3-external/
+            real3-smoke.log
+          if-no-files-found: warn
+          retention-days: 90
