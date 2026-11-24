@@ -1,0 +1,94 @@
+name: DRNAS ATLAS21 unified source-only SAT and UNSAT proof router
+on:
+  push:
+    branches:
+      - experiment/atlas21-unified-sat-unsat-router-20261124
+    paths:
+      - .github/workflows/atlas21-unified.yml
+      - research/atlas21_unified/**
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unified-originals:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout isolated unified experimental branch
+        uses: actions/checkout@v4
+      - name: Freeze source-independent code and 6-original input manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas21_unified/{router,benchmark}.py
+          python3 -m py_compile research/atlas20_circuit/{extract,run,check_model}.py
+          sha256sum research/atlas21_unified/{router,benchmark}.py \
+            research/atlas20_circuit/{extract,run,check_model}.py \
+            research/atlas18_probe/router.py > atlas21-code-sha256.txt
+          git rev-parse HEAD > atlas21-commit.txt
+          lscpu > atlas21-cpu.txt
+          python3 -u research/atlas17_probe/freeze.py | tee atlas21-frozen-originals.log
+          python3 - <<'PY'
+          import json,hashlib,pathlib
+          m=json.load(open('atlas17_original_inputs/manifest.json'))
+          p=[x for x in m['sources'] if x['cohort']=='public_preselected']
+          assert m['status']=='FROZEN_BEFORE_ANY_SOLVER' and len(p)==6
+          assert not m['failures'] and len({x['sha256'] for x in p})==6
+          assert all(hashlib.sha256(pathlib.Path(x['path']).read_bytes()).hexdigest()==x['sha256'] for x in p)
+          PY
+      - name: Build unchanged native weighted PCMAX module for certified structural arm
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release > atlas21-cmake.log
+          cmake --build build --target drnas-pcmax -j2 > atlas21-native-build.log
+          sha256sum build/drnas-pcmax > atlas21-native-sha256.txt
+      - name: Install independent external VeriPB 3.0.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version > atlas21-veripb-version.txt 2>&1
+      - name: Two repeats across six public originals, complete SAT model and UNSAT VeriPB checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/atlas21_unified/benchmark.py | tee atlas21-benchmark.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open('atlas21_results/summary.json'))
+          assert d['status']=='COMPLETE'
+          assert d['source_originals']==6 and d['serial_trials']==12
+          assert d['verified_SAT']==2 and d['verified_UNSAT']==8
+          assert d['UNKNOWN']==2 and d['solved_unique_originals']==5
+          assert d['strict_independent_replays']==10
+          assert d['no_CDCL_fallback'] and d['main_untouched']
+          print('ATLAS21_ALL_SOURCE_CERTIFICATES_ACCEPTED',json.dumps({
+              k:v for k,v in d.items() if k!='rows'},sort_keys=True))
+          PY
+      - name: Preserve original input and result SHA for replay
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find atlas21_results -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas21-evidence-sha256.txt
+          date -u +'%FT%TZ' > atlas21-finished-utc.txt
+      - name: Upload models, original-CNF proofs and full audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS21-UNIFIED-SAT-UNSAT-ORIGINALS
+          path: |
+            atlas21_results/
+            atlas21-code-sha256.txt
+            atlas21-commit.txt
+            atlas21-cpu.txt
+            atlas21-frozen-originals.log
+            atlas21-cmake.log
+            atlas21-native-build.log
+            atlas21-native-sha256.txt
+            atlas21-veripb-version.txt
+            atlas21-benchmark.log
+            atlas21-evidence-sha256.txt
+            atlas21-finished-utc.txt
+          retention-days: 30
