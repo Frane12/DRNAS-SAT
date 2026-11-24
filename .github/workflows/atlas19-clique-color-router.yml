@@ -69,6 +69,13 @@ jobs:
           git clone -q https://github.com/marijnheule/drat-trim.git drat-trim-src
           (cd drat-trim-src && git checkout -q 2e3b2dc0ecf938addbd779d42877b6ed69d9a985 && make -j2 >/dev/null)
           sha256sum drat-trim-src/drat-trim > atlas19-drat-sha256.txt
+      - name: Build unchanged native PCMAX detector required by ATLAS18 control
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release > atlas19-cmake.log
+          cmake --build build --target drnas-pcmax -j2 > atlas19-native-build.log
+          sha256sum build/drnas-pcmax > atlas19-native-sha256.txt
       - name: Install pinned external VeriPB 3.0.2
         shell: bash
         run: |
@@ -129,6 +136,9 @@ jobs:
             atlas19-ref-sha256.txt
             atlas19-drat-sha256.txt
             atlas19-veripb-version.txt
+            atlas19-native-sha256.txt
+            atlas19-cmake.log
+            atlas19-native-build.log
             atlas19-evidence-sha256.txt
             atlas19-finished-utc.txt
           retention-days: 30
