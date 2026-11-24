@@ -1,0 +1,154 @@
+name: DRNAS REAL1 public FPGA RTL verilog-lfsr vs Kissat CaDiCaL
+
+on:
+  push:
+    branches:
+      - experiment/delta-real1-thirdparty-rtl-20261124
+    paths:
+      - 'apps/circuitcheck/real1_*.py'
+      - '.github/workflows/drnas-real1-thirdparty.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  freeze_external:
+    name: Download real external modules at exact upstream commits and SHA-verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fetch 3 real open-source FPGA cores and create verification-only harnesses
+        run: |
+          set -euo pipefail
+          python3 -m py_compile apps/circuitcheck/real1_generate.py apps/circuitcheck/real1_run.py apps/circuitcheck/real1_audit.py
+          python3 -u apps/circuitcheck/real1_generate.py --out external
+          python3 - <<'PY'
+          import json,hashlib,pathlib
+          root=pathlib.Path('external')
+          d=json.load(open(root/'manifest.json'))
+          assert d['protocol']=='DELTA_REAL1_UPSTREAM_VERILOG_20261124'
+          assert len(d['cases'])==12 and len(d['upstream'])==3
+          assert all(s['blob_sha1'] and s['sha256'] for s in d['upstream'])
+          assert all(n['clocked'] for n in d['negative_controls'])
+          assert {x['family'] for x in d['cases']}=={
+             'crc16_ccitt8','crc32_ethernet32','crc32c_iscsi32',
+             'prbs31_64','scrambler_64b66b','crc32_ethernet128'}
+          print('REAL1_UPSTREAM_SOURCE_AND_HARNESS_FROZEN',len(d['cases']))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: real1-pinned-external-rtl
+          path: external/
+          if-no-files-found: error
+          retention-days: 90
+
+  paired:
+    needs: freeze_external
+    name: Real external HDL paired shard ${{ matrix.shard }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        shard: [0,1,2,3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: real1-pinned-external-rtl
+          path: external
+      - name: Install frozen Yosys-CaDiCaL-time
+        run: |
+          set -euo pipefail
+          sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a || true
+          if ! sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq yosys cadical time build-essential; then
+            sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a
+            sudo apt-get update -qq
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq yosys cadical time build-essential
+          fi
+          yosys -V
+          cadical --version
+      - name: Build pinned Kissat 8af8e56f
+        run: |
+          set -euo pipefail
+          mkdir -p compiled
+          git clone -q https://github.com/arminbiere/kissat.git /tmp/real1-kissat
+          git -C /tmp/real1-kissat checkout -q --detach 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          test "$(git -C /tmp/real1-kissat rev-parse HEAD)" = 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          (cd /tmp/real1-kissat && ./configure && make -j2 >/tmp/kissat-build.log)
+          cp /tmp/real1-kissat/build/kissat compiled/kissat
+          chmod +x compiled/kissat
+          sha256sum compiled/kissat | tee compiled/SHA256SUMS
+      - name: Run full real-RTL gate-proof and original-CNF SAT paired attempts
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          python3 -u apps/circuitcheck/real1_run.py \
+            --manifest external/manifest.json \
+            --out results --shard "$SHARD" --shards 4 \
+            --kissat "$(pwd)/compiled/kissat" \
+            --cadical "$(command -v cadical)" \
+            | tee real1-live.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real1-shard-${{ matrix.shard }}
+          path: |
+            results/
+            real1-live.log
+            compiled/SHA256SUMS
+          if-no-files-found: warn
+          retention-days: 90
+
+  aggregate:
+    needs: [freeze_external,paired]
+    if: always()
+    name: Strict final real third-party FPGA proof and baseline audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: real1-pinned-external-rtl
+          path: external
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: real1-shard-*
+          path: combined
+      - name: Recompute 72 trials without dropped UNKNOWN or bad witnesses
+        run: |
+          set -euo pipefail
+          python3 -u apps/circuitcheck/real1_audit.py \
+            --manifest external/manifest.json \
+            --combined combined \
+            --out REAL1_RESULTS.json \
+            --report REAL1_REPORT.md
+          python3 - <<'PY'
+          import json
+          d=json.load(open('REAL1_RESULTS.json'))
+          assert len(d['cases'])==12
+          assert sum(len(x['trials']) for x in d['cases'].values())==72
+          print('REAL1_ALL_72_ORIGINAL_EXTERNAL_RTL_ATTEMPTS_AUDITED')
+          PY
+          cat REAL1_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-REAL1-THIRD-PARTY-RTL-FINAL-AUDIT
+          path: |
+            REAL1_RESULTS.json
+            REAL1_REPORT.md
+            external/manifest.json
+          retention-days: 90
+          if-no-files-found: warn
