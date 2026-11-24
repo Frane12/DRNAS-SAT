@@ -1,0 +1,33 @@
+name: ATLAS28.6 GF2 affine core
+on:
+  push:
+    branches: [experiment/atlas286-affine-core]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  affine:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45391230217
+          github-token: ${{ github.token }}
+          name: ATLAS285-core-and-proof-results
+          path: frozen
+      - name: Affine solve and independent proof replay on one CPU
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cpu=$(python3 -c 'import os;print(min(os.sched_getaffinity(0)))')
+          taskset -c "$cpu" python3 -u research/atlas286/affine.py frozen results | tee results/solve.log
+          taskset -c "$cpu" python3 -u research/atlas286/verify.py frozen results | tee results/audit.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ATLAS286-affine-core-results
+          path: results/
