@@ -1,0 +1,108 @@
+name: DRNAS REAL2 pinned external FPGA parity without unrolling
+
+on:
+  push:
+    branches:
+      - experiment/real2-parity-proof-thirdparty-20261124
+    paths:
+      - 'apps/circuitcheck/real2*.py'
+      - '.github/workflows/drnas-real2-parity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  source_parity:
+    name: Original external HDL 12 cases, 24 independent proof checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: real1-pinned-external-rtl
+          repository: Frane12/DRNAS-SAT
+          run-id: 45296825639
+          github-token: ${{ github.token }}
+          path: external
+      - uses: actions/download-artifact@v4
+        with:
+          name: DRNAS-REAL1-THIRD-PARTY-RTL-FINAL-AUDIT
+          repository: Frane12/DRNAS-SAT
+          run-id: 45296825639
+          github-token: ${{ github.token }}
+          path: old
+      - name: Check syntax and original external-source manifest SHA
+        run: |
+          set -euo pipefail
+          python3 -m py_compile apps/circuitcheck/real2_prove.py apps/circuitcheck/real2_verify.py apps/circuitcheck/real2_run.py apps/circuitcheck/real2_tamper.py
+          python3 - <<'PY'
+          import json,hashlib,pathlib
+          a=json.loads(pathlib.Path('external/manifest.json').read_text())
+          old=json.loads(pathlib.Path('old/REAL1_RESULTS.json').read_text())
+          assert old['manifest_sha256']==hashlib.sha256(pathlib.Path('external/manifest.json').read_bytes()).hexdigest()
+          assert len(a['cases'])==12 and len(old['cases'])==12
+          assert a['upstream'][0]['blob_sha1']=='e3a472e3f280f3a697dee718b0416f2667181c00'
+          print('REAL2_SOURCE_FROZEN_AND_REAL1_SAT_CONTROLS_PINNED')
+          PY
+      - name: No Yosys REAL2 original HDL 12 pairs by two repeats
+        run: |
+          set -euo pipefail
+          /usr/bin/time -v -o real2-time.txt \
+            python3 -u apps/circuitcheck/real2_run.py \
+            --external external --out real2-results | tee real2-live.log
+      - name: Corrupt upstream Verilog, wrapper and certificate deliberately
+        run: |
+          set -euo pipefail
+          python3 -u apps/circuitcheck/real2_tamper.py \
+            --external external --out real2-tamper | tee real2-tamper.log
+      - name: Compare exact real1 Kissat/CaDiCaL results without inventing solver times
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,pathlib,statistics
+          r=json.loads(pathlib.Path('real2-results/REAL2_RESULTS.json').read_text())
+          old=json.loads(pathlib.Path('old/REAL1_RESULTS.json').read_text())
+          assert r['independent_proofs']==24 and len(r['source_cases'])==12
+          assert {x['id'] for x in r['source_cases']}==set(old['cases'])
+          lines=['# REAL2 pinned external original FPGA source — paired audit','',
+          '**Theorems are restricted to unchanged audited external source and its canonical harness; not generic HDL or external CRC specification proof.**',
+          '',
+          'Previous REAL1 Kissat/CaDiCaL values were imported unchanged from run 45296825639 (not rerun in this job).',
+          'On 10/12 cases the original CNF export failed within 120s, so no competing solver time exists.',
+          '',
+          '| External IP mode | Input bits | REAL2 proof + independent replay (2×, s) | REAL1 DELTA1 (2×, s) | Original Kissat (2×) | Original CaDiCaL (2×) |',
+          '|---|---:|---|---|---|---|']
+          for entry in r['source_cases']:
+              case=old['cases'][entry['id']]
+              def render(arm):
+                  vals=sorted([t for t in case['trials'] if t['arm']==arm],key=lambda t:t['repeat'])
+                  assert len(vals)==2
+                  return ' / '.join(v['status']+' '+str(round(v['seconds'],3))+'s' for v in vals)
+              proof=' / '.join(str(round(t['e2e_seconds'],5))+'s' for t in entry['attempts'])
+              lines.append('| '+entry['id']+' | '+str(entry['primary_input_bits'])+' | **'+proof+'** | '+
+                render('DRNAS_DELTA1')+' | '+render('Kissat')+' | '+render('CaDiCaL')+' |')
+          lines+=['','Proof demonstrates parity equivalence of two published implementations sharing a mask function. Intentional faulty wrapper changes are detected.','',
+           '**Limitations:** the small syntax grammar and source SHA are trusted; no independent full source-Verilog semantics tool, no DRAT/LRAT UNSAT certificate, no actual FPGA timing.',
+           '']
+          pathlib.Path('REAL2_REPORT.md').write_text('\n'.join(lines))
+          print(pathlib.Path('REAL2_REPORT.md').read_text())
+          PY
+          cat REAL2_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-REAL2-THIRDPARTY-PARITY-SOURCE-PROOFS-24-ATTEMPTS
+          path: |
+            real2-results/
+            REAL2_REPORT.md
+            real2-live.log
+            real2-tamper.log
+            real2-time.txt
+            external/manifest.json
+          if-no-files-found: warn
+          retention-days: 90
