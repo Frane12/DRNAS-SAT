@@ -45,7 +45,7 @@ def main():
         altered=bytearray(raw)
         altered+=b"\nassign out[0]=1'b0;\n"
         expected_rejection("ADDED_OUTPUT_DRIVER",lambda:prove(source,bytes(altered),name))
-        faulty_param=raw.replace(b'16\\'h1021',b'16\\'h1023',1)
+        faulty_param=raw.replace(b"16'h1021",b"16'h1023",1)
         expected_rejection("CHANGED_POLYNOMIAL",lambda:prove(source,faulty_param,name))
         faulty_signal=raw.replace(b".state_in(state)",b".state_in(data)",1)
         expected_rejection("CHANGED_PORT_WIRING",lambda:prove(source,faulty_signal,name))
