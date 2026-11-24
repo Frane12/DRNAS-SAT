@@ -1,0 +1,58 @@
+name: DRNAS REAL5 development pilot original REAL4 nets
+on:
+  push:
+    branches:
+      - experiment/real5-crosscone-gf2-relations-20261124
+    paths:
+      - 'apps/circuitcheck/real5_pilot.py'
+      - '.github/workflows/drnas-real5-pilot.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  retrospective:
+    name: Full 5 known external HDL gate proofs and GF2 nullspace audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: real4-shard-0
+          repository: Frane12/DRNAS-SAT
+          run-id: 45341226748
+          github-token: ${{ github.token }}
+          path: paired/real4-shard-0
+      - uses: actions/download-artifact@v4
+        with:
+          name: real4-shard-1
+          repository: Frane12/DRNAS-SAT
+          run-id: 45341226748
+          github-token: ${{ github.token }}
+          path: paired/real4-shard-1
+      - uses: actions/download-artifact@v4
+        with:
+          name: real4-shard-2
+          repository: Frane12/DRNAS-SAT
+          run-id: 45341226748
+          github-token: ${{ github.token }}
+          path: paired/real4-shard-2
+      - name: Replay original five netlists and validate all discovered relations
+        run: |
+          set -euo pipefail
+          python3 -m py_compile apps/circuitcheck/real5_relations.py apps/circuitcheck/real5_verify.py apps/circuitcheck/real5_pilot.py
+          python3 -u apps/circuitcheck/real5_pilot.py \
+            --originals paired --out results | tee real5-pilot-live.log
+          cat results/PILOT.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-REAL5-ORIGINAL-REAL4-FIVE-DEVELOPMENT-PILOT
+          path: |
+            results/
+            real5-pilot-live.log
+          if-no-files-found: warn
+          retention-days: 90
