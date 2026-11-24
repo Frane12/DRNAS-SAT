@@ -1,0 +1,96 @@
+name: ATLAS33 DMD2 source implication contraction
+on:
+  push:
+    branches: [experiment/atlas33-dmd2-implication-contraction]
+    paths: ['.github/workflows/atlas33-dmd2.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  paired:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include: [{"mode":"random","id":"r16-3.5","n":16,"rho":"3.5"},{"mode":"random","id":"r16-4.26","n":16,"rho":"4.26"},{"mode":"random","id":"r16-5.0","n":16,"rho":"5.0"},{"mode":"random","id":"r24-3.5","n":24,"rho":"3.5"},{"mode":"random","id":"r24-4.26","n":24,"rho":"4.26"},{"mode":"random","id":"r24-5.0","n":24,"rho":"5.0"},{"mode":"random","id":"r48-3.5","n":48,"rho":"3.5"},{"mode":"random","id":"r48-4.26","n":48,"rho":"4.26"},{"mode":"random","id":"r48-5.0","n":48,"rho":"5.0"},{"mode":"random","id":"r80-3.5","n":80,"rho":"3.5"},{"mode":"random","id":"r80-4.26","n":80,"rho":"4.26"},{"mode":"random","id":"r80-5.0","n":80,"rho":"5.0"},{"mode":"archive","id":"a-r16-4.26","shard":"r16-4.26"},{"mode":"archive","id":"a-r24-5.0","shard":"r24-5.0"},{"mode":"archive","id":"a-r48-4.26","shard":"r48-4.26"},{"mode":"archive","id":"a-p1","shard":"p1"},{"mode":"archive","id":"a-p2","shard":"p2"},{"mode":"archive","id":"a-p9","shard":"p9"}]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45360211946
+          github-token: ${{ github.token }}
+          name: DRNAS-ATLAS22-ORIGINAL-CHACHA32-CNF-CERTIFIED-PAIRED
+          path: baseline
+      - uses: actions/download-artifact@v4
+        if: matrix.mode == 'archive'
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45504908339
+          github-token: ${{ github.token }}
+          name: MRC-case-${{ matrix.shard }}
+          path: archived
+      - name: Build independent checker
+        run: |
+          set -euo pipefail
+          git clone https://github.com/marijnheule/drat-trim.git /tmp/drat-trim
+          git -C /tmp/drat-trim checkout 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+          gcc -O2 -D_GNU_SOURCE /tmp/drat-trim/drat-trim.c -o /tmp/drat-check
+          chmod +x baseline/atlas22_artifacts/solvers/{kissat,cadical}
+          sha256sum baseline/atlas22_artifacts/solvers/{kissat,cadical}
+          python3 -m py_compile research/atlas33/*.py
+      - name: Smoke test and isolated paired experiment
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os;print(min(os.sched_getaffinity(0)))')
+          ulimit -v 6000000
+          taskset -c "$cpu" python3 -u research/atlas33/bench.py selftest smoke baseline/atlas22_artifacts/solvers
+          mkdir -p results
+          if [ '${{ matrix.mode }}' = random ]; then
+            taskset -c "$cpu" python3 -u research/atlas33/bench.py random results baseline/atlas22_artifacts/solvers '${{ matrix.n }}' '${{ matrix.rho }}' | tee results/log.txt
+          else
+            taskset -c "$cpu" python3 -u research/atlas33/bench.py archive results baseline/atlas22_artifacts/solvers archived '${{ matrix.shard }}' | tee results/log.txt
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DMD2-case-${{ matrix.id }}
+          path: |
+            results/
+            smoke/
+  aggregate:
+    needs: paired
+    if: always()
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: DMD2-case-*
+          path: shards
+      - name: Compare independently verified results by cohort
+        run: |
+          python3 - <<'PY'
+          import pathlib,json,collections
+          rows=[r for p in pathlib.Path('shards').rglob('rows.json') for r in json.loads(p.read_text()) if not r['case'].startswith('selftest/')]
+          accepted={'MODEL_VERIFIED','STANDARD_DRAT'}
+          for cohort,expected in [('fresh',36),('archive',15)]:
+              for arm in ('MRC','UNIT','UNIT_BINARY','kissat','cadical'):
+                  rr=[r for r in rows if r['arm']==arm and r['case'].startswith(cohort+'/')]
+                  good=[r for r in rr if r['audit'] in accepted and r['status'] in ('SAT','UNSAT')]
+                  strict=[r for r in good if r['e2e_s']<=30]
+                  print('DMD2_SUMMARY',cohort,arm,json.dumps(dict(verified=len(good),strict=len(strict),missing=expected-len(rr),statuses=dict(collections.Counter(r['status'] for r in rr)),reasons=dict(collections.Counter(r.get('reason','none') for r in rr)),root_units=sum(r.get('root_units',0) for r in rr),failed_literals=sum(r.get('failed_literals',0) for r in rr),binary=sum(r.get('binary_consequences',0) for r in rr),par2=(sum(r['e2e_s'] for r in strict)+60*(expected-len(strict)))/expected)))
+          by=collections.defaultdict(set)
+          for r in rows:
+              if r['audit'] in accepted and r['status'] in ('SAT','UNSAT'):by[r['sha']].add(r['status'])
+          conflicts=[h for h,v in by.items() if len(v)>1]
+          print('DMD2_CONTRADICTIONS',conflicts)
+          pathlib.Path('summary.json').write_text(json.dumps(rows,indent=2))
+          assert not conflicts
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DMD2-summary
+          path: summary.json
