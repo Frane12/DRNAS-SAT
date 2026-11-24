@@ -134,7 +134,7 @@ def reference(name,cnf,out):
 frozen=[{"name":s["name"],"cohort":s["cohort"],"path":s["path"],"sha256":s["sha256"]}
         for s in MANIFEST["sources"]]
 frozen.extend(synthetic())
-assert len(frozen)==15 and len({x["sha256"] for x in frozen})==15
+assert len(frozen)==16 and len({x["sha256"] for x in frozen})==16
 save(OUT/"frozen_inputs.json",frozen)
 records=[]
 for case in frozen:
