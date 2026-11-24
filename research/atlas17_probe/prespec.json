@@ -1,0 +1,98 @@
+{
+  "protocol": "DRNAS-ATLAS17-PROSPECTIVE-SOURCE-FROZEN-CROSS-MODULE-PROBE-20261124",
+  "scope": "Six newly preselected public catalog CNFs plus six retrospective originals (4 PCMAX, XOR grid, Petersen), strict separation. New only relative to ATLAS16 selection; no claim no historical project exposure.",
+  "no_label_or_filename_to_solver": true,
+  "source_selection_predeclared_before_probe": true,
+  "no_replacement_after_freeze": true,
+  "gate_priority": [
+    "GRAPH_ONLY",
+    "HALL_ONLY",
+    "XOR_ONLY",
+    "PCMAX_WEIGHTED",
+    "GRAPH_HALL",
+    "XOR_HALL",
+    "TRIPLE_HALL"
+  ],
+  "cap_per_proof_arm_s": 15,
+  "per_reference_cap_s": 15,
+  "one_cpu_per_trial": true,
+  "external_original_veripb_required": true,
+  "no_cdcl_fallback": true,
+  "main_untouched": true,
+  "public_originals": [
+    {
+      "id": "graph-color-2026",
+      "gbd_hash": "03ecc7396e877d12f41d6be7eed59ab6",
+      "family_for_reporting_only": "graph-coloring",
+      "filename_for_provenance_only": "color3-10v-21e-s42.sanitized.cnf.xz"
+    },
+    {
+      "id": "exam-scheduling-2026",
+      "gbd_hash": "046d5e1432c39dc4b085a80fab3a8be6",
+      "family_for_reporting_only": "exam-scheduling",
+      "filename_for_provenance_only": "mexam_22_20_2.sanitized.cnf.xz"
+    },
+    {
+      "id": "clique-color-2025",
+      "gbd_hash": "06d2ca2ee0b47f00d93090495f7fd4f4",
+      "family_for_reporting_only": "clique-coloring",
+      "filename_for_provenance_only": "clqcl_100_6_5.normalised.cnf.xz"
+    },
+    {
+      "id": "php-mixed-2023",
+      "gbd_hash": "03e9d1abe418a1727bbf2ead77d69d02",
+      "family_for_reporting_only": "pigeon-hole",
+      "filename_for_provenance_only": "php15-mixed-15percent-blocked.cnf.xz"
+    },
+    {
+      "id": "xor-shift-2026",
+      "gbd_hash": "00814867cf07384544639767652767d1",
+      "family_for_reporting_only": "xor-shifting",
+      "filename_for_provenance_only": "xorshift_r16_110.sanitized.cnf.xz"
+    },
+    {
+      "id": "boxfolding-2026",
+      "gbd_hash": "02a46668243d6dabab4cf74d3811f6b6",
+      "family_for_reporting_only": "boxfolding",
+      "filename_for_provenance_only": "1x1x13_1x3x6_pair_4_2_0_2_5_0.sanitized.cnf.xz"
+    }
+  ],
+  "retrospective_originals": [
+    {
+      "id": "pcmax-02",
+      "path": "evidence/pcmax-weighted2/02/original.cnf",
+      "sha256": "a13f835135bbc3b9f719b513abab7c313e61a72df30049373725193232ebbbfd"
+    },
+    {
+      "id": "pcmax-03",
+      "path": "evidence/pcmax-weighted2/03/original.cnf",
+      "sha256": "1270004fd247f55c6dc67c9f8d6ecf2628ea7144ed71d3ac1c581c59161d8d55"
+    },
+    {
+      "id": "pcmax-07",
+      "path": "evidence/pcmax-weighted2/07/original.cnf",
+      "sha256": "a96a2b429de5a560f42e114e990da71caeb8191f056a47f419a4bbd93d83bbad"
+    },
+    {
+      "id": "pcmax-08",
+      "path": "evidence/pcmax-weighted2/08/original.cnf",
+      "sha256": "0ffb4d4caba517f75bf54fd62154e5931c16747fca234fc77c776488e7e6314f"
+    },
+    {
+      "id": "xor-grid-5",
+      "path": "evidence/xor234-grid5/original.cnf",
+      "sha256": "79618e35c83016fd1a188eb63ed499c3d1d4c364f710c9c9a93eb7925054a9af"
+    },
+    {
+      "id": "petersen-ipg",
+      "path": "evidence/ipg7b-petersen/original.cnf",
+      "sha256": "c2fefeffc1f9644ffd6f85728106a21c82dfc01d0d021f32d4d73569cc2bfb70"
+    }
+  ],
+  "cpu_soft_limits": {
+    "max_public_compressed_bytes": 18000000,
+    "max_public_original_bytes": 24000000,
+    "source_download_timeout_s": 25
+  },
+  "comparisons": "Kissat4.0.4 and CaDiCaL2.1.3 on public original cohort; report fair E2E/verification scope, no speedup claims from differing startup modes"
+}
