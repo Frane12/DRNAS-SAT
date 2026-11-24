@@ -1,0 +1,121 @@
+name: DRNAS ATLAS17 frozen public originals cross-module proof study
+on:
+  push:
+    branches:
+      - experiment/atlas17-original-cooperation-probe-20261124
+    paths:
+      - research/atlas17_probe/**
+      - .github/workflows/atlas17-original-cooperation.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-cross-module:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout isolated branch with source-only algorithm
+        uses: actions/checkout@v4
+      - name: Freeze code selection and hashes - no solver has run
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas17_probe/{freeze,probe}.py
+          python3 -m py_compile research/atlas15_exchange/{bridge,facts,witness}.py
+          python3 -m py_compile research/pcmax_capacity/{check_capacity,emit_veripb_capacity_weighted2}.py
+          sha256sum research/atlas17_probe/{prespec.json,freeze.py,probe.py} \
+             research/atlas15_exchange/{bridge,facts,witness}.py \
+             research/pcmax_capacity/{check_capacity,emit_veripb_capacity_weighted2}.py \
+             > atlas17-code-sha256.txt
+          git rev-parse HEAD > atlas17-source-commit.txt
+          lscpu > atlas17-runner-cpu.txt
+      - name: Freeze all original inputs by public GBD and existing exact SHA before testing
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/atlas17_probe/freeze.py | tee atlas17-source-freeze.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open('atlas17_original_inputs/manifest.json'))
+          assert d['status']=='FROZEN_BEFORE_ANY_SOLVER'
+          assert d['known_retrospective']==6
+          assert d['public_downloaded']+len(d['failures'])==6
+          assert len({r['sha256'] for r in d['sources']})==len(d['sources'])
+          print('ATLAS17_FROZEN_COHORT_CHECKED')
+          PY
+      - name: Compile existing native PCMAX capacity detector only
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release > atlas17-cmake.log
+          cmake --build build --target drnas-pcmax -j2 > atlas17-pcmax-build.log
+          sha256sum build/drnas-pcmax > atlas17-native-sha256.txt
+      - name: Build pinned Kissat 4.0.4 and CaDiCaL 2.1.3 references
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q --depth 1 --branch rel-4.0.4 https://github.com/arminbiere/kissat.git kissat-src
+          test "$(git -C kissat-src rev-parse HEAD)" = "8af8e56f174b778aef3aa45af9f739b2a5f492c2"
+          (cd kissat-src && ./configure >/dev/null && make -j2 >/dev/null)
+          git clone -q --depth 1 --branch rel-2.1.3 https://github.com/arminbiere/cadical.git cadical-src
+          test "$(git -C cadical-src rev-parse HEAD)" = "f13d74439a5b5c963ac5b02d05ce93a8098018b8"
+          (cd cadical-src && ./configure >/dev/null && make -j2 >/dev/null)
+          sha256sum kissat-src/build/kissat cadical-src/build/cadical > atlas17-reference-sha256.txt
+      - name: Build pinned independent DRAT checker
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q https://github.com/marijnheule/drat-trim.git drat-trim-src
+          (cd drat-trim-src && git checkout -q 2e3b2dc0ecf938addbd779d42877b6ed69d9a985 && make -j2 >/dev/null)
+          sha256sum drat-trim-src/drat-trim > atlas17-drat-sha256.txt
+      - name: Install independent source-bound VeriPB 3.0.2 verifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version > atlas17-veripb-version.txt 2>&1
+      - name: Run seven proof-first DRNAS arms and two references on source-frozen formulas
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/atlas17_probe/probe.py | tee atlas17-probe.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open('atlas17_probe_results/summary.json'))
+          assert d['status']=='COMPLETE' and d['retrospective_known']==6
+          assert d['public_preselected']+d['public_unavailable']==6
+          assert d['proofs_only_externally_VERIPB']
+          assert d['zero_cdcl_fallback'] and d['main_untouched']
+          assert all(len(r['arms'])==7 for r in d['rows'])
+          print('ATLAS17_FINAL_SOURCE_PROOF_AUDIT_PASS',json.dumps({
+                k:v for k,v in d.items() if k not in ('rows','unavailable_public')},sort_keys=True))
+          PY
+      - name: Hash source and proof artifacts for independent replay
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find atlas17_original_inputs atlas17_probe_results -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas17-evidence-sha256.txt
+          date -u +'%FT%TZ' > atlas17-finished-at.txt
+      - name: Upload inputs, proof traces, failure records and results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS17-PUBLIC-ORIGINAL-CROSS-MODULE
+          path: |
+            atlas17_original_inputs/
+            atlas17_probe_results/
+            atlas17-source-freeze.log
+            atlas17-probe.log
+            atlas17-code-sha256.txt
+            atlas17-source-commit.txt
+            atlas17-runner-cpu.txt
+            atlas17-native-sha256.txt
+            atlas17-reference-sha256.txt
+            atlas17-drat-sha256.txt
+            atlas17-veripb-version.txt
+            atlas17-evidence-sha256.txt
+            atlas17-finished-at.txt
+            atlas17-cmake.log
+            atlas17-pcmax-build.log
+          retention-days: 30
