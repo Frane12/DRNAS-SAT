@@ -1,0 +1,37 @@
+name: DRNAS REAL5Q exact quadratic Boolean ANF independent proof prelock
+on:
+  push:
+    branches:
+      - experiment/real5-crosscone-gf2-relations-20261124
+    paths:
+      - 'apps/circuitcheck/real5q_anf.py'
+      - 'apps/circuitcheck/real5q_verify.py'
+      - 'apps/circuitcheck/real5q_selftest.py'
+      - '.github/workflows/drnas-real5q-prelock.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact_quadratic:
+    name: Truth checked nonlinear polynomials and independent certificate replay
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Syntax, quadratic Boolean identities and tamper attacks
+        run: |
+          set -euo pipefail
+          python3 -m py_compile apps/circuitcheck/real5q_anf.py apps/circuitcheck/real5q_verify.py apps/circuitcheck/real5q_selftest.py
+          python3 -u apps/circuitcheck/real5q_selftest.py | tee REAL5Q_PRELOCK_TESTS.log
+          sha256sum apps/circuitcheck/real5q_anf.py apps/circuitcheck/real5q_verify.py | tee REAL5Q_PRELOCK_SHA256.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-REAL5Q-BOUND-2-POLYNOMIAL-PRELOCK
+          path: |
+            REAL5Q_PRELOCK_TESTS.log
+            REAL5Q_PRELOCK_SHA256.txt
+          if-no-files-found: warn
+          retention-days: 90
