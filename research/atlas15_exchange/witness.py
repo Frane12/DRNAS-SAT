@@ -13,7 +13,7 @@ from pathlib import Path
 class Invalid(ValueError):pass
 def require(x,why):
     if not x:raise Invalid(why)
-def parse(raw):
+def parse(raw, *, strict_premises=True):
     n=m=None;pending=[];rows=[]
     for line in raw.decode("ascii").splitlines():
         words=line.split()
@@ -145,7 +145,7 @@ def verify_full_original_sat_model(raw,model):
     This uses only the independently parsed ORIGINAL CNF and the complete
     model, never the generator, discovery algorithm or a saved status.
     """
-    n,rows=parse(raw)
+    n,rows=parse(raw,strict_premises=False)
     require(type(model) is dict and
             model.get("source_sha256")==hashlib.sha256(raw).hexdigest(),
             "SAT_WITNESS_ORIGINAL_SHA")

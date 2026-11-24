@@ -1,0 +1,75 @@
+name: ATLAS exactly-one integration and original-CNF proof audit
+on:
+  push:
+    branches: [experiment/atlas-eo-multiencoding-20261124]
+    paths:
+      - 'research/atlas_eo/**'
+      - '!research/atlas_eo/*.md'
+      - 'research/atlas16_pilot/run.py'
+      - 'research/atlas15_exchange/witness.py'
+      - 'research/pcmax_capacity/emit_veripb_source_clique.py'
+      - '.github/workflows/atlas-eo-multiencoding.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test source provenance, projected truth tables and weakened encodings
+        run: |
+          python -m pip install --only-binary=:all: python-sat==1.8.dev24
+          python -m unittest -v research.atlas_eo.test_eo
+          python - <<'PY'
+          from research.atlas_eo.benchmark import OUT, recognition
+          OUT.mkdir(exist_ok=True)
+          rows, broken=recognition()
+          print("PYSAT_CHECK",sum(r["target_found"] for r in rows),len(rows),len(broken))
+          PY
+      - name: Build pinned checkers and solver references
+        run: |
+          set -euo pipefail
+          git clone -q --depth 1 -b rel-4.0.4 https://github.com/arminbiere/kissat.git kissat-src
+          test "$(git -C kissat-src rev-parse HEAD)" = "8af8e56f174b778aef3aa45af9f739b2a5f492c2"
+          (cd kissat-src && ./configure >/dev/null && make -j2 >/dev/null)
+          git clone -q --depth 1 -b rel-2.1.3 https://github.com/arminbiere/cadical.git cadical-src
+          test "$(git -C cadical-src rev-parse HEAD)" = "f13d74439a5b5c963ac5b02d05ce93a8098018b8"
+          (cd cadical-src && ./configure >/dev/null && make -j2 >/dev/null)
+          git clone -q https://github.com/marijnheule/drat-trim.git drat-trim-src
+          (cd drat-trim-src && git checkout -q 2e3b2dc0ecf938addbd779d42877b6ed69d9a985 && make -j2 >/dev/null)
+          cargo install --locked veripb --version 3.0.2
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release >/dev/null
+          cmake --build build --target drnas-pcmax -j2 > /dev/null
+          sha256sum build/drnas-pcmax kissat-src/build/kissat cadical-src/build/cadical drat-trim-src/drat-trim "$(command -v veripb)" > atlas_eo_results/tools.sha256
+      - name: Recheck the original ATLAS16 routing contract
+        run: |
+          python -u research/atlas16_pilot/run.py > atlas16.log
+          python - <<'PY'
+          import json
+          with open("atlas16_pilot_results/summary.json") as f: rows=json.load(f)["rows"]
+          assert len(rows)==7
+          for row in rows:
+              status=row["atlas16_auto"]["status"]
+              if row["type"]=="constructed_SAT_control":
+                  assert status in ("UNKNOWN","SAT_VERIFIED")
+              else:
+                  assert status=="UNSAT_VERIFIED", row
+          print("ATLAS16_REGRESSION",[(row["name"],row["atlas16_auto"]["status"]) for row in rows])
+          PY
+      - name: Paired single-CPU solve, proof-check and ablation
+        run: python -u -m research.atlas_eo.benchmark
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ATLAS-EO-multiencoding-evidence
+          path: |
+            atlas_eo_results
+            atlas16_pilot_results/summary.json
+            atlas16.log
