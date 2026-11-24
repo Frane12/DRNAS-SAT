@@ -55,6 +55,10 @@ def detect(netlist,base_certificate,previous_paths):
                     "scope":"ORIGINAL_32_OUTPUT_BITS_FREE_GATE_CUT"})
     # Stable de-duplication
     options.sort(key=lambda x:(x["output_port_name"],x["previous_full_adder_path_index"]))
+    unique={}
+    for x in options:
+        unique.setdefault(x["output_port_name"],x)
+    options=list(unique.values())
     return {"protocol":"DRNAS_REAL6_3_32BIT_LSB_HALF_PLUS_FULL_CHAIN_V1",
             "source_gate_sha256":sh(raw),
             "source_real6_1_certificate_sha256":sh(cert_raw),
