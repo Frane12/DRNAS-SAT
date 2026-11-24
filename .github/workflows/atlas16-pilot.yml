@@ -1,0 +1,101 @@
+name: DRNAS ATLAS16 pilot automatic structural proof routing
+on:
+  push:
+    branches:
+      - experiment/atlas16-structural-router-pilot-20261124
+    paths:
+      - research/atlas16_pilot/**
+      - .github/workflows/atlas16-pilot.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-only-pilot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout isolated ATLAS16 pilot branch
+        uses: actions/checkout@v4
+      - name: Freeze pilot scripts and source provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/atlas16_pilot/run.py
+          python3 -m py_compile research/atlas15_exchange/{audit,facts,witness,bridge}.py
+          sha256sum research/atlas16_pilot/run.py research/atlas15_exchange/{audit,facts,witness,bridge}.py research/pcmax_capacity/{check_capacity,emit_veripb_capacity_weighted2}.py > atlas16-code-sha256.txt
+          git rev-parse HEAD > atlas16-commit.txt
+          lscpu > atlas16-cpu.txt
+      - name: Compile isolated native PCMAX proof-first detector
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release > atlas16-cmake.log
+          cmake --build build --target drnas-pcmax -j2 > atlas16-native-build.log
+          sha256sum build/drnas-pcmax > atlas16-native-sha256.txt
+      - name: Build pinned Kissat 4.0.4 and CaDiCaL 2.1.3 references
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q --depth 1 --branch rel-4.0.4 https://github.com/arminbiere/kissat.git kissat-src
+          test "$(git -C kissat-src rev-parse HEAD)" = "8af8e56f174b778aef3aa45af9f739b2a5f492c2"
+          (cd kissat-src && ./configure >/dev/null && make -j2 >/dev/null)
+          git clone -q --depth 1 --branch rel-2.1.3 https://github.com/arminbiere/cadical.git cadical-src
+          test "$(git -C cadical-src rev-parse HEAD)" = "f13d74439a5b5c963ac5b02d05ce93a8098018b8"
+          (cd cadical-src && ./configure >/dev/null && make -j2 >/dev/null)
+          sha256sum kissat-src/build/kissat cadical-src/build/cadical > atlas16-reference-sha256.txt
+      - name: Build independent DRAT proof checker
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q https://github.com/marijnheule/drat-trim.git drat-trim-src
+          (cd drat-trim-src && git checkout -q 2e3b2dc0ecf938addbd779d42877b6ed69d9a985 && make -j2 >/dev/null)
+          sha256sum drat-trim-src/drat-trim > atlas16-drat-sha256.txt
+      - name: Install independent VeriPB 3.0.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install veripb --version 3.0.2 --locked
+          veripb --version > atlas16-veripb-version.txt 2>&1
+      - name: One CPU - 3 original + 3 controlled joint + SAT negative
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u research/atlas16_pilot/run.py | tee atlas16-pilot.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open('atlas16_pilot_results/summary.json'))
+          assert d['status']=='COMPLETE'
+          assert d['cases']==7 and d['archived_originals']==3
+          assert d['constructed_joint']==3
+          assert d['sat_negative_checked'] and d['no_cdcl_in_atlas_router']
+          assert all(x['sha256'] for x in d['rows'])
+          print('ATLAS16_PILOT_STANDARD_SOURCE_EVIDENCE',json.dumps({
+            k:v for k,v in d.items() if k!='rows'},sort_keys=True))
+          PY
+      - name: Hash all generated inputs and accepted standard proofs
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          find atlas16_pilot_results -type f -print0 2>/dev/null | xargs -0 -r sha256sum > atlas16-evidence-sha256.txt
+          date -u +'%FT%TZ' > atlas16-ended-utc.txt
+      - name: Upload pilot report, proofs, verifier logs, negative controls
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRNAS-ATLAS16-STRUCTURAL-ROUTER-PILOT
+          path: |
+            atlas16_pilot_results/
+            atlas16-pilot.log
+            atlas16-code-sha256.txt
+            atlas16-commit.txt
+            atlas16-cpu.txt
+            atlas16-native-sha256.txt
+            atlas16-reference-sha256.txt
+            atlas16-drat-sha256.txt
+            atlas16-veripb-version.txt
+            atlas16-evidence-sha256.txt
+            atlas16-ended-utc.txt
+            atlas16-cmake.log
+            atlas16-native-build.log
+          retention-days: 30
