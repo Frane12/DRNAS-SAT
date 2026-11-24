@@ -1,0 +1,82 @@
+{
+  "protocol": "ATLAS28.9 prospective public frozen compact cohort",
+  "engine_commit": "b9e198b10b70afe2aac5c6278c84a7de7a19d76d",
+  "selection_source": "https://github.com/mpizenberg/rocsat/blob/main/bench/corpus.toml",
+  "selection": "one representative per ten predetermined application/structural families, compact external catalog; no result labels passed, no replacements; not certified globally unseen",
+  "solve_cap_s": 60,
+  "verify_cap_s": 120,
+  "one_logical_cpu": true,
+  "repeats": 1,
+  "cases": [
+    {
+      "family": "algorithm-equivalence-checking",
+      "url": "https://benchmark-database.de/file/1a92907cdec0528583a8f49a818b406d",
+      "sha256": "d1adcacd7bab7a4ae25eb91986b0733c0a72d40271b697a7074eb75e594ace94",
+      "bytes": 178261,
+      "source": "gbd-main-2025:1a92907cdec0528583a8f49a818b406d"
+    },
+    {
+      "family": "argumentation",
+      "url": "https://benchmark-database.de/file/ac51df6b340190cd1182c06ff2955afa",
+      "sha256": "53759ee4ecbba6d140f954e162e638cf24fdfe2c26f2e5f01172364c99bf775f",
+      "bytes": 161935,
+      "source": "gbd-main-2025:ac51df6b340190cd1182c06ff2955afa"
+    },
+    {
+      "family": "bitvector",
+      "url": "https://benchmark-database.de/file/9b5f767eb5c14eb888d51acf70e045c8",
+      "sha256": "bc3cf193d19ba1c5d0f5757de7630a3482a4301dacea7bf8a699e9e5e6c0b124",
+      "bytes": 548895,
+      "source": "gbd-main-2025:9b5f767eb5c14eb888d51acf70e045c8"
+    },
+    {
+      "family": "circuit-equivalence-checking",
+      "url": "https://benchmark-database.de/file/f0bafebdcce23ccfbaf6c27a7522069b",
+      "sha256": "5015bd457b93d37e8a4f899510d6e81bd8f2208c07370b82166a62cc3164bc4a",
+      "bytes": 205931,
+      "source": "gbd-main-2025:f0bafebdcce23ccfbaf6c27a7522069b"
+    },
+    {
+      "family": "circuit-multiplier",
+      "url": "https://benchmark-database.de/file/9ea8deb8313d93e60743638909f37d6c",
+      "sha256": "a04170aa49ccc2e9fc352a23da0c56cbf6064874d407cb2596544caab8127517",
+      "bytes": 668456,
+      "source": "gbd-main-2025:9ea8deb8313d93e60743638909f37d6c"
+    },
+    {
+      "family": "coloring-mycielski-graph",
+      "url": "https://benchmark-database.de/file/482295be38dc1d63a16f3cf649ef7ef6",
+      "sha256": "037437a45e05435c08e62d0df2f872099cda4b928d048406694b595c45a90ff1",
+      "bytes": 149976,
+      "source": "gbd-main-2025:482295be38dc1d63a16f3cf649ef7ef6"
+    },
+    {
+      "family": "cryptography-simon",
+      "url": "https://benchmark-database.de/file/f33a6163305d6559043b7438a692dea9",
+      "sha256": "e94c361a7243b2d347f8eee71c99506bad05fa7717077df5cb2bf84807026259",
+      "bytes": 147991,
+      "source": "gbd-main-2025:f33a6163305d6559043b7438a692dea9"
+    },
+    {
+      "family": "fpga-routing",
+      "url": "https://benchmark-database.de/file/1890f49a43a94b97828528b68c32b78e",
+      "sha256": "74c4889146ed0f5397665500ac03893196208843e8169a5e8d9ef8c7ba0ad4d3",
+      "bytes": 11880,
+      "source": "gbd-main-2025:1890f49a43a94b97828528b68c32b78e"
+    },
+    {
+      "family": "hamiltonian",
+      "url": "https://benchmark-database.de/file/6e139783cfbcfeec85b49750ad11a615",
+      "sha256": "89cd0d3be21de667864f6c2d63637431f65f19defa9ce0d1233334ab826bb505",
+      "bytes": 32507,
+      "source": "gbd-main-2025:6e139783cfbcfeec85b49750ad11a615"
+    },
+    {
+      "family": "scheduling",
+      "url": "https://benchmark-database.de/file/69f6dd335626a9b71bfc6f2332f52b9d",
+      "sha256": "adca1afbe357cffd40eda927094e3ab3cc96d90b6b43153d403728aeb39ca96e",
+      "bytes": 12237,
+      "source": "gbd-main-2025:69f6dd335626a9b71bfc6f2332f52b9d"
+    }
+  ]
+}
