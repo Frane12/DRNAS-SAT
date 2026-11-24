@@ -195,7 +195,19 @@ def proof_replay(folder:Path):
             record.update({"status":"UNKNOWN","reason":str(e)})
         rows.append(record)
     if cert.get("cutpoints")!=cuts:stop("NONLINEAR_CUT_CERTIFICATE_CHANGED")
-    if cert.get("probes")!=rows:stop("PROBE_EXPR_NOT_REPRODUCIBLE")
+    # UNKNOWN explanations may be phrased differently by the independently
+    # implemented engines. The independently recomputed UNKNOWN *status*
+    # must agree; exact affine masks/cut identities must match in full.
+    submitted=cert.get("probes")
+    if not isinstance(submitted,list) or len(submitted)!=len(rows):
+        stop("PROBE_COVERAGE_CHANGED")
+    for got,correct in zip(submitted,rows):
+        if got.get("status")=="UNKNOWN" and correct.get("status")=="UNKNOWN":
+            ga={k:v for k,v in got.items() if k!="reason"}
+            ca={k:v for k,v in correct.items() if k!="reason"}
+            if ga!=ca:stop("UNKNOWN_PROBE_METADATA_MISMATCH")
+        elif got!=correct:
+            stop("PROBE_EXPR_NOT_REPRODUCIBLE")
     metrics=cert.get("metrics",{})
     checks={
         "cells":len(cells),
