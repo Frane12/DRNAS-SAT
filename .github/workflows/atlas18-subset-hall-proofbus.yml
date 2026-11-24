@@ -72,9 +72,9 @@ jobs:
           python3 - <<'PY'
           import json
           d=json.load(open('atlas18_pilot_results/summary.json'))
-          assert d['status']=='COMPLETE' and d['total_cases']==15
+          assert d['status']=='COMPLETE' and d['total_cases']==16
           assert d['public_originals']==6 and d['known_retrospective']==6
-          assert d['generated_joint']==2 and d['SAT_controls']==1
+          assert d['generated_joint']==3 and d['SAT_controls']==1
           assert d['no_CDCL_fallback'] and d['external_standard_original_proofs_only']
           print('ATLAS18_PROOF_FIRST_AUDIT',json.dumps({k:v for k,v in d.items() if k!='rows'},sort_keys=True))
           PY
