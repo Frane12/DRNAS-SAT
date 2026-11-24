@@ -5,6 +5,7 @@ on:
       - experiment/real4-blind-gate-cuts-20261124
     paths:
       - '.github/workflows/drnas-real4-runner-rescue.yml'
+      - 'apps/circuitcheck/real4_miter.py'
   workflow_dispatch:
 permissions:
   contents: read
