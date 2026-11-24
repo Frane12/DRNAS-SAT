@@ -5,7 +5,7 @@ from itertools import combinations, product
 import json
 from pathlib import Path
 from statistics import median
-from tempfile import TemporaryDirectory
+import subprocess
 import time
 
 from pysat.card import CardEnc, EncType
@@ -71,8 +71,6 @@ def recognition():
                                     decoder_and_replay_s=round(time.perf_counter()-t,6)))
             if k != 5:
                 continue
-            # Select the source clause violated by a known two-choice assignment,
-            # deleting further clauses only when one deletion does not suffice.
             fixed = [1,2,-3,-4,-5]
             damaged = list(z.clauses)
             # Fix selector bits, then use a model of the AMO-free problem to
@@ -162,6 +160,14 @@ def build_cases():
     even=[[-x if bit else x for x,bit in zip(range(1,5),bits)]
           for bits in product((0,1),repeat=4) if sum(bits)%2==1]
     add("eo-plus-even","constructed",rename(z.nv,z.clauses+even,295)[0],"UNSAT")
+    softened = [list(row) for row in even]
+    softened[softened.index([-1,2,3,4])][0] = 1
+    twin = rename(z.nv,z.clauses+softened,295)[0]
+    # Same header, variable IDs and clause order. Exactly one sign changes.
+    _, ca = parse(cases[-1]["path"].read_bytes())
+    _, cb = parse(twin)
+    assert sum(x != y for a,b in zip(ca,cb) for x,y in zip(a,b)) == 1
+    add("eo-plus-even-one-flip","constructed",twin,"SAT")
     add("sudoku-four","constructed",sudoku(),"SAT")
     for name,path,truth,pin in [
         ("graph-k11","evidence/graph-k11/original.cnf","UNSAT","69d4e0ad868e920920d214acaf0c37f52870655ecc8a6807fd1ee3e4dcaa91e0"),
@@ -215,6 +221,18 @@ def main():
                                 repeats=len(rs),median_e2e_s=round(median(r["e2e_s"] for r in rs),6),
                                 routes="/".join(sorted({r["route"] or "-" for r in rs}))))
     tabulate("summary.csv",summary)
+    for case in cases:
+        print("EO_SOURCE_SUMMARY "+json.dumps([r for r in summary if r["source"]==case["name"]],
+                                              separators=(",",":")),flush=True)
+    for kind in ENCODINGS:
+        rr=[r for r in records if r["encoding"]==kind]
+        print("EO_ENCODING_SUMMARY "+json.dumps({"encoding":kind,"recognized":sum(r["target_found"] for r in rr),
+                 "baseline":sum(r["literal_pairwise_baseline"] for r in rr),"n":len(rr)}),flush=True)
+    p=OUT/"runs/eo-plus-even/0/EO/eo.pbp"
+    twin=OUT/"inputs/eo-plus-even-one-flip.cnf"
+    bad=subprocess.run(["veripb","--cnf",str(twin),str(p)],capture_output=True,text=True,timeout=10)
+    assert bad.returncode!=0 and "s VERIFIED UNSATISFIABLE" not in bad.stdout
+    print("EO_PROOF_REJECTED_ON_SIGN_FLIPPED_SAT_TWIN")
     assert all(r["verified"]==3 for r in summary if r["type"]=="constructed" and r["method"]=="EO"), summary
     assert any(r["routes"]=="EO_HALL" for r in summary) and any(r["routes"]=="EO_GRAPH" for r in summary)
     assert any(r["routes"]=="EO_XOR" for r in summary)

@@ -151,8 +151,8 @@ def emit(cnf, certificate, output):
                 source_sha256=hashlib.sha256(cnf.read_bytes()).hexdigest(),
                 proof_sha256=hashlib.sha256(output.read_bytes()).hexdigest(),
                 source_clause_count=count,
-                source_groups=len(demand_ids),resource_cliques=len(capacity_ids),
-                capacity_gap=len(demand_ids)-len(capacity_ids),
+                source_groups=len(demand_index),resource_cliques=len(resource_sizes),
+                capacity_gap=len(demand_index)-len(resource_sizes),
                 resource_clique_max=max(resource_sizes),
                 proof_pol_steps=p.pol_count,proof_bytes=size,
                 producer_s=round(time.perf_counter()-started,6))

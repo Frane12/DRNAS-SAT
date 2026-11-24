@@ -54,6 +54,33 @@ class RecoveryTests(unittest.TestCase):
             self.assertEqual(group in facts["groups"], want)
             check.verify(raw, facts)
 
+    def test_unary_and_width_boundary(self):
+        for k in (1, 2, 32):
+            xs = list(range(1,k+1))
+            raw = encoded(k, [xs] + [(-a,-b) for a,b in combinations(xs,2)])
+            _, _, facts = decode.decode(raw)
+            self.assertIn(xs,facts["groups"])
+            check.verify(raw,facts)
+
+    def test_original_and_recoded_petersen_within_domain_budget(self):
+        from research.structure_atlas3.source_facts import reencode_amo
+        raw = (run.ROOT/"evidence/ipg7b-petersen/original.cnf").read_bytes()
+        _, _, initial = decode.decode(raw)
+        recoded = raw
+        for group in initial["groups"]:
+            recoded, _ = reencode_amo(recoded,group)
+        n, rows = run.parse(recoded)
+        for data in (raw, rename(n,rows,2307)[0]):
+            nv, cnf, facts = decode.decode(data)
+            extra = [r["clause"] for r in facts["premises"] if frozenset(r["clause"]) not in cnf.index]
+            status, _, steps, _ = domain_search(data,nv,cnf,facts["groups"],extra,decode.Budget(2_000_000))
+            self.assertEqual(status,"UNSAT")
+            self.assertEqual(steps[-1],[])
+            prior = list(cnf.rows)+extra
+            for clause in steps:
+                self.assertTrue(unit_conflict(prior,[-x for x in clause]))
+                prior.append(clause)
+
     def test_invalid_transport(self):
         raw = encoded(*construct(4, "sequential"))
         _, _, facts = decode.decode(raw)

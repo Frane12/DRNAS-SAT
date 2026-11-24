@@ -39,7 +39,7 @@ def verify(raw, facts):
             raise ValueError("missing conflict")
         proven.add(frozenset(clause))
     for group in facts["groups"]:
-        if (len(group) < 2 or any(type(x) is not int or not 1 <= abs(x) <= nv for x in group)
+        if (len(group) < 1 or any(type(x) is not int or not 1 <= abs(x) <= nv for x in group)
                 or len({abs(x) for x in group}) != len(group)):
             raise ValueError("invalid selector group")
         if frozenset(group) not in proven:

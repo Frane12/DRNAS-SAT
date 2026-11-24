@@ -8,7 +8,6 @@ from tempfile import TemporaryDirectory
 
 from research.atlas_eo import check, decode
 from research.atlas12_graph_hall.bridge import discover as graph_partition, graph_module
-from research.atlas15_exchange.witness import verify_full_original_sat_model
 from research.pcmax_capacity.source_php_real26 import discover as hall_partition
 from research.pcmax_capacity.check_php_partition import check as check_partition
 from research.pcmax_capacity.emit_veripb_source_clique import Proof, write_capacity_steps
@@ -46,6 +45,7 @@ def parity_contradiction(formula, groups):
 def disjoint_views(groups):
     # Capacity discovery needs disjoint demand rows. Exact-cover/model search
     # below retains overlapping domains (e.g. row and column choices).
+    groups = [g for g in groups if len(g) > 1]
     batches = [groups]
     widths = Counter(map(len, groups))
     if len(widths) > 1:
@@ -133,6 +133,11 @@ def domain_search(raw, nv, source, groups, extra, budget, max_nodes=384):
     # Branch only on a certified finite domain. Unexplained residual clauses
     # can stop this procedure. Every positive return carries a whole-source model.
     formula = decode.CNF(source.rows + extra)
+    # Penalize short, active exclusion clauses more strongly. Ties between
+    # domains of equal residual width no longer depend primarily on DIMACS IDs.
+    weight = {lit: sum(2.0 ** -len(source.rows[cid-1]) for cid in source.occ.get(-lit, ()))
+              for lit in {x for g in groups for x in g}}
+    groups = sorted(groups, key=lambda g: -sum(weight[x] for x in g) / len(g))
     stack_proof = []
     nodes = 0
 
@@ -144,20 +149,22 @@ def domain_search(raw, nv, source, groups, extra, budget, max_nodes=384):
         assigned, _, conflict = formula.propagate(decisions, budget)
         if not conflict:
             options = None
+            priority = None
             for group in groups:
                 if any(lit in assigned for lit in group):
                     continue
                 free = [lit for lit in group if -lit not in assigned]
-                if options is None or len(free) < len(options):
-                    options = free
+                # A two-literal EO is an equivalence. Prefer branching on a
+                # remaining multi-way domain, carrying the equivalences by UP.
+                rank = (len(group) <= 2, len(free))
+                if priority is None or rank < priority:
+                    priority, options = rank, free
             if options is None:
                 for default in (False, True):
                     bits = [None] + [True if v in assigned else False if -v in assigned else default
                                      for v in range(1, nv + 1)]
                     if all(any(bits[abs(x)] == (x > 0) for x in row) for row in source.rows):
-                        model = {"source_sha256": sha256(raw).hexdigest(), "assignment": bits}
-                        verify_full_original_sat_model(raw, model)
-                        return "SAT", model
+                        return "SAT", {"source_sha256": sha256(raw).hexdigest(), "assignment": bits}
                 return "UNKNOWN", None
             unresolved = False
             for lit in options:
@@ -185,6 +192,10 @@ def candidate(raw, folder):
     (folder / "eo-facts.json").write_text(json.dumps(facts, separators=(",", ":")) + "\n")
     groups = facts["groups"]
     info = {"groups": verified["groups_verified"], "scan": facts["scan"]["stop"]}
+    if not groups and facts["scan"]["stop"].startswith("root propagation conflict"):
+        path = folder / "eo.pbp"
+        clauses_proof(path, len(formula.rows), [[]])
+        return {**info, "mode": "SOURCE_UNIT", "proof": path}
     if not groups:
         return {**info, "mode": "EO", "reason": "no checked domain"}
     extra = [r["clause"] for r in facts["premises"] if frozenset(r["clause"]) not in formula.index]

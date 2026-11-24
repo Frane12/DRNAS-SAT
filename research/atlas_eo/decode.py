@@ -131,7 +131,7 @@ def decode(raw, *, max_width=32, max_candidates=4096, max_queries=24000,
         inferred = set(formula.asserted_disjunctions(max_width))
         candidates = set(inferred)
         candidates.update(tuple(sorted(key)) for key in formula.index
-                          if 2 <= len(key) <= max_width and len({abs(x) for x in key}) == len(key))
+                          if 1 <= len(key) <= max_width and len({abs(x) for x in key}) == len(key))
         # Prefer larger selector groups over the short gates inside an encoder.
         for group in sorted(candidates, key=lambda g: (-len(g), g not in inferred, g)):
             if tested >= max_candidates or len(groups) >= max_groups:
