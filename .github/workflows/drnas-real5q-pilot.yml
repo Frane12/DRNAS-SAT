@@ -1,0 +1,58 @@
+name: DRNAS REAL5Q known public RTL nonlinear GF2 quadratic pilot
+on:
+  push:
+    branches:
+      - experiment/real5-crosscone-gf2-relations-20261124
+    paths:
+      - 'apps/circuitcheck/real5q_pilot.py'
+      - '.github/workflows/drnas-real5q-pilot.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  five_originals:
+    name: All five known real RTL netlist quadratic probes independently replayed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: real4-shard-0
+          repository: Frane12/DRNAS-SAT
+          run-id: 45341226748
+          github-token: ${{ github.token }}
+          path: old/real4-shard-0
+      - uses: actions/download-artifact@v4
+        with:
+          name: real4-shard-1
+          repository: Frane12/DRNAS-SAT
+          run-id: 45341226748
+          github-token: ${{ github.token }}
+          path: old/real4-shard-1
+      - uses: actions/download-artifact@v4
+        with:
+          name: real4-shard-2
+          repository: Frane12/DRNAS-SAT
+          run-id: 45341226748
+          github-token: ${{ github.token }}
+          path: old/real4-shard-2
+      - name: Real5Q bounded polynomial interpreter and independent certificate checker
+        run: |
+          set -euo pipefail
+          python3 -m py_compile apps/circuitcheck/real5q_anf.py apps/circuitcheck/real5q_verify.py apps/circuitcheck/real5q_pilot.py
+          python3 -u apps/circuitcheck/real5q_pilot.py \
+            --originals old --out REAL5Q_RESULTS | tee REAL5Q_PILOT_LIVE.log
+          cat REAL5Q_RESULTS/PILOT.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-REAL5Q-FIVE-ORIGINAL-FPGA-ANF-BOUNDED-DEGREE2
+          path: |
+            REAL5Q_RESULTS/
+            REAL5Q_PILOT_LIVE.log
+          if-no-files-found: warn
+          retention-days: 90
