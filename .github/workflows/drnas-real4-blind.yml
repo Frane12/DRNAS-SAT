@@ -86,7 +86,7 @@ jobs:
           cp /tmp/real4-kissat/build/kissat compiled/kissat
           chmod +x compiled/kissat
           sha256sum compiled/kissat | tee compiled/KISSAT_SHA256
-      - name: No re-tuning: original Yosys, GF2 cut certificate, replay and both SAT controls
+      - name: "No re-tuning: original Yosys, GF2 cut certificate, replay and both SAT controls"
         env:
           SHARD: ${{ matrix.shard }}
         run: |
