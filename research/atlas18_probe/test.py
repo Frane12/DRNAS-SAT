@@ -142,10 +142,13 @@ for case in frozen:
     assert sha_file(cnf)==case["sha256"]
     name=case["name"]
     row={"name":name,"cohort":case["cohort"],"source_sha256":case["sha256"]}
-    for mode in ("DIRECT","GRAPH","XOR","JOINT"):
+    for mode in ("DIRECT","GRAPH","XOR","JOINT","UCP","JOINT_UCP"):
         row[mode]=bench_subset(cnf,mode,OUT/"subsets"/name/mode)
     row["BASE_HALL"]=existing_hall(cnf,OUT/"baseline"/name)
     row["ROUTER"]=router(cnf,OUT/"router"/name)
+    row["UCP_HALL_SYNERGY"]=(row["UCP"]["status"]=="UNSAT_VERIFIED" and
+         all(row[k]["status"]!="UNSAT_VERIFIED" for k in
+            ("DIRECT","GRAPH","XOR","JOINT","BASE_HALL")))
     row["new_shared_synergy"]=(
         row["JOINT"]["status"]=="UNSAT_VERIFIED" and
         all(row[k]["status"]!="UNSAT_VERIFIED" for k in
@@ -155,12 +158,14 @@ for case in frozen:
             row[comp]=reference(comp,cnf,OUT/"reference"/name/comp)
     if case["cohort"]=="constructed_SAT_control":
         assert all(row[k]["status"]=="UNKNOWN" for k in
-            ("DIRECT","GRAPH","XOR","JOINT","BASE_HALL","ROUTER"))
+            ("DIRECT","GRAPH","XOR","JOINT","UCP","JOINT_UCP","BASE_HALL","ROUTER"))
     records.append(row)
     save(OUT/"summary.json",{"status":"IN_PROGRESS","rows":records})
     print("ATLAS18_TRIAL "+json.dumps({"name":name,"cohort":case["cohort"],
-        "proofs":{k:row[k]["status"] for k in ("DIRECT","GRAPH","XOR","JOINT","BASE_HALL","ROUTER")},
+        "proofs":{k:row[k]["status"] for k in ("DIRECT","GRAPH","XOR","JOINT","UCP","JOINT_UCP","BASE_HALL","ROUTER")},
         "router":row["ROUTER"]["selected"],"true_shared_synergy":row["new_shared_synergy"],
+        "UCP_HALL_synergy":row["UCP_HALL_SYNERGY"],
+        "UCP_fact_count":row["UCP"].get("derived"),
         "direct_details":{k:row["DIRECT"].get(k) for k in ("groups","capacity","e2e_s")},
         "reference":{k:row.get(k) for k in ("Kissat4.0.4","CaDiCaL2.1.3") if row.get(k)}},
         sort_keys=True),flush=True)
@@ -176,6 +181,7 @@ summary={"status":"COMPLETE","total_cases":len(records),"public_originals":len(p
          "public_router_verified":sum(
                x["ROUTER"]["status"]=="UNSAT_VERIFIED" for x in public),
          "public_new_shared_synergy":sum(x["new_shared_synergy"] for x in public),
+         "public_ucp_hall_synergy":sum(x["UCP_HALL_SYNERGY"] for x in public),
          "constructed_joint_new_shared_synergy":sum(x["new_shared_synergy"] for x in synth),
          "no_main_changes":True,"no_CDCL_fallback":True,
          "external_standard_original_proofs_only":True,
