@@ -25,6 +25,7 @@ OUT.mkdir(exist_ok=True)
 for p in ("research/atlas15_exchange","research/atlas13_exchange",
           "research/pcmax_capacity","research/structure_atlas1","research/graphclique"):
     sys.path.insert(0,str(ROOT/p))
+sys.path.insert(0,str(ROOT/"research/atlas15_exchange"))
 from atlas import parse, encoded, transform
 from bridge import compile_original as exchange_compile, HallUnknown
 from facts import Unknown as ExchangeUnknown
