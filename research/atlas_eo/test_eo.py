@@ -3,6 +3,9 @@ from copy import deepcopy
 from itertools import combinations, product
 import random
 import unittest
+from time import monotonic
+
+from research.atlas_eo.binary_cutset import candidate as cutset_candidate
 
 from research.atlas_eo import check, decode
 from research.atlas16_pilot import run
@@ -80,6 +83,28 @@ class RecoveryTests(unittest.TestCase):
             for clause in steps:
                 self.assertTrue(unit_conflict(prior,[-x for x in clause]))
                 prior.append(clause)
+
+    def test_binary_cutset_models_and_limits(self):
+        raw = (run.ROOT/"research/structure1_corpus/uf20-01.cnf").read_bytes()
+        nv, rows = run.parse(raw)
+        for data in [raw] + [rename(nv,rows,seed)[0] for seed in (1,10,101)]:
+            result = cutset_candidate(data, monotonic()+3)
+            run.verify_full_original_sat_model(data, result["model"])
+            self.assertLessEqual(len(result["cutset"]), 12)
+        self.assertNotIn("model", cutset_candidate(raw, monotonic()+3, max_cutset=0))
+        self.assertNotIn("model", cutset_candidate(raw, monotonic()-1))
+        # Every ternary assignment is excluded. No negative result bypasses proof checking.
+        impossible = encoded(3, [tuple(i*s for i,s in zip((1,2,3),signs))
+                                  for signs in product((1,-1), repeat=3)])
+        result = cutset_candidate(impossible, monotonic()+3)
+        self.assertNotIn("proof", result)
+        self.assertNotIn("model", result)
+        mixed = encoded(5, [(1,1), (-1,2), (4,-4), (2,2,3)])
+        model = cutset_candidate(mixed, monotonic()+3)["model"]
+        run.verify_full_original_sat_model(mixed, model)
+        model["assignment"][1] = False
+        with self.assertRaises(ValueError):
+            run.verify_full_original_sat_model(mixed, model)
 
     def test_invalid_transport(self):
         raw = encoded(*construct(4, "sequential"))

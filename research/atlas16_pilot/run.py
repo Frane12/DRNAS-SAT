@@ -36,6 +36,7 @@ from check_capacity import check as capacity_check
 from emit_veripb_capacity_weighted2 import generate as weighted_proof
 from research.atlas_eo import decode as eo_decode, check as eo_check
 from research.atlas_eo.route import candidate as eo_candidate
+from research.atlas_eo.binary_cutset import candidate as cutset_candidate
 gpath=ROOT/"research/graphclique/emit_veripb.py"
 spec=importlib.util.spec_from_file_location("atlas16_graph_module",gpath)
 graph=importlib.util.module_from_spec(spec)
@@ -149,9 +150,9 @@ def auto(case,binfile,*,folder=None,eo_only=False,enable_eo=True):
     attempts=[]
     start=time.perf_counter()
     # Source-only recognition. No expected status or filename is given to a module.
-    modes = ("GRAPH_SOURCE","TRIPLE_FACT_EXCHANGE","PCMAX_NATIVE_WEIGHTED","EO")
-    if not enable_eo:
-        modes=modes[:-1]
+    modes = ("GRAPH_SOURCE","TRIPLE_FACT_EXCHANGE","PCMAX_NATIVE_WEIGHTED")
+    if enable_eo:
+        modes += ("EO","BINARY_CUTSET")
     for mode in (("EO",) if eo_only else modes):
         if time.perf_counter()-start >= CAP:
             attempts.append({"mode":mode,"status":"UNKNOWN","reason":"end-to-end time limit"})
@@ -166,8 +167,12 @@ def auto(case,binfile,*,folder=None,eo_only=False,enable_eo=True):
                 proof=folder/"triple.pbp"
                 exchange_compile(cnf,"TRIPLE_HALL",folder/"facts.json",proof,
                                  folder/"exchange_meta.json")
-            elif mode=="EO":
-                details=eo_candidate(raw,folder)
+            elif mode in ("EO","BINARY_CUTSET"):
+                if mode=="EO":
+                    details=eo_candidate(raw,folder)
+                else:
+                    seconds_left=CAP-(time.perf_counter()-start)
+                    details=cutset_candidate(raw,time.monotonic()+min(1.0,seconds_left))
                 mode=details.pop("mode")
                 if "model" in details:
                     model=details.pop("model")

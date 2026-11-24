@@ -5,6 +5,7 @@ on:
     paths:
       - 'research/atlas_eo/**'
       - '!research/atlas_eo/*.md'
+      - 'research/implication_model.py'
       - 'research/atlas16_pilot/run.py'
       - 'research/atlas15_exchange/witness.py'
       - 'research/pcmax_capacity/emit_veripb_source_clique.py'
@@ -65,6 +66,8 @@ jobs:
           PY
       - name: Paired single-CPU solve, proof-check and ablation
         run: python -u -m research.atlas_eo.benchmark
+      - name: Check network Hall deficits and feasible controls on original CNFs
+        run: python -u -m research.atlas_eo.network_audit
       - uses: actions/upload-artifact@v4
         if: always()
         with:

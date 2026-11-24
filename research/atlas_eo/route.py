@@ -42,15 +42,21 @@ def parity_contradiction(formula, groups):
     return None
 
 
-def disjoint_views(groups):
+def disjoint_views(groups, fixed):
     # Capacity discovery needs disjoint demand rows. Exact-cover/model search
     # below retains overlapping domains (e.g. row and column choices).
     groups = [g for g in groups if len(g) > 1]
-    batches = [groups]
-    widths = Counter(map(len, groups))
-    if len(widths) > 1:
-        batches.extend([g for g in groups if len(g) == k] for k in sorted(widths, reverse=True)
-                       if widths[k] >= 3)
+    # Network gates often contribute EO rows with an input fixed at the root.
+    # Try genuine open choices first. Keep the previous views as alternatives.
+    open_groups = [g for g in groups if all(abs(x) not in fixed for x in g)]
+    pools = [open_groups, groups] if len(open_groups) < len(groups) else [groups]
+    batches = []
+    for pool in pools:
+        batches.append(pool)
+        widths = Counter(map(len, pool))
+        if len(widths) > 1:
+            batches.extend([g for g in pool if len(g) == k] for k in sorted(widths, reverse=True)
+                           if widths[k] >= 3)
     seen = set()
     for batch in batches:
         used, selected = set(), []
@@ -70,7 +76,8 @@ def capacity_proof(formula, groups, path, budget):
         view = Path(tmp) / "view.cnf"
         cert_path = Path(tmp) / "partition.json"
         implied = {}
-        for selected in disjoint_views(groups):
+        root, _, _ = formula.propagate([], budget)
+        for selected in disjoint_views(groups, {abs(x) for x in root}):
             source_lit = [0] + [lit for group in selected for lit in group]
             alias = {lit: i for i, lit in enumerate(source_lit) if i}
             choices = [tuple(alias[lit] for lit in group) for group in selected]
@@ -125,8 +132,37 @@ def capacity_proof(formula, groups, path, budget):
                     for a, b in combinations(sorted(resource), 2):
                         pair_ids[a, b] = premise([-source_lit[a], -source_lit[b]])
                 write_capacity_steps(proof, cert, demand_ids, pair_ids)
-            return mode, {"demand": cert["demand"], "capacity": cert["capacity"]}
+            return mode, {"demand": cert["demand"], "capacity": cert["capacity"],
+                          "demand_literals": [[source_lit[x] for x in group]
+                                              for group in cert["selected_groups"]],
+                          "resource_literals": [[source_lit[x] for x in group]
+                                                for group in cert["capacity_cliques"]]}
     return None
+
+
+def complete_with_pure_literals(nv, source, assigned, budget):
+    """Extend a partial SAT model through unclaimed network auxiliaries."""
+    assigned = set(assigned)
+    rows = source.rows
+    while True:
+        residual = []
+        literals = set()
+        for row in rows:
+            budget.spend(len(row) + 1)
+            if any(x in assigned for x in row):
+                continue
+            remaining = tuple(x for x in row if -x not in assigned)
+            if not remaining:
+                return None
+            residual.append(remaining)
+            literals.update(remaining)
+        if not residual:
+            return [None] + [v in assigned for v in range(1, nv + 1)]
+        pure = {x for x in literals if -x not in literals}
+        if not pure:
+            return None
+        assigned.update(pure)
+        rows = residual
 
 
 def domain_search(raw, nv, source, groups, extra, budget, max_nodes=384):
@@ -138,6 +174,11 @@ def domain_search(raw, nv, source, groups, extra, budget, max_nodes=384):
     weight = {lit: sum(2.0 ** -len(source.rows[cid-1]) for cid in source.occ.get(-lit, ()))
               for lit in {x for g in groups for x in g}}
     groups = sorted(groups, key=lambda g: -sum(weight[x] for x in g) / len(g))
+    root, _, _ = formula.propagate([], budget)
+    fixed = {abs(x) for x in root}
+    open_domains = {tuple(g) for g in groups if all(abs(x) not in fixed for x in g)}
+    main_domains = [g for g in open_domains if len(g) > 2]
+    completion_budget = decode.Budget(120_000)
     stack_proof = []
     nodes = 0
 
@@ -156,9 +197,17 @@ def domain_search(raw, nv, source, groups, extra, budget, max_nodes=384):
                 free = [lit for lit in group if -lit not in assigned]
                 # A two-literal EO is an equivalence. Prefer branching on a
                 # remaining multi-way domain, carrying the equivalences by UP.
-                rank = (len(group) <= 2, len(free))
+                rank = (len(group) <= 2, tuple(group) not in open_domains, len(free))
                 if priority is None or rank < priority:
                     priority, options = rank, free
+            if (fixed and main_domains and completion_budget.remaining > 0
+                    and all(any(x in assigned for x in group) for group in main_domains)):
+                try:
+                    bits = complete_with_pure_literals(nv, source, assigned, completion_budget)
+                except decode.Limit:
+                    bits = None
+                if bits is not None:
+                    return "SAT", {"source_sha256": sha256(raw).hexdigest(), "assignment": bits}
             if options is None:
                 for default in (False, True):
                     bits = [None] + [True if v in assigned else False if -v in assigned else default

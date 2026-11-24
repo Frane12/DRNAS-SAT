@@ -63,8 +63,7 @@ def recognition():
                 _, _, facts = decode.decode(raw)
                 check.verify(raw,facts)
                 found = sorted(target) in facts["groups"]
-                if kind in ("pairwise","seqcounter","cardnetwrk"):
-                    assert found, (kind,k,variant,"target not recovered")
+                assert found, (kind,k,variant,"target not recovered")
                 records.append(dict(encoding=kind,k=k,variant=variant,target_found=found,
                                     literal_pairwise_baseline=before,groups=len(facts["groups"]),
                                     scan=facts["scan"]["stop"],sha256=sha256(raw).hexdigest(),
@@ -237,6 +236,12 @@ def main():
     assert any(r["routes"]=="EO_HALL" for r in summary) and any(r["routes"]=="EO_GRAPH" for r in summary)
     assert any(r["routes"]=="EO_XOR" for r in summary)
     assert all(r["verified"]==3 for r in summary if r["source"]=="sudoku-four" and r["method"]=="ATLAS")
+    for name, method, required in (("deficit-cardnetwrk","ATLAS","EO_HALL"),
+                                   ("uf20-01","ATLAS","BINARY_CUTSET")):
+        records_for_case = [r for r in rows if r["source"] == name and r["method"] == method]
+        assert len(records_for_case) == 3
+        assert all(r["route"] == required and r["status"] == r["truth"]+"_VERIFIED"
+                   for r in records_for_case)
     print("EO_VERIFIED_SUMMARY",json.dumps({"sources":len(cases),"attempts":len(rows),
           "recognized":sum(r["target_found"] for r in records),"recognition_tests":len(records),
           "baseline_recognized":sum(r["literal_pairwise_baseline"] for r in records),

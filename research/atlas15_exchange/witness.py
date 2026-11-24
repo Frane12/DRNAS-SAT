@@ -29,9 +29,10 @@ def parse(raw, *, strict_premises=True):
             require(abs(lit)<=n,"DIMACS_LITERAL_RANGE")
             if lit:pending.append(lit)
             else:
-                require(len(pending)==len(set(pending)) and
-                        not any(-x in pending for x in pending),
-                        "DIMACS_REPEATED_OR_TAUTOLOGICAL")
+                if strict_premises:
+                    require(len(pending)==len(set(pending)) and
+                            not any(-x in pending for x in pending),
+                            "DIMACS_REPEATED_OR_TAUTOLOGICAL")
                 rows.append(tuple(pending));pending=[]
     require(n is not None and not pending and len(rows)==m,"DIMACS_CLAUSE_COUNT")
     return n,rows
