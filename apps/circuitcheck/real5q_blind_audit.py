@@ -98,7 +98,9 @@ def main():
             stats["remaining_UNKNOWN_external_probes"]+=m.get("unknown_probes",0)
         satfile=where/"quadratic_sat"/"results.json"
         check_summary="NO_VERIFIED_CONES_OR_SOURCE"
-        if satfile.is_file():
+        if success and not satfile.is_file():
+            fail("MISSING_MANDATORY_SAT_CONTROL_RECORD "+name)
+        if success and satfile.is_file():
             sat=json.loads(satfile.read_text())
             if name not in sat["cases"]:fail("CASE_NOT_IN_SAT_ARTIFACT")
             satcase=sat["cases"][name]
