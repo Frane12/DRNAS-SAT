@@ -9,20 +9,22 @@ from real6_3_verify import verify,Invalid
 def hidden_adder(bits,break_alias=False):
     d,_=design(bits)
     cells=d["modules"]["ripple4"]["cells"]
-    # Original physical carry from bit 1 is OR(generate,propagate).
-    # For bit 2, a DIFFERENT gate bit supplies exactly the same carry:
-    # XOR(generate,propagate) == OR(generate,propagate), because terms
-    # never overlap. No source-name or stage-specific detection in solver.
-    g,t=112,113
-    alt=5000
-    cells["carry_alias_different_gate"]=wire("$_XOR_",alt,A=g,B=t)
-    prior=114
+    # Physically RECOMPUTE bit-0 carry from first-bit inputs without
+    # traversing original carry gate. Derive bit-1 carry using this
+    # alternative physical wire, not the wire used by sum1. Thus the
+    # original bit-1 SUM and this alternative bit-1 CARRY have different
+    # three-wire boundaries and REAL6.1 cannot simply pair them.
+    cells["carry0_copy_from_raw_gates"]=wire("$_XOR_",5001,A=102,B=103)
+    cells["carry1_recomputed_propagate"]=wire("$_AND_",5002,A=110,B=5001)
+    cells["carry1_recomputed_lookahead"]=wire("$_OR_",5000,A=112,B=5002)
+    # Bit 2 consumes the equivalent carry behind a *different* physical
+    # cone. A local 3-cut proof will not bridge the original bit 1->2.
     for name in ("xor_s_2","and_t_2"):
         ports=cells[name]["connections"]
         for p in ("A","B"):
-            if ports[p]==[prior]:ports[p]=[alt]
+            if ports[p]==[114]:ports[p]=[5000]
     if break_alias:
-        cells["carry_alias_different_gate"]=wire("$_OR_",alt,A=g,B=3)
+        cells["carry1_recomputed_lookahead"]=wire("$_XOR_",5000,A=112,B=3)
     return d
 
 def main():
