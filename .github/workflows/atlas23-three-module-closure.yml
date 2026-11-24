@@ -1,0 +1,53 @@
+name: DRNAS ATLAS23 three-module structural proof closure
+on:
+  push:
+    branches:
+      - experiment/atlas23-three-module-closure-20261124
+    paths:
+      - 'research/atlas23_closure/**'
+      - '.github/workflows/atlas23-three-module-closure.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  proof_closure:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static Python compilation
+        run: python3 -m py_compile research/atlas23_closure/closure.py research/atlas23_closure/independent.py
+      - name: Three-way UNSAT example and independent proof replay
+        run: |
+          set -euo pipefail
+          python3 research/atlas23_closure/closure.py --out atlas23_artifacts
+          python3 research/atlas23_closure/independent.py \
+            --cnf atlas23_artifacts/source.cnf \
+            --trace atlas23_artifacts/trace.json \
+            --out atlas23_artifacts/audit.json
+      - name: Twelve-case SAT/UNSAT grid, UNKNOWN guard, tamper rejection
+        run: |
+          set -euo pipefail
+          python3 research/atlas23_closure/independent.py \
+            --selftest --out atlas23_artifacts/selftest.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open("atlas23_artifacts/selftest.json"))
+          assert r["audit"]=="PASS"
+          assert r["proper_subsets_all_sat"] and not r["full_three_way_sat"]
+          assert r["negative_controls_rejected"]==5
+          assert r["grid_cases_checked"]==12
+          assert r["source_initial_unit_clauses"]==0
+          assert r["unknown_cap_control"]=="PASS"
+          print("ATLAS23_THREE_MODULE_INDEPENDENT_AUDIT_PASS")
+          PY
+      - name: SHA256 proof manifest
+        run: sha256sum atlas23_artifacts/* > atlas23_artifacts_sha256.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-ATLAS23-THREE-MODULE-PROOF-CLOSURE
+          path: |
+            atlas23_artifacts/
+            atlas23_artifacts_sha256.txt
+          retention-days: 60
