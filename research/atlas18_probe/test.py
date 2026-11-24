@@ -69,6 +69,7 @@ def bench_subset(cnf,mode,out):
          "derived":details.get("derived_RUP_lemmata"),
          "graph_RUP_used":details.get("graph_RUP_used"),
          "xor_RUP_used":details.get("xor_RUP_used"),
+         "ucp_RUP_used":details.get("ucp_RUP_used"),
          "groups":details.get("required_groups"),
          "capacity":details.get("capacity_resources")}
     save(out/"result.json",row)
@@ -146,6 +147,8 @@ for case in frozen:
         row[mode]=bench_subset(cnf,mode,OUT/"subsets"/name/mode)
     row["BASE_HALL"]=existing_hall(cnf,OUT/"baseline"/name)
     row["ROUTER"]=router(cnf,OUT/"router"/name)
+    if row["JOINT"]["status"]=="UNSAT_VERIFIED":
+        assert row["JOINT_UCP"]["status"]=="UNSAT_VERIFIED", "JOINT_PROOF_REGRESSION"
     row["UCP_HALL_SYNERGY"]=(row["UCP"]["status"]=="UNSAT_VERIFIED" and
          all(row[k]["status"]!="UNSAT_VERIFIED" for k in
             ("DIRECT","GRAPH","XOR","JOINT","BASE_HALL")))
@@ -166,6 +169,7 @@ for case in frozen:
         "router":row["ROUTER"]["selected"],"true_shared_synergy":row["new_shared_synergy"],
         "UCP_HALL_synergy":row["UCP_HALL_SYNERGY"],
         "UCP_fact_count":row["UCP"].get("derived"),
+        "UCP_RUP_used":row["UCP"].get("ucp_RUP_used"),
         "direct_details":{k:row["DIRECT"].get(k) for k in ("groups","capacity","e2e_s")},
         "reference":{k:row.get(k) for k in ("Kissat4.0.4","CaDiCaL2.1.3") if row.get(k)}},
         sort_keys=True),flush=True)
