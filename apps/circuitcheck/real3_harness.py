@@ -75,7 +75,7 @@ def generated_harness(case):
                ".parity(got),.parity_err(got_err));\n"
                "external_spec spec(.data_in(data_in),.parity_in(parity_in),"
                ".parity_type(parity_type),.parity(expected),.parity_err(expected_err));\n"
-               "assign mismatch=(|(got ^ expected)) | (|(got_err ^ expected_err))")
+               "assign mismatch=((|(got ^ expected)) | (|(got_err ^ expected_err)))")
     else:raise ValueError("UNKNOWN_CASE_KIND")
     if case["fault"]:
         check+=" ^ 1'b1"
