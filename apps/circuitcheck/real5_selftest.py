@@ -37,6 +37,9 @@ def source(triple=False,none=False):
     outs={"y0":{"direction":"output","bits":[10]},
           "y1":{"direction":"output","bits":[11]}}
     if triple:
+        # Remove the original pairwise canceling external output to force
+        # a genuine three-output dependency with two nonlinear cutpoints.
+        outs.pop("y0")
         # Additional 3-term linear dependence involving two independent
         # nonlinear gate outputs. Each contributing output is itself
         # non-affine, while all cuts cancel in the three-output sum.
