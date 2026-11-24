@@ -1,0 +1,149 @@
+name: DRNAS REAL4 blind six external RTL gate cut proof with Kissat CaDiCaL
+
+on:
+  push:
+    branches:
+      - experiment/real4-blind-gate-cuts-20261124
+    paths:
+      - 'apps/circuitcheck/real4_freeze.py'
+      - 'apps/circuitcheck/real4_miter.py'
+      - 'apps/circuitcheck/real4_run.py'
+      - 'apps/circuitcheck/real4_audit.py'
+      - '.github/workflows/drnas-real4-blind.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  freeze:
+    name: SHA-lock six never-tested public HDL modules after REAL4 code prelock
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check unchanged REAL4 engine SHA and download pinned external originals
+        run: |
+          set -euo pipefail
+          echo '0d2fd18b34c2c871b076f3f863982c11d91376ce0d4d9d4f5063f7dba50c4590  apps/circuitcheck/real4_islands.py' | sha256sum -c -
+          echo '85774fce3605280c4dbd771664f8eaf04d100d79e12792e5dbe36cffc9d48beb  apps/circuitcheck/real4_verify.py' | sha256sum -c -
+          python3 -m py_compile apps/circuitcheck/real4_freeze.py apps/circuitcheck/real4_miter.py apps/circuitcheck/real4_run.py apps/circuitcheck/real4_audit.py
+          python3 -u apps/circuitcheck/real4_freeze.py --out frozen | tee REAL4_SOURCE_FREEZE.log
+          python3 - <<'PY'
+          import json
+          m=json.load(open('frozen/manifest.json'))
+          assert len(m['cases'])==6 and m['prelock_run_id']==45339922757
+          assert len({x['repo'] for x in m['cases']})>=5
+          print('REAL4_SOURCE_COHORT_PRELOCKED',len(m['cases']))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: real4-six-frozen-original-external-rtl
+          path: frozen/
+          if-no-files-found: error
+          retention-days: 90
+
+  paired:
+    needs: freeze
+    name: REAL4 single CPU blind FPGA shard ${{ matrix.shard }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 27
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        shard: [0,1,2]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: real4-six-frozen-original-external-rtl
+          path: frozen
+      - name: Install fixed Yosys and CaDiCaL SAT tools
+        run: |
+          set -euo pipefail
+          sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a || true
+          if ! sudo DEBIAN_FRONTEND=noninteractive timeout 130s apt-get install -y -qq yosys cadical time build-essential; then
+             sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a
+             sudo timeout 120s apt-get update -qq
+             sudo DEBIAN_FRONTEND=noninteractive timeout 130s apt-get install -y -qq yosys cadical time build-essential
+          fi
+          yosys -V
+          cadical --version
+      - name: Build pinned Kissat 8af8e56f
+        run: |
+          set -euo pipefail
+          mkdir -p compiled
+          git clone -q https://github.com/arminbiere/kissat.git /tmp/real4-kissat
+          git -C /tmp/real4-kissat checkout -q --detach 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          test "$(git -C /tmp/real4-kissat rev-parse HEAD)" = 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          (cd /tmp/real4-kissat && ./configure && make -j2 >/tmp/kissat-build.log)
+          cp /tmp/real4-kissat/build/kissat compiled/kissat
+          chmod +x compiled/kissat
+          sha256sum compiled/kissat | tee compiled/KISSAT_SHA256
+      - name: No re-tuning: original Yosys, GF2 cut certificate, replay and both SAT controls
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          echo '0d2fd18b34c2c871b076f3f863982c11d91376ce0d4d9d4f5063f7dba50c4590  apps/circuitcheck/real4_islands.py' | sha256sum -c -
+          echo '85774fce3605280c4dbd771664f8eaf04d100d79e12792e5dbe36cffc9d48beb  apps/circuitcheck/real4_verify.py' | sha256sum -c -
+          python3 -u apps/circuitcheck/real4_run.py \
+            --manifest frozen/manifest.json --sources frozen \
+            --out results --shard "$SHARD" --shards 3 \
+            --kissat "$(pwd)/compiled/kissat" \
+            --cadical "$(command -v cadical)" \
+            | tee real4-live.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real4-shard-${{ matrix.shard }}
+          path: |
+            results/
+            real4-live.log
+            compiled/KISSAT_SHA256
+          if-no-files-found: warn
+          retention-days: 90
+
+  audit:
+    needs: [freeze, paired]
+    if: always()
+    name: Immutable blind holdout independent all six original-source replay
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: real4-six-frozen-original-external-rtl
+          path: frozen
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: real4-shard-*
+          path: combined
+      - name: Independently verify original six-source proof and SAT audit
+        run: |
+          set -euo pipefail
+          python3 -u apps/circuitcheck/real4_audit.py \
+            --manifest frozen/manifest.json --sources frozen \
+            --combined combined --output REAL4_RESULTS.json \
+            --report REAL4_REPORT.md | tee REAL4_AUDIT.log
+          cat REAL4_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-REAL4-BLIND-SIX-UNKNOWN-RTL-INDEPENDENT-AUDIT
+          path: |
+            REAL4_RESULTS.json
+            REAL4_REPORT.md
+            REAL4_AUDIT.log
+            frozen/manifest.json
+          if-no-files-found: warn
+          retention-days: 90
