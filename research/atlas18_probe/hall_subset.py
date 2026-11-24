@@ -230,8 +230,11 @@ def build(source,mode,output,metadata):
         if mode in ("UCP","JOINT_UCP"):
             try:ucp=ucp_lemmata(n,cs,selected,direct)
             except Unknown as e:
-                attempts.append({"strategy":strategy,"reason":str(e)})
-                continue
+                attempts.append({"strategy":strategy,"reason":"UCP_UNAVAILABLE:"+str(e)})
+                # Optional evidence must never suppress an existing complete
+                # GRAPH+XOR+HALL proof. Remain conservative, preserve proven facts.
+                if mode=="UCP":continue
+                ucp={}
         facts={**ucp,**graph,**xor}
         # If both producers claim the same lemma, either one suffices.
         # Preserve proof origin and do not treat a duplicate as a new fact.
