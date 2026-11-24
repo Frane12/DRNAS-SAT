@@ -1,0 +1,37 @@
+name: DRNAS REAL5 prelock cross-cone GF2 cancellation
+on:
+  push:
+    branches:
+      - experiment/real5-crosscone-gf2-relations-20261124
+    paths:
+      - 'apps/circuitcheck/real5_relations.py'
+      - 'apps/circuitcheck/real5_verify.py'
+      - 'apps/circuitcheck/real5_selftest.py'
+      - '.github/workflows/drnas-real5-prelock.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mathematical_proof_prelock:
+    name: Exact 2- and 3-output GF2 cut cancellation and adversarial checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Independent certificate replay, mutation rejection, matrix tests
+        run: |
+          set -euo pipefail
+          python3 -m py_compile apps/circuitcheck/real5_relations.py apps/circuitcheck/real5_verify.py apps/circuitcheck/real5_selftest.py
+          python3 -u apps/circuitcheck/real5_selftest.py | tee REAL5_PRELOCK_TESTS.log
+          sha256sum apps/circuitcheck/real5_relations.py apps/circuitcheck/real5_verify.py | tee REAL5_PRELOCK_SHA256.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: REAL5-EXACT-MATH-PRELOCK-ARTIFACT
+          path: |
+            REAL5_PRELOCK_TESTS.log
+            REAL5_PRELOCK_SHA256.txt
+          retention-days: 90
+          if-no-files-found: warn
