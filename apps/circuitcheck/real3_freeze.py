@@ -4,7 +4,7 @@
 Pin complete source files with Git SHA1 blob and Git commit.
 No source identities are consulted by REAL3 source grammar recognizer.
 """
-import argparse,hashlib,json,urllib.request
+import argparse,hashlib,json,urllib.request,urllib.parse
 from pathlib import Path
 
 SOURCES=[
@@ -41,7 +41,7 @@ def main():
     root=a.out.resolve();(root/"upstream").mkdir(parents=True,exist_ok=True)
     infos=[]
     for name,repo,commit,path,digest in SOURCES:
-        url="https://raw.githubusercontent.com/"+repo+"/"+commit+"/"+path
+        url="https://raw.githubusercontent.com/"+repo+"/"+commit+"/"+urllib.parse.quote(path,safe="/")
         request=urllib.request.Request(url,headers={"User-Agent":"DRNAS-REAL3-ProofCorpus"})
         with urllib.request.urlopen(request,timeout=40) as f:data=f.read()
         if gitblob(data)!=digest:
