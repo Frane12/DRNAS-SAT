@@ -21,7 +21,7 @@ def save(path,data):
     path.parent.mkdir(parents=True,exist_ok=True)
     path.write_text(json.dumps(data,sort_keys=True,indent=2)+"\n")
 def cap():
-    resource.setrlimit(resource.RLIMIT_AS,(3*1024**3,)*2)
+    resource.setrlimit(resource.RLIMIT_AS,(8*1024**3,)*2)
     resource.setrlimit(resource.RLIMIT_FSIZE,(128*1024**2,)*2)
 def call(cmd,seconds):
     try:
