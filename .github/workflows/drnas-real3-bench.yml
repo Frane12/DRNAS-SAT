@@ -75,14 +75,14 @@ jobs:
           sha256sum compiled/kissat | tee compiled/KISSAT_SHA256
       - name: Same public RTL and independent reference for REAL3 Yosys and both SAT engines
         env:
-          ${{ matrix.shard }}: ${{ matrix.shard }}
+          SHARD: ${{ matrix.shard }}
         run: |
           set -euo pipefail
           python3 -m py_compile apps/circuitcheck/real3_bench.py apps/circuitcheck/real3_replay.py
           python3 -u apps/circuitcheck/real3_bench.py \
             --external frozen/real3-external \
             --out results \
-            --shard "$${{ matrix.shard }}" --shards 3 \
+            --shard "$SHARD" --shards 3 \
             --kissat "$(pwd)/compiled/kissat" \
             --cadical "$(command -v cadical)" | tee real3-live.log
       - uses: actions/upload-artifact@v4
