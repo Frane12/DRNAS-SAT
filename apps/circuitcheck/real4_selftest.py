@@ -72,7 +72,7 @@ def main():
         assert result["metrics"]["cutpoints"]>=3
         original=cert.read_bytes()
         attacks=[
-            ("FALSE_GLOBAL_AFFINE",lambda x:x["probes"][0].update(status="GLOBAL_AFFINE_ONE_STEP")),
+            ("FALSE_GLOBAL_AFFINE",lambda x:next(y for y in x["probes"] if y["name"]=="nonlinear").update(status="GLOBAL_AFFINE_ONE_STEP")),
             ("CUTPOINT_FORGERY",lambda x:x["cutpoints"][0].update(yosys_bit=888)),
             ("MASK_MODIFIED",lambda x:x["probes"][0].update(mask_hex="0xdeadcafe")),
             ("FALSE_FULL_SAT_VERDICT",lambda x:x.update(status="UNSAT_VERIFIED")),
