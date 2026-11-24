@@ -6,6 +6,7 @@ on:
       - 'research/atlas_eo/**'
       - '!research/atlas_eo/*.md'
       - 'research/implication_model.py'
+      - 'research/structure_atlas1/atlas.py'
       - 'research/atlas16_pilot/run.py'
       - 'research/atlas15_exchange/witness.py'
       - 'research/pcmax_capacity/emit_veripb_source_clique.py'
@@ -68,6 +69,12 @@ jobs:
         run: python -u -m research.atlas_eo.benchmark
       - name: Check network Hall deficits and feasible controls on original CNFs
         run: python -u -m research.atlas_eo.network_audit
+      - name: Verify models on the full UF20-91 collection
+        run: |
+          git init -q uf20-corpus
+          git -C uf20-corpus fetch -q --depth 1 https://github.com/mitchellh/go-sat.git fc0e735aff48989326f256121b5ed6fc585858c3
+          git -C uf20-corpus checkout -q --detach FETCH_HEAD
+          python -u -m research.atlas_eo.uf20_audit uf20-corpus/testdata/satlib/sat-uniform-20-91 atlas_eo_results/uf20
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -15,9 +15,19 @@ def require(x,why):
     if not x:raise Invalid(why)
 def parse(raw, *, strict_premises=True):
     n=m=None;pending=[];rows=[]
+    ended=False
+    trailer_zero=False
     for line in raw.decode("ascii").splitlines():
         words=line.split()
         if not words or words[0]=="c":continue
+        if ended:
+            require(words==["0"] and not trailer_zero,"DIMACS_TRAILING_DATA")
+            trailer_zero=True
+            continue
+        if words==["%"]:
+            require(n is not None and not pending and len(rows)==m,"DIMACS_EARLY_END")
+            ended=True
+            continue
         if words[0]=="p":
             require(n is None and len(words)==4 and words[1]=="cnf","DIMACS_HEADER")
             n,m=map(int,words[2:])

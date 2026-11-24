@@ -16,9 +16,14 @@ from pathlib import Path
 
 def parse(raw:bytes):
     nv=nc=None;cs=[];partial=[]
-    for line in raw.decode("ascii").splitlines():
+    lines=iter(raw.decode("ascii").splitlines())
+    for line in lines:
         words=line.split()
         if not words or words[0]=="c":continue
+        if words==["%"]:
+            trailer=[fields for tail in lines if (fields:=tail.split()) and fields[0]!="c"]
+            if trailer not in ([],[["0"]]):raise ValueError("invalid SATLIB trailer")
+            break
         if words[0]=="p":
             if nv is not None or len(words)!=4 or words[1]!="cnf":raise ValueError("bad header")
             nv,nc=int(words[2]),int(words[3])

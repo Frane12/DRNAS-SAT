@@ -84,6 +84,16 @@ class RecoveryTests(unittest.TestCase):
                 self.assertTrue(unit_conflict(prior,[-x for x in clause]))
                 prior.append(clause)
 
+    def test_satlib_trailer_preserves_input_binding(self):
+        raw = b"p cnf 1 1\n1 0\n%\n0\n"
+        model = cutset_candidate(raw, monotonic()+1)["model"]
+        run.verify_full_original_sat_model(raw, model)
+        for bad in (raw.replace(b"1 1",b"1 2"), raw+b"0\n", raw+b"1 0\n"):
+            with self.assertRaises(ValueError):
+                run.parse(bad)
+            with self.assertRaises(ValueError):
+                run.verify_full_original_sat_model(bad, {**model,"source_sha256":run.sha(bad)})
+
     def test_binary_cutset_models_and_limits(self):
         raw = (run.ROOT/"research/structure1_corpus/uf20-01.cnf").read_bytes()
         nv, rows = run.parse(raw)
