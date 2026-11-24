@@ -108,8 +108,7 @@ def main():
            "with additional Yosys prove mismatch=0. Source synthesis not rerun.",
            "No full original FPGA SAT/UNSAT inference; cut outputs freely variable.",
            "",
-           "| Original HDL | Sampled quadratic identities | Verified by Yosys | Kissat UNSAT | CaDiCaL UNSAT | Other |
-",
+           "| Original HDL | Sampled quadratic identities | Verified by Yosys | Kissat UNSAT | CaDiCaL UNSAT | Other |",
            "|---|---:|---:|---:|---:|---|"]
     for name,row in summary["cases"].items():
         candidate=row["selected_cones"]
