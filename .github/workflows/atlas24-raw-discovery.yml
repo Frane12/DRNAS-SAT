@@ -1,0 +1,24 @@
+name: DRNAS ATLAS24 raw discovery
+on:
+  push:
+    branches: [experiment/atlas24-raw-discovery]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  raw:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Execute 240 cases on one logical CPU
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          python3 -c 'import os,runpy; os.sched_setaffinity(0,{min(os.sched_getaffinity(0))}); runpy.run_path("research/atlas24_raw/discover.py",run_name="__main__")' | tee results/atlas24.json
+          python3 -c 'import json; x=json.load(open("results/atlas24.json")); assert sum(x.values())==240; print("ATLAS24_240_PASS",x)'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: atlas24-raw-results
+          path: results/
