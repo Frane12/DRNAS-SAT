@@ -1,0 +1,103 @@
+name: DRNAS REAL6.3 exact 32-bit original output bus independent LSB-halfadder proof
+on:
+  push:
+    branches: [experiment/real6-3-complete32-lsb-halfadder-20261124]
+    paths:
+      - 'apps/circuitcheck/real6_3_32_lsb.py'
+      - 'apps/circuitcheck/real6_3_32_lsb_verify.py'
+      - '.github/workflows/drnas-real6-3-32bit-lsb.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  source_complete32:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch ORIGINAL immutable REAL6 Yosys gate netlists
+        uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45348217885
+          github-token: ${{ github.token }}
+          pattern: real6-shard-*
+          path: real6-original
+          merge-multiple: false
+      - name: Fetch independently proven REAL6.1 64 one-bit original stage certs
+        uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45351123208
+          github-token: ${{ github.token }}
+          name: real6-1-retrospective-four-netlists-independent-certificates
+          path: base
+      - name: Fetch frozen 31-bit original source-bus proof (independently verified)
+        uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45357525568
+          github-token: ${{ github.token }}
+          name: real6-3-32bit-frozen-chacha-independent-proof
+          path: prior
+      - name: Discover original LSB halfadder and independently prove 32 output bits
+        run: |
+          set -euo pipefail
+          mkdir -p real6-3-complete32
+          net="$(find real6-original -path '*/chacha_qr/netlist.json' -print -quit)"
+          test -f "$net"
+          test -f base/chacha_qr/certificate.json
+          test -f prior/cha_candidate_paths.json
+          python3 -u apps/circuitcheck/real6_3_32_lsb.py \
+            --netlist "$net" \
+            --base-certificate base/chacha_qr/certificate.json \
+            --previous-paths prior/cha_candidate_paths.json \
+            --out real6-3-complete32/proposed.json | tee real6-3-complete32/detector.log
+          python3 -u apps/circuitcheck/real6_3_32_lsb_verify.py \
+            --netlist "$net" \
+            --base-certificate base/chacha_qr/certificate.json \
+            --previous-paths prior/cha_candidate_paths.json \
+            --proposal real6-3-complete32/proposed.json \
+            --out real6-3-complete32/independent.json | tee real6-3-complete32/verifier.log
+          export ORIGINAL_NET="$net"
+          python3 -u - <<'PY' | tee real6-3-complete32/adversarial.log
+          import copy,json,os,pathlib,sys,tempfile
+          sys.path.insert(0,"apps/circuitcheck")
+          from real6_3_32_lsb_verify import verify,Invalid
+          p=pathlib.Path("real6-3-complete32/proposed.json")
+          obj=json.loads(p.read_text())
+          check=json.loads(pathlib.Path("real6-3-complete32/independent.json").read_text())
+          assert check["status"]=="REAL6_3_SOURCE_32_BIT_INDEPENDENT_BDD_PROOF_PASS"
+          assert check["fully_verified_source_32bit_output_ports"]
+          assert all(r["source_output_bits"]==32 and r["verified_fulladder_bits"]==31
+                     and r["independent_local_cut_bits"]==64
+                     for r in check["fully_verified_source_32bit_output_ports"])
+          print("REAL6_3_ORIGINAL_32_BIT_PROOF_PASS",json.dumps(check),flush=True)
+          arguments=(os.environ["ORIGINAL_NET"],"base/chacha_qr/certificate.json","prior/cha_candidate_paths.json")
+          changes=[
+              ("FORGED_GATE_SHA",lambda o:o.update(source_gate_sha256="0"*64)),
+              ("FORGED_32_BIT_SUM",lambda o:o["proposals"][0]["lsb_half_adder"].update(sum_bit=999999)),
+              ("FORGED_CARRY",lambda o:o["proposals"][0]["lsb_half_adder"].update(carry_bit=999999)),
+              ("FORGED_OUTPUT_BIT_ORDER",lambda o:o["proposals"][0].update(output_port_bits=list(reversed(o["proposals"][0]["output_port_bits"])))),
+          ]
+          with tempfile.TemporaryDirectory() as td:
+              for label,modifier in changes:
+                  corrupt=copy.deepcopy(obj)
+                  modifier(corrupt)
+                  path=pathlib.Path(td)/"forged.json"
+                  path.write_text(json.dumps(corrupt))
+                  try:verify(*arguments,path)
+                  except (Invalid,KeyError,ValueError,TypeError):
+                      print("REAL6_3_32_TAMPER_REJECTED",label,flush=True)
+                  else:raise AssertionError("UNSOUND_TAMPER_ACCEPTED "+label)
+          print("REAL6_3_32_ALL_INDEPENDENT_ADVERSARIAL_TESTS_PASS",flush=True)
+          PY
+          sha256sum "$net" base/chacha_qr/certificate.json prior/cha_candidate_paths.json \
+            >real6-3-complete32/SOURCE_AND_CERT_SHAS.txt
+          printf '%s\n' 'Retrospective reused REAL6 public ChaCha source; source-gate cut-relative 2-state modular addition for all 32 output bits only. Not whole RTL time behavior, cryptography, SAT/UNSAT, or speedup.' >real6-3-complete32/PROOF_BOUNDARIES.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-REAL6-3-CHACHA-ORIGINAL-32-BIT-INDEPENDENT-PROOF
+          path: real6-3-complete32/
