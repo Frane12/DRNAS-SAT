@@ -1,0 +1,46 @@
+name: ATLAS29.0 bitvector structural diagnostic
+on:
+  push:
+    branches: [experiment/atlas290-bitvector-diagnostic]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnostic:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45395471536
+          github-token: ${{ github.token }}
+          name: ATLAS289-case-2
+          path: public
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45391230217
+          github-token: ${{ github.token }}
+          name: ATLAS285-core-and-proof-results
+          path: known
+      - name: Freeze two exact original CNFs
+        run: |
+          set -euo pipefail
+          mkdir -p inputs results
+          cp public/input.cnf inputs/bitvector.cnf
+          cp known/59505c4e0215/original.cnf inputs/chacha.cnf
+          echo 'bc3cf193d19ba1c5d0f5757de7630a3482a4301dacea7bf8a699e9e5e6c0b124  inputs/bitvector.cnf' | sha256sum -c -
+          echo '59505c4e0215465719fc9d3a2c35def7960254def64e949b8c28919bed044418  inputs/chacha.cnf' | sha256sum -c -
+      - name: Same CPU projection ablation
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os;print(min(os.sched_getaffinity(0)))')
+          taskset -c "$cpu" python3 -u research/atlas290/diagnose.py inputs results | tee results/log.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ATLAS290-bitvector-diagnostic
+          path: results/
