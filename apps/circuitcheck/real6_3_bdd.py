@@ -19,8 +19,8 @@ from real6_1_carry import gate_graph,sum_seeds
 MAX_DEPTH=32
 MAX_SEEDS=10000
 MAX_BDD_NODES=30000
-MAX_PATHS=24
-MAX_CHECKS=160000
+MAX_PATHS=8
+MAX_CHECKS=42000
 
 class Budget(Exception):pass
 class Unsupported(Exception):pass
