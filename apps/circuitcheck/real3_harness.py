@@ -78,7 +78,9 @@ def generated_harness(case):
                "assign mismatch=((|(got ^ expected)) | (|(got_err ^ expected_err)))")
     else:raise ValueError("UNKNOWN_CASE_KIND")
     if case["fault"]:
-        check+=" ^ 1'b1"
+        # Conditional fault requires an actual input-dependent SAT witness,
+        # rather than a trivially constant mismatch miter.
+        check+=" ^ "+("data[0]" if typ=="uart" else "data_in[0]")
     return spec+"\n"+check+";\nendmodule\n"
 
 def prepare_source(root:Path,case):
