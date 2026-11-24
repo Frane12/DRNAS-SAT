@@ -93,8 +93,8 @@ def sources():
         cases.append({"name":name,"type":"constructed_joint","source":path,
                       "sha256":sha(raw)})
     # Deliberate SAT negative: drop precisely one essential XOR truth-table clause.
-    blocker=next(pair for pair,info in sorted(m6["auxiliary_roles"].items())
-                 if info["kind"]=="XOR")
+    blocker=tuple(sorted((m6["selectors"][(0,0)],m6["selectors"][(1,0)])))
+    assert m6["auxiliary_roles"][blocker]["kind"]=="XOR"
     mutated,desc=build(6,seed=66006,remove_xor_blocker=blocker)
     assert desc["selectors"]==m6["selectors"]
     chosen=[0,0,1,2,3,4,5]
