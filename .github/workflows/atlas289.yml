@@ -1,0 +1,82 @@
+name: ATLAS28.9 prospective public CNFs
+on:
+  push:
+    branches: [experiment/atlas289-public-frozen]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  public:
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        case: [0,1,2,3,4,5,6,7,8,9]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify frozen solver code unchanged
+        run: |
+          set -euo pipefail
+          git fetch --depth 1 origin b9e198b10b70afe2aac5c6278c84a7de7a19d76d
+          git diff --exit-code FETCH_HEAD HEAD -- research/atlas288 research/atlas287 research/atlas286 research/atlas285 research/atlas281_cuts research/atlas27_integrated research/atlas26_raw research/atlas25_map apps/circuitcheck
+          sha256sum research/atlas289/prespec.json
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45360211946
+          github-token: ${{ github.token }}
+          name: DRNAS-ATLAS22-ORIGINAL-CHACHA32-CNF-CERTIFIED-PAIRED
+          path: baseline
+      - name: Build external checker
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/marijnheule/drat-trim.git /tmp/drat-trim
+          git -C /tmp/drat-trim rev-parse HEAD
+          gcc -O2 /tmp/drat-trim/drat-trim.c -o /tmp/drat-check
+          chmod +x baseline/atlas22_artifacts/solvers/{kissat,cadical}
+          sha256sum baseline/atlas22_artifacts/solvers/{kissat,cadical}
+          lscpu
+      - name: Paired public CNF test
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cpu=$(python3 -c 'import os;print(min(os.sched_getaffinity(0)))')
+          ulimit -v 6000000
+          taskset -c "$cpu" python3 -u research/atlas289/public.py ${{ matrix.case }} results baseline/atlas22_artifacts/solvers | tee results/run.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ATLAS289-case-${{ matrix.case }}
+          path: results/
+  aggregate:
+    needs: public
+    if: always()
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ATLAS289-case-*
+          path: shards
+      - name: Aggregate every selected case including failures
+        run: |
+          python3 - <<'PY'
+          import json,pathlib
+          rows=[]
+          for i in range(10):
+              p=pathlib.Path(f'shards/ATLAS289-case-{i}/rows.json')
+              if p.exists():rows.extend(json.loads(p.read_text()))
+              for a in ('ATLAS_GF2_ON','ATLAS_GF2_OFF','kissat','cadical'):
+                  if not any(r['case']==i and r['arm']==a for r in rows):rows.append(dict(case=i,arm=a,status='MISSING',audit='INCOMPLETE'))
+          pathlib.Path('summary.json').write_text(json.dumps(rows,indent=2))
+          accepted={'INDEPENDENT_PARTITION_UNSAT','AFFINE_CONTRADICTION_VERIFIED','ORIGINAL_MODEL_VERIFIED','EXTERNAL_DRAT_VERIFIED'}
+          for a in ('ATLAS_GF2_ON','ATLAS_GF2_OFF','kissat','cadical'):
+              rr=[r for r in rows if r['arm']==a]
+              print('ATLAS289_SUMMARY',a,json.dumps(dict(verified=sum(r['audit'] in accepted and r['status'] in ('SAT','UNSAT') for r in rr),counts={s:sum(r['status']==s for r in rr) for s in sorted({r['status'] for r in rr})})))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ATLAS289-summary
+          path: summary.json
