@@ -15,7 +15,7 @@ from extract import recover,Unsupported
 MAX_TOTAL=130.0
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def limits():
-    resource.setrlimit(resource.RLIMIT_AS,(3*1024**3,)*2)
+    resource.setrlimit(resource.RLIMIT_AS,(8*1024**3,)*2)
     resource.setrlimit(resource.RLIMIT_FSIZE,(96*1024**2,)*2)
 def run(command,deadline):
     remain=deadline-time.perf_counter()
