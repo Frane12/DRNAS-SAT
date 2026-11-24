@@ -1,0 +1,84 @@
+name: DRNAS REAL6.3 source-only hidden carry 16-32-bit BDD proof
+on:
+  push:
+    branches: [experiment/real6-3-hidden-carry-20261124]
+    paths:
+      - 'apps/circuitcheck/real6_3_bdd.py'
+      - 'apps/circuitcheck/real6_3_verify.py'
+      - 'apps/circuitcheck/real6_3_selftest.py'
+      - '.github/workflows/drnas-real6-3-hidden-carry.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  controlled_hidden_carry:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Explicit 4 8 16 32-bit hidden carry, independent proof, adversarial sources
+        run: |
+          set -euo pipefail
+          python3 -u apps/circuitcheck/real6_3_selftest.py | tee REAL6_3_CONTROLLED.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real6-3-4-8-16-32-hidden-carry-tests
+          path: REAL6_3_CONTROLLED.log
+  prospective_reanalysis:
+    needs: controlled_hidden_carry
+    runs-on: ubuntu-22.04
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45348217885
+          github-token: ${{ github.token }}
+          pattern: real6-shard-*
+          path: original-real6
+          merge-multiple: false
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45351123208
+          github-token: ${{ github.token }}
+          name: real6-1-retrospective-four-netlists-independent-certificates
+          path: original-real61
+      - name: All four original gates replay with independent BDD and complete status accounting
+        run: |
+          set -euo pipefail
+          mkdir -p real6-3-source-reanalysis
+          count=0
+          for net in original-real6/real6-shard-*/results/*/netlist.json; do
+            if [ ! -f "$net" ]; then continue; fi
+            case_id="$(basename "$(dirname "$net")")"
+            base="original-real61/$case_id/certificate.json"
+            test -f "$base"
+            target="real6-3-source-reanalysis/$case_id"
+            mkdir -p "$target"
+            echo "REAL6_3_ORIGINAL_GATE_SOURCE $case_id"
+            python3 -u apps/circuitcheck/real6_3_bdd.py --netlist "$net" --base-certificate "$base" --out "$target/proposed.json" | tee "$target/detection.log"
+            python3 -u apps/circuitcheck/real6_3_verify.py --netlist "$net" --base-certificate "$base" --report "$target/proposed.json" --out "$target/verified.json" | tee "$target/independent.log"
+            count=$((count+1))
+          done
+          test "$count" -eq 4
+          printf '%s\n' 'sha512_core stays UNKNOWN: frozen REAL6 Yosys frontend/dependency unsupported' >real6-3-source-reanalysis/sha512_core_UNSUPPORTED.txt
+          printf '%s\n' 'RETROSPECTIVE, NOT NEW BLIND DATA. All claims concern locally source-verified cut-relative combinational arithmetic; no SAT complexity or overall circuit correctness claim.' >real6-3-source-reanalysis/PROOF_SCOPE.txt
+          python3 - <<'PY'
+          import glob,json
+          print("REAL6_3_ORIGINAL_FOUR_SUMMARY")
+          for fn in sorted(glob.glob("real6-3-source-reanalysis/*/verified.json")):
+              res=json.load(open(fn))
+              src=fn.split("/")[1]
+              print(src,"paths",res["verified_candidate_paths"],
+                    "longest_exhaustively_BDD_verified_sum_bits",res["longest_independently_verified_sum_bits"],
+                    "max_free_cut_variables",res["max_free_cut_variables"])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real6-3-source-frozen-original-verified-bdd-results
+          path: real6-3-source-reanalysis/
