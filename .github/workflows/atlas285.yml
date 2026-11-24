@@ -1,0 +1,53 @@
+name: ATLAS28.5 exact core diagnosis
+on:
+  push:
+    branches: [experiment/atlas285-core-diagnostic]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  core:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45348217885
+          github-token: ${{ github.token }}
+          pattern: real6-shard-*
+          path: real6
+      - name: External proof checker
+        run: |
+          git clone --depth 1 https://github.com/marijnheule/drat-trim.git /tmp/drat-trim
+          git -C /tmp/drat-trim rev-parse HEAD
+          gcc -O2 /tmp/drat-trim/drat-trim.c -o /tmp/drat-check
+      - name: Exact core and adaptive projection on one CPU
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cpu=$(python3 -c 'import os;print(min(os.sched_getaffinity(0)))')
+          taskset -c "$cpu" python3 -u research/atlas285/core.py real6 results | tee results/log.txt
+          taskset -c "$cpu" python3 - <<'PY'
+          import json,subprocess,pathlib
+          p=pathlib.Path('results/summary.json')
+          rows=json.loads(p.read_text())
+          assert len(rows)==4
+          for r in rows:
+              if r['status']=='UNSAT':
+                  d=p.parent/r['sha'][:12]
+                  q=subprocess.run(['/tmp/drat-check',str(d/'original.cnf'),str(d/'proof.drup')],capture_output=True,text=True,timeout=60)
+                  (d/'drat-check.txt').write_text(q.stdout+q.stderr)
+                  assert 's VERIFIED' in q.stdout
+                  r['audit']='EXTERNAL_DRAT_VERIFIED'
+              else:r['audit']='NO_COMPLETE_PROOF'
+              print('ATLAS285_AUDIT',json.dumps(r),flush=True)
+          p.write_text(json.dumps(rows,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ATLAS285-core-and-proof-results
+          path: results/
