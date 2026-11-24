@@ -1,0 +1,56 @@
+[
+  {
+    "encoding": "pairwise",
+    "rejected_target": true,
+    "removed": 1,
+    "sha256": "af76a51d386da3993bd241489414e26f65bee35eea2abb988a9de25175d745de"
+  },
+  {
+    "encoding": "seqcounter",
+    "rejected_target": true,
+    "removed": 2,
+    "sha256": "04dc013b0caf483189a7a8344d9d4ad9c489ee864cc40ad7b4cb61d268ab6b2d"
+  },
+  {
+    "encoding": "sortnetwrk",
+    "rejected_target": true,
+    "removed": 3,
+    "sha256": "e84dcfde6e1d8bc6c53d50d6ef049f5dd40a8f47769fb316f73513e74788b9e3"
+  },
+  {
+    "encoding": "cardnetwrk",
+    "rejected_target": true,
+    "removed": 3,
+    "sha256": "c989949cc7c8a1d8865fc4278f85689af2cdd6db67513fc6e32dcabac5f420e7"
+  },
+  {
+    "encoding": "bitwise",
+    "rejected_target": true,
+    "removed": 1,
+    "sha256": "fd61b82ef12a1b958b426325cb80133770e38b39634ade55ed15a6b3a952b82f"
+  },
+  {
+    "encoding": "ladder",
+    "rejected_target": true,
+    "removed": 1,
+    "sha256": "d843fe296bf79719925f3f936018fcfa748229f2aaba5e4e48f2a5cf473723d5"
+  },
+  {
+    "encoding": "totalizer",
+    "rejected_target": true,
+    "removed": 3,
+    "sha256": "baf1de8522bf77a0ca956532c0e241f1e5b2ef5387b550ac19308203c2471bce"
+  },
+  {
+    "encoding": "mtotalizer",
+    "rejected_target": true,
+    "removed": 3,
+    "sha256": "bf1cd9e2e1f139005fb60c6e1ba5ecb838c6423ec86c61206da9c43e679aa9b4"
+  },
+  {
+    "encoding": "kmtotalizer",
+    "rejected_target": true,
+    "removed": 3,
+    "sha256": "0500a45517fe5712f4cb231d52323c2aa640d71e5dae742f23cf2b270d36d6a8"
+  }
+]

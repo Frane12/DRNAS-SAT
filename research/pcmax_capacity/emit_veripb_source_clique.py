@@ -101,6 +101,28 @@ def indices(cnf, cert):
         raise ValueError(f"missing_source_clause_ids demands={len(demand_index)}/{len(demand_targets)} mutex={len(mutex_index)}/{len(mutex_targets)}")
     return count,demand_index,mutex_index
 
+def write_capacity_steps(p, cert, demand_index, mutex_index):
+    """Compile a checked clique partition using the supplied proof-line IDs."""
+    capacity_ids=[]
+    resource_sizes=[]
+    for clique in cert["capacity_cliques"]:
+        xs=sorted(clique)
+        resource_sizes.append(len(xs))
+        if len(xs)<2:
+            raise ValueError("resource_not_a_clique")
+        prior=mutex_index[(xs[0],xs[1])]
+        for j in range(2,len(xs)):
+            newest=xs[j]
+            pair_ids=[mutex_index[(xs[k],newest)] for k in range(j)]
+            # Induction: j*(sum_(prefix + newest) ~x) >= j*(j-1)+1
+            # then divide by j, round up to sum ~x >= j.
+            prior=p.pol([*pair_ids,prior],scale_last=j-1,division=j)
+        capacity_ids.append(prior)
+    demand_ids=[demand_index[tuple(sorted(group))]
+                for group in cert["selected_groups"]]
+    p.finish(demand_ids,capacity_ids)
+    return resource_sizes
+
 def emit(cnf, certificate, output):
     started=time.perf_counter()
     cnf=Path(cnf)
@@ -119,24 +141,7 @@ def emit(cnf, certificate, output):
     try:
         with output.open("x") as f:
             p=Proof(f,count)
-            capacity_ids=[]
-            resource_sizes=[]
-            for clique in cert["capacity_cliques"]:
-                xs=sorted(clique)
-                resource_sizes.append(len(xs))
-                if len(xs)<2:
-                    raise ValueError("resource_not_a_clique")
-                prior=mutex_index[(xs[0],xs[1])]
-                for j in range(2,len(xs)):
-                    newest=xs[j]
-                    pair_ids=[mutex_index[(xs[k],newest)] for k in range(j)]
-                    # Induction: j*(sum_(prefix + newest) ~x) >= j*(j-1)+1
-                    # then divide by j, round up to sum ~x >= j.
-                    prior=p.pol([*pair_ids,prior],scale_last=j-1,division=j)
-                capacity_ids.append(prior)
-            demand_ids=[demand_index[tuple(sorted(group))]
-                        for group in cert["selected_groups"]]
-            p.finish(demand_ids,capacity_ids)
+            resource_sizes=write_capacity_steps(p,cert,demand_index,mutex_index)
             f.flush()
         size=output.stat().st_size
     except BaseException:
@@ -146,8 +151,8 @@ def emit(cnf, certificate, output):
                 source_sha256=hashlib.sha256(cnf.read_bytes()).hexdigest(),
                 proof_sha256=hashlib.sha256(output.read_bytes()).hexdigest(),
                 source_clause_count=count,
-                source_groups=len(demand_ids),resource_cliques=len(capacity_ids),
-                capacity_gap=len(demand_ids)-len(capacity_ids),
+                source_groups=len(demand_index),resource_cliques=len(resource_sizes),
+                capacity_gap=len(demand_index)-len(resource_sizes),
                 resource_clique_max=max(resource_sizes),
                 proof_pol_steps=p.pol_count,proof_bytes=size,
                 producer_s=round(time.perf_counter()-started,6))

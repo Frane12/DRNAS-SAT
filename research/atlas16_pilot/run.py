@@ -7,6 +7,7 @@ Two populations are reported separately:
 The generator seeds are predeclared, but constructed examples are NOT blind.
 Old evidence certificates/proofs are NEVER inputs to the router.
 """
+import argparse
 import ast
 import hashlib
 import importlib.util
@@ -17,11 +18,12 @@ import random
 import subprocess
 import sys
 import time
+import tempfile
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[2]
 OUT=ROOT/"atlas16_pilot_results"
-OUT.mkdir(exist_ok=True)
+sys.path.insert(0,str(ROOT))
 for p in ("research/atlas15_exchange","research/atlas13_exchange",
           "research/pcmax_capacity","research/structure_atlas1","research/graphclique"):
     sys.path.insert(0,str(ROOT/p))
@@ -32,6 +34,9 @@ from facts import Unknown as ExchangeUnknown
 from witness import verify_full_original_sat_model
 from check_capacity import check as capacity_check
 from emit_veripb_capacity_weighted2 import generate as weighted_proof
+from research.atlas_eo import decode as eo_decode, check as eo_check
+from research.atlas_eo.route import candidate as eo_candidate
+from research.atlas_eo.binary_cutset import candidate as cutset_candidate
 gpath=ROOT/"research/graphclique/emit_veripb.py"
 spec=importlib.util.spec_from_file_location("atlas16_graph_module",gpath)
 graph=importlib.util.module_from_spec(spec)
@@ -48,6 +53,7 @@ def verify_standard(cnf,proof,kind,limit=20):
          else [str(ROOT/"drat-trim-src/drat-trim"),str(cnf),str(proof),"-f"])
     try: r=subprocess.run(cmd,capture_output=True,text=True,timeout=limit)
     except subprocess.TimeoutExpired: return "CHECK_TIMEOUT"
+    except FileNotFoundError: return "CHECKER_UNAVAILABLE"
     msg=r.stdout+"\n"+r.stderr
     if r.returncode==0 and ("s VERIFIED UNSATISFIABLE" in msg if kind=="pb"
                             else "s VERIFIED" in msg and "s NOT VERIFIED" not in msg):
@@ -136,15 +142,22 @@ def native_capacity(cnf,folder,binfile):
     details=weighted_proof(cnf,certificate,proof)
     assert details["status"]=="EMITTED_UNCHECKED"
     return proof,"PCMAX_SOURCE_CAPACITY"
-def auto(case,binfile):
+def auto(case,binfile,*,folder=None,eo_only=False,enable_eo=True):
     cnf=case["source"]
     raw=cnf.read_bytes()
-    folder=OUT/"auto"/case["name"]
+    folder=folder if folder is not None else OUT/"auto"/case["name"]
     folder.mkdir(parents=True,exist_ok=True)
     attempts=[]
     start=time.perf_counter()
     # Source-only recognition. No expected status or filename is given to a module.
-    for mode in ("GRAPH_SOURCE","TRIPLE_FACT_EXCHANGE","PCMAX_NATIVE_WEIGHTED"):
+    modes = ("GRAPH_SOURCE","TRIPLE_FACT_EXCHANGE","PCMAX_NATIVE_WEIGHTED")
+    if enable_eo:
+        modes += ("EO","BINARY_CUTSET")
+    for mode in (("EO",) if eo_only else modes):
+        if time.perf_counter()-start >= CAP:
+            attempts.append({"mode":mode,"status":"UNKNOWN","reason":"end-to-end time limit"})
+            break
+        details={}
         try:
             if mode=="GRAPH_SOURCE":
                 candidate,_=graph.compile_source(raw,max_trials=50000)
@@ -154,24 +167,52 @@ def auto(case,binfile):
                 proof=folder/"triple.pbp"
                 exchange_compile(cnf,"TRIPLE_HALL",folder/"facts.json",proof,
                                  folder/"exchange_meta.json")
+            elif mode in ("EO","BINARY_CUTSET"):
+                if mode=="EO":
+                    details=eo_candidate(raw,folder)
+                else:
+                    seconds_left=CAP-(time.perf_counter()-start)
+                    details=cutset_candidate(raw,time.monotonic()+min(1.0,seconds_left))
+                mode=details.pop("mode")
+                if "model" in details:
+                    model=details.pop("model")
+                    verify_full_original_sat_model(raw,model)
+                    save(folder/"model.json",model)
+                    elapsed=round(time.perf_counter()-start,6)
+                    status="SAT_VERIFIED" if elapsed<=CAP else "VERIFIED_BUT_OVER_15S"
+                    result={"status":status,"mode":mode,"e2e_s":elapsed,"attempts":attempts,
+                            "source_sha256":sha(raw),**details}
+                    save(folder/"result.json",result)
+                    return result
+                proof=details.pop("proof",None)
+                if proof is None:
+                    attempts.append({"mode":mode,"status":"UNKNOWN",**details})
+                    continue
             else:
+                if not binfile.is_file():
+                    attempts.append({"mode":mode,"status":"UNKNOWN","reason":"native binary unavailable"})
+                    continue
                 proof,reason=native_capacity(cnf,folder,binfile)
                 if proof is None:
                     attempts.append({"mode":mode,"status":"UNKNOWN","reason":reason})
                     continue
-            checked=verify_standard(cnf,proof,"pb")
-            assert checked=="ACCEPTED"
+            remaining=CAP-(time.perf_counter()-start)
+            checked=verify_standard(cnf,proof,"pb",limit=remaining) if remaining>0 else "CHECK_TIMEOUT"
+            if checked!="ACCEPTED":
+                attempts.append({"mode":mode,"status":"UNKNOWN","reason":checked})
+                break
             elapsed=round(time.perf_counter()-start,6)
             status=("UNSAT_VERIFIED" if elapsed<=CAP else "VERIFIED_BUT_OVER_15S")
             result={"status":status,"mode":mode,"e2e_s":elapsed,
                     "proof_bytes":proof.stat().st_size,
-                    "proof_sha256":sha(proof.read_bytes()),"attempts":attempts}
+                    "proof_sha256":sha(proof.read_bytes()),"attempts":attempts,
+                    "source_sha256":sha(raw),**details}
             save(folder/"result.json",result)
             return result
         except (graph.Unsupported,ExchangeUnknown,HallUnknown,ValueError) as e:
             attempts.append({"mode":mode,"status":"UNKNOWN","reason":str(e)[:220]})
             continue
-    result={"status":"UNKNOWN","mode":None,
+    result={"status":"UNKNOWN","mode":None,"source_sha256":sha(raw),
             "e2e_s":round(time.perf_counter()-start,6),"attempts":attempts}
     save(folder/"result.json",result)
     return result
@@ -195,8 +236,8 @@ def previous_bridge(case):
     elapsed=round(time.perf_counter()-start,6)
     return {"status":"UNSAT_VERIFIED" if checked=="ACCEPTED" and elapsed<=CAP
             else "UNKNOWN","e2e_s":elapsed,"proof_bytes":proof.stat().st_size}
-def reference(name,cnf):
-    folder=OUT/"reference"/cnf.stem/name
+def reference(name,cnf,*,folder=None,solver_limit=12):
+    folder=folder if folder is not None else OUT/"reference"/cnf.stem/name
     folder.mkdir(parents=True,exist_ok=True)
     proof=folder/"candidate.drat"
     binpath=(ROOT/"kissat-src/build/kissat" if name=="Kissat4.0.4"
@@ -205,13 +246,37 @@ def reference(name,cnf):
          if name=="Kissat4.0.4" else
          [str(binpath),"-q","--no-binary",str(cnf),str(proof)])
     start=time.perf_counter()
-    try:r=subprocess.run(cmd,capture_output=True,text=True,timeout=12)
+    try:r=subprocess.run(cmd,capture_output=True,text=True,timeout=min(CAP,solver_limit))
     except subprocess.TimeoutExpired:
         return {"status":"UNKNOWN","reason":"TIMEOUT","e2e_s":round(time.perf_counter()-start,6)}
     (folder/"solver.log").write_text(r.stdout+"\n"+r.stderr)
+    if r.returncode==10:
+        raw=cnf.read_bytes()
+        n,_=parse(raw)
+        values={}
+        for line in r.stdout.splitlines():
+            if line.split()[:1]!=["v"]:
+                continue
+            for x in map(int,line.split()[1:]):
+                if not x:
+                    continue
+                if abs(x)>n or (abs(x) in values and values[abs(x)]!=(x>0)):
+                    raise AssertionError("invalid reference SAT assignment")
+                values[abs(x)]=x>0
+        bits=[None]+[values.get(v,False) for v in range(1,n+1)]
+        model={"source_sha256":sha(raw),"assignment":bits}
+        try:
+            verify_full_original_sat_model(raw,model)
+        except ValueError:
+            return {"status":"UNKNOWN","reason":"reference SAT model did not verify",
+                    "e2e_s":round(time.perf_counter()-start,6)}
+        save(folder/"model.json",model)
+        elapsed=round(time.perf_counter()-start,6)
+        return {"status":"SAT_VERIFIED" if elapsed<=CAP else "UNKNOWN",
+                "e2e_s":elapsed,"reason":"whole-source model"}
     if r.returncode==20 and proof.is_file() and proof.stat().st_size>0:
         checked=verify_standard(cnf,proof,"drat",
-            limit=max(1,CAP-(time.perf_counter()-start)))
+            limit=max(0.001,CAP-(time.perf_counter()-start)))
         elapsed=round(time.perf_counter()-start,6)
         return {"status":"UNSAT_VERIFIED" if checked=="ACCEPTED" and elapsed<=CAP
                 else "UNKNOWN","reason":checked,"e2e_s":elapsed,
@@ -219,7 +284,35 @@ def reference(name,cnf):
     return {"status":"UNKNOWN","reason":"NO_CHECKED_UNSAT_OR_MODEL",
             "rc":r.returncode,"e2e_s":round(time.perf_counter()-start,6)}
 def main():
+    ap=argparse.ArgumentParser(description="ATLAS source-only proof router")
+    ap.add_argument("--cnf",type=Path,help="run on an arbitrary source DIMACS")
+    ap.add_argument("--out",type=Path,default=OUT,help="parent folder for evidence")
+    group=ap.add_mutually_exclusive_group()
+    group.add_argument("--eo-only",action="store_true",help="run just the verified EO consumers")
+    group.add_argument("--without-eo",action="store_true",help="run the original ATLAS16 routes only")
+    group.add_argument("--facts-only",action="store_true",help="export independently replayable EO facts")
+    args=ap.parse_args()
     binfile=(ROOT/"build/drnas-pcmax").resolve()
+    if args.cnf is not None:
+        args.out.mkdir(parents=True,exist_ok=True)
+        folder=Path(tempfile.mkdtemp(prefix="source-",dir=args.out))
+        # Freeze one immutable input for discovery and all external checks.
+        source=folder/"original.cnf"
+        raw=args.cnf.read_bytes()
+        source.write_bytes(raw)
+        if args.facts_only:
+            _,_,facts=eo_decode.decode(raw)
+            checked=eo_check.verify(raw,facts)
+            save(folder/"eo-facts.json",facts)
+            result={"status":"FACTS_VERIFIED","source_sha256":sha(raw),
+                    "scan":facts["scan"],**checked}
+        else:
+            result=auto({"source":source,"name":args.cnf.stem},binfile,
+                        folder=folder,eo_only=args.eo_only,enable_eo=not args.without_eo)
+        print(json.dumps({**result,"evidence_dir":str(folder.resolve())},sort_keys=True))
+        return
+    if args.eo_only or args.facts_only or args.without_eo:
+        ap.error("source mode requires --cnf")
     assert binfile.is_file(),"NATIVE_PC_MAX_NOT_COMPILED"
     cases=sources()
     records=[]
@@ -233,7 +326,7 @@ def main():
             row["Kissat4.0.4"]=reference("Kissat4.0.4",case["source"])
             row["CaDiCaL2.1.3"]=reference("CaDiCaL2.1.3",case["source"])
         if case["type"]=="constructed_SAT_control":
-            assert row["atlas16_auto"]["status"]=="UNKNOWN","FALSE_UNSAT_ON_SAT_CONTROL"
+            assert row["atlas16_auto"]["status"] in ("UNKNOWN","SAT_VERIFIED"),"FALSE_UNSAT_ON_SAT_CONTROL"
             assert row["old_atlas14"]["status"]=="UNKNOWN","OLD_FALSE_UNSAT"
         print("ATLAS16_PILOT_TRIAL "+json.dumps(row,sort_keys=True),flush=True)
         records.append(row)

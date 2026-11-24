@@ -13,11 +13,21 @@ from pathlib import Path
 class Invalid(ValueError):pass
 def require(x,why):
     if not x:raise Invalid(why)
-def parse(raw):
+def parse(raw, *, strict_premises=True):
     n=m=None;pending=[];rows=[]
+    ended=False
+    trailer_zero=False
     for line in raw.decode("ascii").splitlines():
         words=line.split()
         if not words or words[0]=="c":continue
+        if ended:
+            require(words==["0"] and not trailer_zero,"DIMACS_TRAILING_DATA")
+            trailer_zero=True
+            continue
+        if words==["%"]:
+            require(n is not None and not pending and len(rows)==m,"DIMACS_EARLY_END")
+            ended=True
+            continue
         if words[0]=="p":
             require(n is None and len(words)==4 and words[1]=="cnf","DIMACS_HEADER")
             n,m=map(int,words[2:])
@@ -29,9 +39,10 @@ def parse(raw):
             require(abs(lit)<=n,"DIMACS_LITERAL_RANGE")
             if lit:pending.append(lit)
             else:
-                require(len(pending)==len(set(pending)) and
-                        not any(-x in pending for x in pending),
-                        "DIMACS_REPEATED_OR_TAUTOLOGICAL")
+                if strict_premises:
+                    require(len(pending)==len(set(pending)) and
+                            not any(-x in pending for x in pending),
+                            "DIMACS_REPEATED_OR_TAUTOLOGICAL")
                 rows.append(tuple(pending));pending=[]
     require(n is not None and not pending and len(rows)==m,"DIMACS_CLAUSE_COUNT")
     return n,rows
@@ -145,7 +156,7 @@ def verify_full_original_sat_model(raw,model):
     This uses only the independently parsed ORIGINAL CNF and the complete
     model, never the generator, discovery algorithm or a saved status.
     """
-    n,rows=parse(raw)
+    n,rows=parse(raw,strict_premises=False)
     require(type(model) is dict and
             model.get("source_sha256")==hashlib.sha256(raw).hexdigest(),
             "SAT_WITNESS_ORIGINAL_SHA")
