@@ -1,0 +1,72 @@
+name: ATLAS32 DMD1 proof differential
+on:
+  push:
+    branches: [experiment/atlas32-dmd1-proof-differential]
+    paths: ['.github/workflows/atlas32-dmd.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        shard: [r16-3.5,r16-4.26,r16-5.0,r24-3.5,r24-4.26,r24-5.0,r48-3.5,r48-4.26,r48-5.0,r80-3.5,r80-4.26,r80-5.0,p0,p1,p2,p3,p4,p5,p6,p7,p8,p9]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45504908339
+          github-token: ${{ github.token }}
+          name: MRC-case-${{ matrix.shard }}
+          path: archived
+      - name: Independent proof checker and diagnostic syntax
+        run: |
+          set -euo pipefail
+          git clone https://github.com/marijnheule/drat-trim.git /tmp/drat-trim
+          git -C /tmp/drat-trim checkout 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+          gcc -O2 -D_GNU_SOURCE /tmp/drat-trim/drat-trim.c -o /tmp/drat-check
+          python3 -m py_compile research/atlas32/*.py
+      - name: Reconstruct residual and compare reference proof consequences
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cpu=$(python3 -c 'import os;print(min(os.sched_getaffinity(0)))')
+          ulimit -v 6000000
+          taskset -c "$cpu" python3 -u research/atlas32/dmd.py archived results | tee results/log.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DMD1-${{ matrix.shard }}
+          path: results/
+  aggregate:
+    needs: diagnose
+    if: always()
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: DMD1-*
+          path: shards
+      - name: Summarize diagnostic evidence only
+        run: |
+          python3 - <<'PY'
+          import pathlib,json,collections
+          rows=[r for p in pathlib.Path('shards').rglob('rows.json') for r in json.loads(p.read_text())]
+          print('DMD_CASES',len(rows),'planned 53 UNKNOWN cases', 'traced',sum(r['traced'] for r in rows))
+          print('DMD_WALLS',dict(collections.Counter(r['original_reason'] for r in rows)))
+          for arm in ('kissat','cadical'):
+              refs=[z for r in rows for z in r['references'] if z['arm']==arm]
+              ss=[s for z in refs for s in z.get('samples',[])]
+              print('DMD_SUMMARY',arm,json.dumps(dict(references=len(refs),verified_unsat=sum(z.get('proof_reverified',False) for z in refs),sat_models=sum(z.get('original_model_valid',False) for z in refs),sat_residual_compatible=sum(z.get('residual_model_valid',False) for z in refs),sampled=len(ss),original_rup=sum(s['original_rup'] is True for s in ss),local_exact=sum(s['local_exact'] is True for s in ss),local_not_up=sum(s['local_exact'] is True and s['original_rup'] is False for s in ss),residual_counts=dict(collections.Counter(s['residual'] for s in ss)),candidate_gap=sum((s['local_exact'] is True or s['original_rup'] is True) and s['residual']=='NOT_ENTAILED_BY_CONTAINED_FACTORS' for s in ss))))
+          pathlib.Path('summary.json').write_text(json.dumps(rows,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DMD1-summary
+          path: summary.json
