@@ -1,0 +1,48 @@
+name: DRNAS REAL6 CH MAJ full adder on five original FPGA networks
+
+on:
+  push:
+    branches:
+      - experiment/real6-motif-linking-20261124
+    paths:
+      - 'apps/circuitcheck/real6_pilot.py'
+      - '.github/workflows/drnas-real6-pilot.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  retrospective:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: DRNAS-REAL5Q-FIVE-ORIGINAL-FPGA-ANF-BOUNDED-DEGREE2
+          repository: Frane12/DRNAS-SAT
+          run-id: 45344738069
+          github-token: ${{ github.token }}
+          path: previous
+      - name: Recheck all original public RTL GF2 ANF proof and CH MAJ full adder identities
+        run: |
+          set -euo pipefail
+          echo 'f27a4a3f2efc73d0c8aa35fcca8092acf5d973a8b46004de2c1d90706ebb4365  apps/circuitcheck/real6_motifs.py' | sha256sum -c -
+          echo '28d660b8486f8590ea3fa2091a18e6df9cec7cd95c76b59d8315ecf5956ab803  apps/circuitcheck/real6_verify.py' | sha256sum -c -
+          python3 -u apps/circuitcheck/real6_pilot.py \
+            --source previous/REAL5Q_RESULTS \
+            --out REAL6_RESULTS | tee REAL6_REAL_HARDWARE_LOG.txt
+          cat REAL6_RESULTS/REAL6_HARDWARE_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-REAL6-FIVE-ORIGINAL-FPGA-MOTIF-AND-ADDER-AUDIT
+          path: |
+            REAL6_RESULTS/
+            REAL6_REAL_HARDWARE_LOG.txt
+          if-no-files-found: warn
+          retention-days: 90
