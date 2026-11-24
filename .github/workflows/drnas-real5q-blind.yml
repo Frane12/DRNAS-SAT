@@ -1,0 +1,156 @@
+name: DRNAS REAL5Q prospective 5 unseen FPGA RTL exact GF2 polynomial validation
+
+on:
+  push:
+    branches:
+      - experiment/real5-crosscone-gf2-relations-20261124
+    paths:
+      - 'apps/circuitcheck/real5q_blind_freeze.py'
+      - 'apps/circuitcheck/real5q_blind_run.py'
+      - 'apps/circuitcheck/real5q_blind_audit.py'
+      - '.github/workflows/drnas-real5q-blind.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  freeze_new:
+    name: Prospective immutable source freeze AFTER certified math engine prelock
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check exact prior math engine and verifier SHA pins
+        run: |
+          set -euo pipefail
+          echo 'fc0ed0b1a57bd5b0df75ba3f307faccef7a763edb39408e20e278cd09d40d35a  apps/circuitcheck/real5q_anf.py' | sha256sum -c -
+          echo 'a7203de8c48148dc24a9bb37f593e1b924b5e3d24c8cdf767e6bbd91c117738b  apps/circuitcheck/real5q_verify.py' | sha256sum -c -
+          python3 -m py_compile apps/circuitcheck/real5q_blind_freeze.py apps/circuitcheck/real5q_blind_run.py apps/circuitcheck/real5q_blind_audit.py
+      - name: Freeze original unmodified 5 new third-party RTL source files and exact blobs
+        run: |
+          set -euo pipefail
+          python3 -u apps/circuitcheck/real5q_blind_freeze.py --out frozen | tee REAL5Q_FROZEN.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open('frozen/manifest.json'))
+          assert len(d['cases'])==5
+          assert d['prelock_run']==45344568141
+          assert len({x['repo'] for x in d['cases']})>=4
+          print('REAL5Q_PROSPECTIVE_COHORT_IMMUTABLE_FIVE')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: real5q-blind-five-new-rtl-frozen-original
+          path: frozen/
+          if-no-files-found: error
+          retention-days: 90
+
+  shards:
+    needs: freeze_new
+    name: Prospective real FPGA GF2 proof and SAT shard ${{ matrix.shard }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 29
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        shard: [0,1,2]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: real5q-blind-five-new-rtl-frozen-original
+          path: frozen
+      - name: Install Yosys, time, compiler and repair broken apt index only
+        run: |
+          set -euo pipefail
+          sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a || true
+          if ! sudo DEBIAN_FRONTEND=noninteractive timeout 120s apt-get install -y -qq yosys time build-essential; then
+             sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a
+             sudo timeout 120s apt-get update -qq
+             sudo DEBIAN_FRONTEND=noninteractive timeout 120s apt-get install -y -qq yosys time build-essential
+          fi
+          yosys -V
+      - name: Source-build CaDiCaL 1.7.3 and exact pinned Kissat
+        run: |
+          set -euo pipefail
+          mkdir -p compiled
+          git clone -q https://github.com/arminbiere/cadical.git /tmp/real5q-blind-cadical
+          git -C /tmp/real5q-blind-cadical checkout -q --detach rel-1.7.3
+          (cd /tmp/real5q-blind-cadical && ./configure && make -j2 >/tmp/cadical-build.log)
+          cp /tmp/real5q-blind-cadical/build/cadical compiled/cadical
+          chmod +x compiled/cadical
+          git clone -q https://github.com/arminbiere/kissat.git /tmp/real5q-blind-kissat
+          git -C /tmp/real5q-blind-kissat checkout -q --detach 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          test "$(git -C /tmp/real5q-blind-kissat rev-parse HEAD)" = 8af8e56f174b778aef3aa45af9f739b2a5f492c2
+          (cd /tmp/real5q-blind-kissat && ./configure && make -j2 >/tmp/kissat-build.log)
+          cp /tmp/real5q-blind-kissat/build/kissat compiled/kissat
+          chmod +x compiled/kissat
+          sha256sum compiled/kissat compiled/cadical | tee compiled/SAT_BINARY_PINS.txt
+      - name: Same unchanged source, prelocked degree2 algebra, independent replay, same gate-CNF paired SAT
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          echo 'fc0ed0b1a57bd5b0df75ba3f307faccef7a763edb39408e20e278cd09d40d35a  apps/circuitcheck/real5q_anf.py' | sha256sum -c -
+          echo 'a7203de8c48148dc24a9bb37f593e1b924b5e3d24c8cdf767e6bbd91c117738b  apps/circuitcheck/real5q_verify.py' | sha256sum -c -
+          python3 -u apps/circuitcheck/real5q_blind_run.py \
+            --frozen frozen --out results \
+            --shard "$SHARD" --shards 3 \
+            --kissat "$(pwd)/compiled/kissat" \
+            --cadical "$(pwd)/compiled/cadical" \
+            | tee REAL5Q_SHARD_LIVE.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real5q-shard-${{ matrix.shard }}
+          path: |
+            results/
+            REAL5Q_SHARD_LIVE.log
+            compiled/SAT_BINARY_PINS.txt
+          if-no-files-found: warn
+          retention-days: 90
+
+  strict_audit:
+    needs: [freeze_new,shards]
+    if: always()
+    name: Complete prospective five-project original RTL and SAT strict audit
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: real5q-blind-five-new-rtl-frozen-original
+          path: frozen
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: real5q-shard-*
+          path: combined
+      - name: Independently recheck all sources, coefficients, cutpoints and SAME CNF SAT statuses
+        run: |
+          set -euo pipefail
+          python3 -u apps/circuitcheck/real5q_blind_audit.py \
+            --frozen frozen --combined combined \
+            --out REAL5Q_FINAL_RESULTS.json \
+            --report REAL5Q_FINAL_REPORT.md | tee REAL5Q_AUDIT.log
+          cat REAL5Q_FINAL_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DRNAS-REAL5Q-FIVE-UNSEEN-ORIGINAL-FPGA-FINAL-AUDIT
+          path: |
+            REAL5Q_FINAL_RESULTS.json
+            REAL5Q_FINAL_REPORT.md
+            REAL5Q_AUDIT.log
+            frozen/manifest.json
+          if-no-files-found: warn
+          retention-days: 90
