@@ -154,6 +154,7 @@ inline std::string hash(const std::string& raw){
 #include "gauge_vacuum_continue.hpp"
 #include "gauge_vacuum_inverse.hpp"
 #include "gauge_vacuum_path.hpp"
+#include "gauge_dual_norm.hpp"
 // Physical one-cycle SU(2) Hamiltonian in the character basis chi_{j/2}.
 // Exact tridiagonal Sturm counts; the entire infinite tail is bounded.
 inline int ks_sturm(int n,const Q& e,const Q& k,const Q& cut,const Q& correction,Clock::time_point stop){
@@ -334,6 +335,7 @@ inline int run(const std::string& raw,const std::filesystem::path& out,double se
     if(kind=="gauge-vacuum-continue")return gauge_vacuum_continue_run(raw,in,n,out,stop);
     if(kind=="gauge-vacuum-inverse")return gauge_vacuum_inverse_run(raw,in,n,out,stop);
     if(kind=="gauge-vacuum-path")return gauge_vacuum_path_run(raw,in,n,out,stop);
+    if(kind=="gauge-dual-norm")return gauge_dual_norm_run(raw,in,n,out,stop);
     if(kind=="decimation-gap")return decimation_run(raw,in,n,out,stop);
     if(kind=="multiscale-gap")return multiscale_run(raw,in,n,out,stop);
     Q e=0,g=0;

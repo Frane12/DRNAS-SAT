@@ -515,6 +515,30 @@ def gauge_vacuum_path_verify(words,raw,cert):
         path=rows,original_KS_uniform_gap=True,fixed_spacing=True,all_representations=True,
         continuum=False,coefficients_generated=False,proof_assistant_formalized=False)
 
+
+def gauge_dual_norm_verify(words,raw,cert):
+    if len(words)!=7:raise ValueError('dual norm header')
+    d=int(words[3]);alpha,k,target=map(q,words[4:7])
+    if d not in (2,3,4) or min(alpha,target)<=0:raise ValueError('parameters')
+    degree=2*(d-1);u=abs(k/alpha);x=degree*u;b=Q(8,3)
+    # Fourier trace-norm budget shared by the two adjacent spin sectors.
+    e0=(81*degree+4*degree*(degree-1)*(Q(1,2)*256+32))*(u/3)**2
+    e1=(324*degree+4*degree*(degree-1)*(2*256+Q(5,2)*32))*(u/3)**2
+    l=2*(3*16*4*Q(1,2)*Q(2,3)+3*16*Q(1,2)*Q(2,3))*x/3
+    z=Path(cert).read_text().split()
+    if len(z)!=12 or z[:3]!=['drnas-op-v1',hashlib.sha256(raw).hexdigest(),'gauge-dual-norm']:raise ValueError('binding')
+    xx,a0,a1,ll,r0,r1,beta,inv,gap=map(Q,z[3:])
+    if [xx,a0,a1,ll]!=[x,e0,e1,l] or min(r0,r1)<0:raise ValueError('constants')
+    if e0+l*r0+b*r0*r0>r0 or beta!=l+2*b*r0 or beta>=1:raise ValueError('weak contraction')
+    if inv!=1/(1-beta) or e1+2*l*r0+beta*r1>r1:raise ValueError('strong norm bootstrap')
+    if gap!=alpha*(Q(1,2)-Q(4,3)*(x+r1)) or gap<target:raise ValueError('curvature gap')
+    return dict(status='PROVED',certificate='ANALYTIC_BOUND',task='gauge-dual-norm',
+        dimension=d,ratio=str(k/alpha),weak_radius=str(r0),strong_radius=str(r1),
+        contraction_factor=str(beta),weak_inverse_norm_upper=str(inv),
+        gap_lower=str(gap),original_KS_uniform_gap=True,all_representations=True,
+        fixed_spacing=True,continuum=False,coefficients_generated=False,
+        proof_assistant_formalized=False)
+
 def verify(source,cert):
     raw=Path(source).read_bytes()
     if len(raw)>65536: raise ValueError('size')
@@ -534,6 +558,7 @@ def verify(source,cert):
     if kind=='gauge-vacuum-continue':return gauge_vacuum_continue_verify(words,raw,cert)
     if kind=='gauge-vacuum-inverse':return gauge_vacuum_inverse_verify(words,raw,cert)
     if kind=='gauge-vacuum-path':return gauge_vacuum_path_verify(words,raw,cert)
+    if kind=='gauge-dual-norm':return gauge_dual_norm_verify(words,raw,cert)
     if not 1<=n<=24: raise ValueError('dimension')
     if kind=='rotor-gap':return rotor_verify(words,raw,cert)
     if kind=='decimation-gap':return decimation_verify(words,raw,cert)
