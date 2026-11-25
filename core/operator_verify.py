@@ -113,6 +113,28 @@ def gauge_verify(words,raw,cert):
         excited_lower=str(lower),gap_lower=str(lower-upper),requested_gap=str(target),
         vertices=n,edges=m,loops=p,all_representations=True,volume_uniform=False)
 
+
+def gauge_stability_verify(words,raw,cert):
+    # This checks the normalization of a particular analytic theorem
+    # application, not an arbitrary numerical assertion about its constants.
+    if len(words)!=5:raise ValueError('stability header')
+    d=int(words[3]);alpha=q(words[4])
+    if not 2<=d<=4 or alpha<=0:raise ValueError('stability parameters')
+    import math
+    stencil=1+d
+    local_gap=alpha*Q(3,4)/stencil
+    beta_factor=2*math.comb(d,2)/local_gap
+    w=Path(cert).read_text().split()
+    if len(w)!=6 or w[:3]!=['drnas-op-v1',hashlib.sha256(raw).hexdigest(),'gauge-stability']:
+        raise ValueError('stability binding')
+    if int(w[3])!=stencil or Q(w[4])!=local_gap or Q(w[5])!=beta_factor:
+        raise ValueError('stability normalization')
+    return dict(status='THEOREM_APPLIED',certificate='THEOREM_APPLICATION',
+        task='gauge-stability',theorem='Yarotsky 2004 arXiv:math-ph/0412040 Theorem 1',
+        spatial_dimension=d,stencil_size=stencil,local_electric_gap=str(local_gap),
+        beta_per_abs_k=str(beta_factor),volume_uniform_for_sufficiently_small_coupling=True,
+        numerical_threshold_known=False,numerical_gap_known=False,continuum=False)
+
 def verify(source,cert):
     raw=Path(source).read_bytes()
     if len(raw)>65536: raise ValueError('size')
@@ -120,6 +142,7 @@ def verify(source,cert):
     if words[:2]!=['p','op']: raise ValueError('header')
     kind=words[2]; n=int(words[3])
     if kind=='gauge-gap':return gauge_verify(words,raw,cert)
+    if kind=='gauge-stability':return gauge_stability_verify(words,raw,cert)
     if not 1<=n<=24: raise ValueError('dimension')
     if kind=='rotor-gap':return rotor_verify(words,raw,cert)
     i=4; e=Q(0); g=Q(0)
