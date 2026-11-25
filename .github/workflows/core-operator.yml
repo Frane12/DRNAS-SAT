@@ -20,5 +20,7 @@ jobs:
         run: python3 core/operator_tests.py
       - name: Sparse symbolic operator proofs and controls
         run: python3 core/symbolic_tests.py
+      - name: Learned rule memory transfer and controls
+        run: python3 core/rule_memory_tests.py
       - name: Existing CNF regression
         run: python3 core/tests.py
