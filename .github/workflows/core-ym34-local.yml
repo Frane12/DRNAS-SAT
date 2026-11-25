@@ -1,0 +1,18 @@
+name: DRNAS CORE - YM34 volume-independent torus bounds
+on:
+  push:
+    branches: [experiment/ym34-local-torus, development/drnas-core]
+    paths: ['core/ym34_local*.py', 'core/YM34_LOCAL_TORUS_GAP.md', '.github/workflows/core-ym34-local.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  local-bounds:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 core/ym34_local_tests.py
+      - run: python3 core/ym33_torus_tests.py
