@@ -206,3 +206,7 @@ See [analytic equivalence and limitations](YM17_GAUGE_BLOCK.md). Actual pinned A
 ## YM31 — nonperturbative quantum valley closure (experimental)
 
 [Derivation and scope](YM31_MATRIX_VALLEYS.md). Exact SU(2) commutator identity and transverse oscillator lower forms in a bosonic matrix reduction. ATLAS selects coupling allocations; independent rational audit verifies no double counting and coverage. Compact resolvent/finite-model positive gap follow from analytic premises; no numerical or uniform gap, no transfer to full spatial Yang-Mills. Python research prototype, no native spectral cross-check. CI pending.
+
+## YM31 — transverse collective soft-mode obstruction (experimental)
+
+[Derivation and scope](YM31_GAUGE_SOFT_MODES.md). Exact coexact Rayleigh witnesses in free quadratic gauge theory eliminate all flat and pure gauge modes, yet retain a vanishing frequency bound in increasing volume. Negative control for structural mass claims; not an interacting SU(2) quantum result. Python research prototype, independent incidence-only audit, no ATLAS invocation. Run python3 core/cochain_tests.py. CI pending.

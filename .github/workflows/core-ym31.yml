@@ -1,8 +1,8 @@
-name: ATLAS and CORE - YM31 matrix valley closure
+name: DRNAS CORE - YM31 transverse collective soft modes
 on:
   push:
     branches: [development/drnas-core]
-    paths: ['core/atlas_matrix_valley.py','core/matrix_valley*','core/YM31_MATRIX_VALLEYS.md','.github/workflows/core-ym31.yml']
+    paths: ['core/cochain*','core/YM31_GAUGE_SOFT_MODES.md','.github/workflows/core-ym31.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -12,12 +12,5 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: actions/checkout@v4
-        with:
-          ref: 283af5a80491d31b08250c62e91a8118cc8c20bc
-          path: atlas-source
-          persist-credentials: false
-      - name: Quantum valley allocation and rational identity checks
-        run: python3 core/matrix_valley_tests.py atlas-source
+      - name: Exact cochain witness and orientation controls
+        run: python3 core/cochain_tests.py
