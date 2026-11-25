@@ -240,18 +240,57 @@ inline Partition replay_rules(const std::vector<Term>& terms,Q constant,const st
     return evaluate(terms,groups,types,constant,stop);
 }
 
+// A commuting Pauli Hamiltonian with constant sum |c| is a sum of
+// positive projectors. Signed Gaussian elimination proves a common zero
+// eigenspace exists (no -I in the generated group); a nontrivial generator
+// proves an excited eigenspace exists. Every nonzero energy >= min 2|c|.
+inline bool commuting_projector_gap(Sum a,int n,Q target,Clock::time_point stop,
+                                    int& rank,Q& lower){
+    if(target<=0)return false;
+    std::string id(n,'I');Q constant=a[id];a.erase(id);
+    if(a.empty())return false;
+    Q total=0;lower=0;
+    for(auto i=a.begin();i!=a.end();++i){
+        tick(stop);Q weight=absq(i->second);total+=weight;
+        if(lower==0||2*weight<lower)lower=2*weight;
+        for(auto j=a.begin();j!=i;++j){tick(stop);if(anti(i->first,j->first))return false;}
+    }
+    if(constant!=total||lower<target)return false;
+    std::map<int,std::pair<std::string,int>> basis;
+    auto pivot=[&](const std::string& word){
+        for(int i=0;i<n;++i){char c=word[i];
+            if(c=='X'||c=='Y')return 2*i;
+            if(c=='Z')return 2*i+1;
+        }return -1;
+    };
+    for(const auto& [word,c]:a){
+        tick(stop);std::string row=word;int sign=c<0?1:-1;
+        while(true){
+            int p=pivot(row);
+            if(p<0){if(sign<0)return false;break;}
+            auto it=basis.find(p);
+            if(it==basis.end()){basis.emplace(p,std::make_pair(row,sign));break;}
+            auto [prod,phase]=multiply(row,it->second.first);
+            if(phase%2)return false;
+            sign*=it->second.second*(phase==0?1:-1);row=std::move(prod);
+        }
+    }
+    rank=int(basis.size());return rank>0&&rank<=n;
+}
+
 inline int run(const std::string& raw,const std::filesystem::path& out,double seconds){
     auto stop=Clock::now()+std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(seconds));
     if(raw.size()>2000000)throw std::runtime_error("symbolic input limit");
     std::istringstream in(raw);std::string p,s,task,extra;int n,m,k=0;
     if(!(in>>p>>s>>task>>n>>m)||p!="p"||s!="sop"||n<1||n>256)throw std::runtime_error("symbolic header");
-    Q target=0;if(task=="lower"||task=="lower-fixed")target=core_operator::rational(in);
+    Q target=0;if(task=="lower"||task=="lower-fixed"||task=="projector-gap")target=core_operator::rational(in);
     else if(task=="commute"){if(!(in>>k))throw std::runtime_error("second term count");}
     else throw std::runtime_error("symbolic task");
     Sum a=read(in,n,m),b;if(task=="commute")b=read(in,n,k);if(in>>extra)throw std::runtime_error("trailing symbolic input");
     bool ok=false;std::string method="symbolic_limits";std::ostringstream proof;int attempts=0,memory_matches=0;bool memory_won=false;std::string best_bound="none";
     try{
         if(task=="commute"){ok=commutes(a,b,stop);method="sparse_commutator";}
+        else if(task=="projector-gap"){int rank=0;Q lower=0;ok=commuting_projector_gap(a,n,target,stop,rank,lower);method="commuting_projector_gap";if(ok)proof<<rank<<" "<<lower<<"\n";}
         else{
             std::string id(n,'I');Q constant=0;auto it=a.find(id);if(it!=a.end()){constant=it->second;a.erase(it);}
             std::vector<Term> terms(a.begin(),a.end());

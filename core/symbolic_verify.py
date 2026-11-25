@@ -14,7 +14,7 @@ def check(source,cert):
     if (next(w),next(w))!=('p','sop'): raise ValueError('header')
     task=next(w); n=int(next(w)); m=int(next(w))
     if not 1<=n<=256: raise ValueError('dimension')
-    if task in ('lower','lower-fixed'): target=Q(next(w)); k=0
+    if task in ('lower','lower-fixed','projector-gap'): target=Q(next(w)); k=0
     elif task=='commute': k=int(next(w)); target=0
     else: raise ValueError('task')
     def read(m):
@@ -37,7 +37,35 @@ def check(source,cert):
     def anti(u,v):
         x,y=u; X,Y=v
         return ((x&Y).bit_count()+(y&X).bit_count())%2
-    if task=='commute':
+    if task=='projector-gap':
+        claimed_rank=int(next(z)); claimed_gap=Q(next(z))
+        constant=a.pop('I'*n,Q(0))
+        if not a or target<=0 or constant!=sum(abs(c) for c in a.values()):
+            raise ValueError('projector decomposition')
+        lower=min(2*abs(c) for c in a.values())
+        if lower!=claimed_gap or lower<target: raise ValueError('gap bound')
+        rows=[(bits(s),c) for s,c in a.items()]
+        if any(anti(u,v) for (u,c),(v,d) in itertools.combinations(rows,2)):
+            raise ValueError('noncommuting projectors')
+        # Independent binary elimination in X^x Z^z basis. Phase incorporates
+        # the desired sign, and multiplication tracks the exact complex phase.
+        basis={}
+        for (x,y),c in rows:
+            phase=((x&y).bit_count()+(2 if c>0 else 0))%4
+            while x or y:
+                pivot=(x|(y<<n)).bit_length()-1
+                if pivot not in basis:
+                    basis[pivot]=(x,y,phase)
+                    break
+                X,Y,p=basis[pivot]
+                phase=(phase+p+2*(y&X).bit_count())%4
+                x^=X;y^=Y
+            else:
+                if phase: raise ValueError('inconsistent signed projectors')
+        rank=len(basis)
+        if rank!=claimed_rank or not 1<=rank<=n: raise ValueError('rank')
+        result=dict(ground='0',gap_lower=str(lower),rank=rank,ground_dimension=str(1<<(n-rank)))
+    elif task=='commute':
         accum=defaultdict(Q)
         for s,c in a.items():
             x,y=bits(s)
