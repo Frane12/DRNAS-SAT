@@ -83,7 +83,9 @@ inline std::string emit_certificate(const std::string& digest,
     return os.str();
 }
 inline Result xor_unit(const std::vector<std::vector<int>>& clauses,
-                       int nvars,const std::string& digest,double budget_s){
+                       int nvars,const std::string& digest,double budget_s,
+                       std::vector<int8_t>* affine_model=nullptr){
+    if(affine_model)affine_model->clear();
     Result out;
     out.reason="math4_no_eligible_xor_proof";
     const auto start=Clock::now();
@@ -247,6 +249,22 @@ inline Result xor_unit(const std::vector<std::vector<int>>& clauses,
             for(size_t j=0;j<provenance_width;++j)trace[j]^=b->trace[j];
             rhs^=b->rhs;
         }
+    }
+    if(affine_model){
+        // Highest variable is the pivot. Set free variables to zero and
+        // substitute lower pivots first. This is a seed for original-CNF checks.
+        std::vector<uint64_t> chosen(width,0);
+        std::vector<int8_t> model(size_t(nvars)+1,0);
+        for(int pivot=0;pivot<nvars;++pivot){
+            const auto& row=basis[size_t(pivot)];
+            if(!row)continue;
+            int v=row->rhs;
+            for(int w=0;w<=pivot/64;++w)
+                v^=std::popcount(row->mask[size_t(w)]&chosen[size_t(w)])&1;
+            model[size_t(pivot)+1]=int8_t(v);
+            if(v)chosen[size_t(pivot)/64]|=uint64_t(1)<<(pivot&63);
+        }
+        *affine_model=std::move(model);
     }
     out.reason="math4_xor_up_consistent";
     return finish();
