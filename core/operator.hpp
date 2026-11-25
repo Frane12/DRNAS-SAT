@@ -143,11 +143,13 @@ inline std::string hash(const std::string& raw){
     if(!EVP_Digest(raw.data(),raw.size(),bytes,&count,EVP_sha256(),nullptr)||count!=32)throw std::runtime_error("SHA256");
     std::ostringstream o;o<<std::hex<<std::setfill('0');for(unsigned i=0;i<count;++i)o<<std::setw(2)<<unsigned(bytes[i]);return o.str();
 }
+#include "gauge_gap.hpp"
 inline int run(const std::string& raw,const std::filesystem::path& out,double seconds){
     auto stop=Clock::now()+std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(seconds));
     if(raw.size()>65536)throw std::runtime_error("operator input limit");
     std::istringstream in(raw);std::string p,op,kind,extra;int n;
-    if(!(in>>p>>op>>kind>>n)||p!="p"||op!="op"||n<1||n>24)throw std::runtime_error("operator header");
+    if(!(in>>p>>op>>kind>>n)||p!="p"||op!="op"||n<1||(kind=="gauge-gap"?n>256:n>24))throw std::runtime_error("operator header");
+    if(kind=="gauge-gap")return gauge_run(raw,in,n,out,stop);
     Q e=0,g=0;
     if(kind=="rotor-gap"){
         // Here n is the rotor count, not the matrix dimension.
