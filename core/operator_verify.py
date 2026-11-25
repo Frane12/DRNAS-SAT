@@ -30,6 +30,44 @@ def characteristic_plus(a):
         c.append(sum(((-1)**(j-1)*c[k-j]*traces[j] for j in range(1,k+1)),Q(0))/k)
     return c
 
+
+def rotor_verify(words,raw,cert):
+    from itertools import product
+    d,n=int(words[3]),int(words[4])
+    if d not in (1,2) or not 2<=n<=4 or len(words)!=8: raise ValueError('rotor parameters')
+    g,k,c=map(q,words[5:8])
+    if g<=0 or (d==1 and c): raise ValueError('rotor parameters')
+    lines=Path(cert).read_text().split()
+    if len(lines)!=6 or lines[:3]!=['drnas-op-v1',hashlib.sha256(raw).hexdigest(),'rotor-gap']:
+        raise ValueError('rotor binding')
+    upper,requested,lower=map(Q,lines[3:])
+    tail=Q(n*(n+2))-2*(d*abs(k)+abs(c))
+    if requested!=g or lower-upper<g or lower>=tail: raise ValueError('rotor gap bound')
+    # Independently enumerate coordinate differences, not native edge walk.
+    points=list(product(range(n),repeat=d))
+    outside=[z for z in product(range(n+1),repeat=d) if max(z)==n]
+    steps={tuple(int(i==j) for i in range(d)):k for j in range(d)}
+    if d==2: steps[(1,1)]=c
+    def entry(x,y):
+        if x==y:return Q(sum(j*(j+2) for j in x))
+        diff=tuple(a-b for a,b in zip(x,y))
+        return -steps.get(diff,steps.get(tuple(-v for v in diff),Q(0)))
+    a=[[entry(x,y) for y in points] for x in points]
+    boundary=[[entry(x,z) for z in outside] for x in points]
+    gram=[[sum(u*v for u,v in zip(x,y)) for y in boundary] for x in boundary]
+    def counts(m):
+        co=characteristic_plus(m)
+        nz=[x for x in co if x]
+        return sum((x<0)!=(y<0) for x,y in zip(nz,nz[1:])),len(m)-max(i for i,x in enumerate(co) if x)
+    neg,zero=counts(shift(a,upper))
+    if neg+zero<1:raise ValueError('Rayleigh upper bound')
+    b=shift(a,lower)
+    b=[[v-gram[i][j]/(tail-lower) for j,v in enumerate(row)] for i,row in enumerate(b)]
+    if counts(b)[0]>1:raise ValueError('Schur negative index')
+    return dict(status='PROVED',certificate='OPERATOR_EXACT',task='rotor-gap',
+                ground_upper=str(upper),excited_lower=str(lower),gap_lower=str(lower-upper),
+                tail_lower=str(tail),rotors=d,cutoff=n,infinite_representation=True)
+
 def verify(source,cert):
     raw=Path(source).read_bytes()
     if len(raw)>65536: raise ValueError('size')
@@ -37,6 +75,7 @@ def verify(source,cert):
     if words[:2]!=['p','op']: raise ValueError('header')
     kind=words[2]; n=int(words[3])
     if not 1<=n<=24: raise ValueError('dimension')
+    if kind=='rotor-gap':return rotor_verify(words,raw,cert)
     i=4; e=Q(0); g=Q(0)
     if kind=='gap': e=q(words[i]); i+=1
     if kind in ('gap','auto-gap','interval-gap'):
