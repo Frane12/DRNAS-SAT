@@ -1,0 +1,308 @@
+{
+  "freeze": "c4da19253f25f954ebf75de4d2aeb529b46d7573",
+  "archives": {
+    "aim": {
+      "url": "https://www.cs.ubc.ca/~hoos/SATLIB/Benchmarks/SAT/DIMACS/AIM/aim.tar.gz",
+      "sha256": "7e4e0076fdd840ed7bcc80c475509ed7726608b010cd3f181d503fe337473c85"
+    },
+    "jnh": {
+      "url": "https://www.cs.ubc.ca/~hoos/SATLIB/Benchmarks/SAT/DIMACS/JNH/jnh.tar.gz",
+      "sha256": "f2c41a8f11b017649de32ac7ffa377be8e5cc18d1c8601147ece713a9446d3cc"
+    },
+    "parity": {
+      "url": "https://www.cs.ubc.ca/~hoos/SATLIB/Benchmarks/SAT/DIMACS/PARITY/parity.tar.gz",
+      "sha256": "d18ef13699ec3aafe0e70861fc1b9316205a6264c818cf2f69ebf3478534ba4f"
+    },
+    "bmc": {
+      "url": "https://www.cs.ubc.ca/~hoos/SATLIB/Benchmarks/SAT/BMC/bmc.tar.gz",
+      "sha256": "5bda83de61aaa4f7fca7123b259c5d3fc0d6dfe8a22afdf3f09c7530ba3f5330"
+    },
+    "quasigroup": {
+      "url": "https://www.cs.ubc.ca/~hoos/SATLIB/Benchmarks/SAT/QG/QG.tar.gz",
+      "sha256": "6b8153ace76d0c0f042ce061360ebd40cdf67429b1477ffbdac631c2e9cc4207"
+    },
+    "colour75": {
+      "url": "https://www.cs.ubc.ca/~hoos/SATLIB/Benchmarks/SAT/GCP/flat75-180.tar.gz",
+      "sha256": "1cba07c3a5589264be1afb8386a12def2235a87b20c706c08c1e1ed33aec490a"
+    }
+  },
+  "excluded": [],
+  "cases": [
+    {
+      "id": "p-aim-1",
+      "group": "public",
+      "family": "aim",
+      "n": 50,
+      "clauses": 80,
+      "cnf_sha256": "2debeaf0ecdf4ca71173413bb0dc9f90d68478234ab6ea4c62c4885b2e149991",
+      "fingerprint": "82a6931524135f18a7759bc07a93f9b3fd9c52ea4c525c97c63b91773606afb9",
+      "member": "aim-50-1_6-yes1-1.cnf",
+      "original_sha256": "d96f1edb1db3d0e55a3ff0f7707517e41a79374acbb857df051e5441ab27657d"
+    },
+    {
+      "id": "p-aim-2",
+      "group": "public",
+      "family": "aim",
+      "n": 100,
+      "clauses": 160,
+      "cnf_sha256": "282566af8746f72fbb375bfdacb7cc9db5e88fb9a0bd087f36b39e6eb8b63336",
+      "fingerprint": "3fd5e0c64e463042082f25613ffc310a02aae81eb683c8f96c44db390fde55a7",
+      "member": "aim-100-1_6-yes1-4.cnf",
+      "original_sha256": "9769c011731f00bd7b8e9fc30e84b6434a863653889531cbf97ccc1af6fa7a7b"
+    },
+    {
+      "id": "p-aim-3",
+      "group": "public",
+      "family": "aim",
+      "n": 100,
+      "clauses": 200,
+      "cnf_sha256": "2ee44d3b7e07637c71552c34b9569114bfa4140da50eeec6f530006721c9057e",
+      "fingerprint": "b78b6ea0de3096b9507e196cbe620378192d06a2706c670d96ed4ce07aaf9711",
+      "member": "aim-100-2_0-yes1-4.cnf",
+      "original_sha256": "0fae4e8ba360cc4508546b7230fdec14f859eb7de47b6a84ce82fea90f0b1b81"
+    },
+    {
+      "id": "p-aim-4",
+      "group": "public",
+      "family": "aim",
+      "n": 50,
+      "clauses": 300,
+      "cnf_sha256": "6f15974beefe7536b7b6c1b5b3b9da436cbd165ec550098e38c574d856db42c3",
+      "fingerprint": "cd5b3ffd6abd575379f9ed3676adb9da052f2a118cf934af5a320aeb5905e57c",
+      "member": "aim-50-6_0-yes1-3.cnf",
+      "original_sha256": "666bf8876c55be2a0523d9021a54140ab3c00dab3a936dc105f92e11ba33501c"
+    },
+    {
+      "id": "p-jnh-1",
+      "group": "public",
+      "family": "jnh",
+      "n": 100,
+      "clauses": 800,
+      "cnf_sha256": "34e68cdf65b8287cd9d6696185e4c978f90d956f6d453f9f0d4a41c223780930",
+      "fingerprint": "38c5751deea9d8233f77847aed850b7f5bcc677f833b0541ae1bdbf423a30b69",
+      "member": "jnh210.cnf",
+      "original_sha256": "23b29c59ace9fdb63763e7e59f7d0fef5d7ed216fee15e56bf4b382744230348"
+    },
+    {
+      "id": "p-jnh-2",
+      "group": "public",
+      "family": "jnh",
+      "n": 100,
+      "clauses": 850,
+      "cnf_sha256": "2e11ca49793d29b48acf979f1d9ad529e65dd984bc64a1fc5f07267bc29ace38",
+      "fingerprint": "3815b64f078faff1ee2cdda9b066210de009eaf5f9a2c0dde39ee10555c3a8ff",
+      "member": "jnh13.cnf",
+      "original_sha256": "203e5c70323c5ff6a22bcaea74205b40d8eb4a63f8740997d26091ce9ab7a351"
+    },
+    {
+      "id": "p-jnh-3",
+      "group": "public",
+      "family": "jnh",
+      "n": 100,
+      "clauses": 800,
+      "cnf_sha256": "75e93eefbff596d9fa12aee1865094833b20c99cc411c8d7be8c014e3d0ac992",
+      "fingerprint": "a0446aada94bc2c95662ce0f48bb5f2a48e785dff065994ae4d658f141bbcc92",
+      "member": "jnh208.cnf",
+      "original_sha256": "c9da7b3822dd9f961c8d8503d8cea415ae5167721ed4560efc219a1bf676f55e"
+    },
+    {
+      "id": "p-jnh-4",
+      "group": "public",
+      "family": "jnh",
+      "n": 100,
+      "clauses": 800,
+      "cnf_sha256": "af55315bd488bd4bc74ffcabfe6217b9038a66aca9881a10746cf653a8e32344",
+      "fingerprint": "f9945479700733a31b1a3da46e4b20a45aa09aa97525ddab5727690a53451c27",
+      "member": "jnh219.cnf",
+      "original_sha256": "5075be1b2153a0614a4640c3e25e5389f2256e2b98dd4a40a6cc86651eedbf4a"
+    },
+    {
+      "id": "p-parity-1",
+      "group": "public",
+      "family": "parity",
+      "n": 1325,
+      "clauses": 5294,
+      "cnf_sha256": "1102a1be231f526683f178ac8250e904e872ae1c60c0b117af3ac3fc39d87cc3",
+      "fingerprint": "ebfd73d5f72ae18c1721eedabfa5b364c1f85e24dce2fbeac51cab01b2746741",
+      "member": "par32-3-c.cnf",
+      "original_sha256": "fe096410a048413b6279239143bab90bb5fb54037f7ac38d431cf81e892c12b6"
+    },
+    {
+      "id": "p-parity-2",
+      "group": "public",
+      "family": "parity",
+      "n": 75,
+      "clauses": 298,
+      "cnf_sha256": "4de639003c35ed517ea5aec834c7e4ea4c9b816ce4268b4c40e538cefc9f6a70",
+      "fingerprint": "f57831bb8a6ae6daf6abfb55091632159ea1f2a9462ccdb705135836766c0085",
+      "member": "par8-3-c.cnf",
+      "original_sha256": "50748f338e39ad96d9e64fd22b76df59d9b402bbbbb7fe0cd7533d038b079a02"
+    },
+    {
+      "id": "p-parity-3",
+      "group": "public",
+      "family": "parity",
+      "n": 1015,
+      "clauses": 3324,
+      "cnf_sha256": "26e002428e5c245b40a923dfa60f3787e8dd357375a1bfd904a4eeb72d611c86",
+      "fingerprint": "4e8b73f019dd9f5ff86a8d762b573ec67ae387757db8b4403defb2f51d66f266",
+      "member": "par16-4.cnf",
+      "original_sha256": "147cb73fd47b76c91881ffcec76fdd7080a99dc5fb3cec0f4237ebbe7160bb25"
+    },
+    {
+      "id": "p-parity-4",
+      "group": "public",
+      "family": "parity",
+      "n": 350,
+      "clauses": 1171,
+      "cnf_sha256": "ea664248231efaa98bfd06e75b399066ca7f3ef20dd9978b0b5976538bbb09db",
+      "fingerprint": "aaca1bd181251213e67015b7ea91e45f6803a4fbf19f31cec6d19c4d268e62a2",
+      "member": "par8-3.cnf",
+      "original_sha256": "a12e607de7884ae690e9470262a91d8a959a91e76a9616e4bc9a98f9b7e7065d"
+    },
+    {
+      "id": "p-bmc-1",
+      "group": "public",
+      "family": "bmc",
+      "n": 58074,
+      "clauses": 294821,
+      "cnf_sha256": "d4067ccc2797e13412aa3bc5b23d48a976962b558017a277950d4ca2bdad61dc",
+      "fingerprint": "54f9201d9830738a0b06c80f99c55c9040153538787b99af10546bbd13891694",
+      "member": "bmc-galileo-8.cnf",
+      "original_sha256": "d4067ccc2797e13412aa3bc5b23d48a976962b558017a277950d4ca2bdad61dc"
+    },
+    {
+      "id": "p-bmc-2",
+      "group": "public",
+      "family": "bmc",
+      "n": 2810,
+      "clauses": 11683,
+      "cnf_sha256": "f82d90198c950d16ca910d42fd28f3b049334785b275cd02ae6ac1c33cb597ba",
+      "fingerprint": "9b61152b0a9a878b50224decea1408c30a421b353020cb93f051173e411cd7c8",
+      "member": "bmc-ibm-2.cnf",
+      "original_sha256": "f82d90198c950d16ca910d42fd28f3b049334785b275cd02ae6ac1c33cb597ba"
+    },
+    {
+      "id": "p-bmc-3",
+      "group": "public",
+      "family": "bmc",
+      "n": 32109,
+      "clauses": 150027,
+      "cnf_sha256": "26b95b63aac1a133a263771fa6591bc0861de8335931fe55a4e2c00800b81bd0",
+      "fingerprint": "9d2f597deba514299263db23ed97b0bc54369cec77f0eef2001eab7ae90785aa",
+      "member": "bmc-ibm-11.cnf",
+      "original_sha256": "26b95b63aac1a133a263771fa6591bc0861de8335931fe55a4e2c00800b81bd0"
+    },
+    {
+      "id": "p-bmc-4",
+      "group": "public",
+      "family": "bmc",
+      "n": 63624,
+      "clauses": 326999,
+      "cnf_sha256": "3ab82be4e836102a752bb22c419877895fb2f159ab1a3e862c116c9f9a4e8628",
+      "fingerprint": "c7b30c0d1ffe06af07372ae16c3cc7fb6077f48a8abe646602fbd205544ab8c9",
+      "member": "bmc-galileo-9.cnf",
+      "original_sha256": "3ab82be4e836102a752bb22c419877895fb2f159ab1a3e862c116c9f9a4e8628"
+    },
+    {
+      "id": "p-quasigroup-1",
+      "group": "public",
+      "family": "quasigroup",
+      "n": 1728,
+      "clauses": 69931,
+      "cnf_sha256": "b26d4442f9ee6bb06fabc2818b0b880c51d103552da6ddb97fdac4f9d41becb9",
+      "fingerprint": "ea5f4cd216d2167da4bb69da9dfe58ad0579b1f28f5c3e2c2cacc47c1437a11c",
+      "member": "qg6-12.cnf",
+      "original_sha256": "b26d4442f9ee6bb06fabc2818b0b880c51d103552da6ddb97fdac4f9d41becb9"
+    },
+    {
+      "id": "p-quasigroup-2",
+      "group": "public",
+      "family": "quasigroup",
+      "n": 512,
+      "clauses": 148957,
+      "cnf_sha256": "5bbfb428a6469414d409442f63d4576fab63990faf85ea5d59d2b6baa397fc92",
+      "fingerprint": "c7bc4a4e2842211fa7c8ae51ec625a60aa2e2ea44a43c562d6775060343214a9",
+      "member": "qg2-08.cnf",
+      "original_sha256": "5bbfb428a6469414d409442f63d4576fab63990faf85ea5d59d2b6baa397fc92"
+    },
+    {
+      "id": "p-quasigroup-3",
+      "group": "public",
+      "family": "quasigroup",
+      "n": 1331,
+      "clauses": 49534,
+      "cnf_sha256": "5543e7c083a3d154abb88bd407b2aa899c288d8c7794fe35d7dfcd6f62a7e8b9",
+      "fingerprint": "58df7e067aab786f2b19dfeda30e6bc62d36acaceae487f71438d2b1f8b9f51d",
+      "member": "qg7-11.cnf",
+      "original_sha256": "5543e7c083a3d154abb88bd407b2aa899c288d8c7794fe35d7dfcd6f62a7e8b9"
+    },
+    {
+      "id": "p-quasigroup-4",
+      "group": "public",
+      "family": "quasigroup",
+      "n": 2197,
+      "clauses": 125464,
+      "cnf_sha256": "a5ee14fbfb2768d60505e84f789aa5c2caf9bd4f63c5ed3a4a482cf465dd2b38",
+      "fingerprint": "4cb65c0db4c56d2afdf1e270981b3e547c5a57ca8d921c2fedee993426d22d15",
+      "member": "qg5-13.cnf",
+      "original_sha256": "a5ee14fbfb2768d60505e84f789aa5c2caf9bd4f63c5ed3a4a482cf465dd2b38"
+    },
+    {
+      "id": "p-colour75-1",
+      "group": "public",
+      "family": "colour75",
+      "n": 225,
+      "clauses": 840,
+      "cnf_sha256": "3de8b2b3dfaaa8feabcfde8ffdedb93f9916916a55e4ca597775091919b5edfd",
+      "fingerprint": "db58c3d7833cd3fd3ab1d99d03713e0c2cd05e5d2c4ea28de5cbe4b7d25370c1",
+      "member": "ai/hoos/Research/SAT/GenGCP/Flat75-180/flat75-96.cnf",
+      "original_sha256": "608e047f67190af7845c5d75e719f70c3ed0196e43dbe1dc2acb4768ebd3b2c3"
+    },
+    {
+      "id": "p-colour75-2",
+      "group": "public",
+      "family": "colour75",
+      "n": 225,
+      "clauses": 840,
+      "cnf_sha256": "bc2614a0c8bcdff6f1b74d951d523086b7042383644b38dcfe94c6540dfa0050",
+      "fingerprint": "2522d3ad843f5df4c9507ff5fb82781af1ff88ea95233ecf5655366bf50743ed",
+      "member": "ai/hoos/Research/SAT/GenGCP/Flat75-180/flat75-4.cnf",
+      "original_sha256": "46d7a18cf5f7763279d4f8cbfc41180e9d98524bbf9f2a6cf3266817fdf09267"
+    },
+    {
+      "id": "p-colour75-3",
+      "group": "public",
+      "family": "colour75",
+      "n": 225,
+      "clauses": 840,
+      "cnf_sha256": "87f30962179e6d89f0273c0363c3d2ff9d1fd5b1364a8c4267d4ecd699935735",
+      "fingerprint": "622802d54e3afe18020c92d92bbbe7320af38f2b2365916f47762718cbe402b1",
+      "member": "ai/hoos/Research/SAT/GenGCP/Flat75-180/flat75-43.cnf",
+      "original_sha256": "ed88835beb9b6f301111fb8fa083c09e020d7e1a8c77e0890299b08580669727"
+    },
+    {
+      "id": "p-colour75-4",
+      "group": "public",
+      "family": "colour75",
+      "n": 225,
+      "clauses": 840,
+      "cnf_sha256": "c0c8739266900b9afa7cbe215d8b0d1b366e9c84d85f2ba0a2b42ac6ad31a2fb",
+      "fingerprint": "4b9497af9e75c01f32044ed0f9f053785c9526a3691a47d2e271b1fd7d7cfa81",
+      "member": "ai/hoos/Research/SAT/GenGCP/Flat75-180/flat75-26.cnf",
+      "original_sha256": "6829604dfe01dcbb25a876114bcc5b16f4bef46a3611517f7a78cc7ebde43963"
+    }
+  ],
+  "cohort": "postprojection-transfer",
+  "audit_counts": {
+    "toolbox_json_cnfs": 5673,
+    "toolbox_dimacs": 1357,
+    "git_blobs": 1433,
+    "git_dimacs": 26,
+    "unique_fingerprints": 2195,
+    "explicit_names": 1379,
+    "toolbox_archives": 19,
+    "previous_benchmark": 36,
+    "fault_controls": 6
+  }
+}
