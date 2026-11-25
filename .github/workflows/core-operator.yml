@@ -38,5 +38,7 @@ jobs:
         run: python3 core/stabilizer_gap_tests.py
       - name: Autonomous stabilizer discovery (YM11)
         run: python3 core/auto_stabilizer_tests.py
+      - name: Unknown-vacuum spectral interval proofs (YM11)
+        run: python3 core/interval_gap_tests.py
       - name: Existing CNF regression
         run: python3 core/tests.py
