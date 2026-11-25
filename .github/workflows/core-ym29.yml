@@ -1,0 +1,20 @@
+name: DRNAS CORE - YM29 direct Hessian
+on:
+  push:
+    branches: [development/drnas-core]
+    paths: ['core/gauge_direct_hessian*', 'core/operator.hpp', 'core/operator_verify.py', '.github/workflows/core-ym29.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies
+        run: sudo apt-get update && sudo apt-get install -y libssl-dev libboost-dev
+      - name: Build CORE
+        run: bash core/build.sh
+      - name: Direct Hessian certificates and previous range
+        run: python3 core/gauge_direct_hessian_tests.py

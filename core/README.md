@@ -194,3 +194,7 @@ See [analytic equivalence and limitations](YM17_GAUGE_BLOCK.md). Actual pinned A
 ## YM28 — two-norm vacuum bootstrap (experimental)
 
 [Derivation and scope](YM28_DUAL_NORM.md). Separate the weak Fourier contraction norm from the stronger Hessian norm; a mixed estimate transfers regularity to the limit. Rational certificates extend the previous sufficient strong-coupling interval. No weak-coupling or continuum claim, no full-lattice coefficients or ATLAS execution. Run python3 core/gauge_dual_norm_tests.py. CI pending.
+
+## YM29 — direct Hessian in N0 (experimental)
+
+[Derivation and limits](YM29_DIRECT_HESSIAN.md). Direct Fourier Hessian estimate removes the stronger-norm bootstrap for curvature; a shared spin-sector compression improves the defect. Native rational inequalities and independent audit; no full coefficient generation, proof-assistant formalization, weak-coupling or continuum result. Run python3 core/gauge_direct_hessian_tests.py. CI pending.
