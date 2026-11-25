@@ -275,11 +275,46 @@ inline int ks_ladder_run(const std::string& raw,std::istream& in,int m,const std
     return ok?30:0;
 }
 
+// Edge-disjoint equal cycles sharing ONLY a single vertex. The electric
+// Laplacians separate exactly; the physical space is the diagonal singlet.
+// Subtract the common exact ground energy before taking the volume limit.
+inline int ks_bouquet_run(const std::string& raw,std::istream& in,int len,const std::filesystem::path& out,Clock::time_point stop){
+    int n;if(len<3||len>24||!(in>>n)||n<3||n>128)throw std::runtime_error("bouquet dimensions");
+    Q a=rational(in),g2=rational(in),target=rational(in);std::string extra;
+    if(a<=0||g2<=0||target<=0||(in>>extra))throw std::runtime_error("bouquet parameters");
+    Q e=Q(len)*g2/(8*a),k=2/(a*g2),bottom=-2*k,tau=e*n*(n+2)-2*k;
+    Q u=0,ulo=bottom,l1=bottom,la=bottom,h1=tau,ha=tau,bound=0;
+    bool ok=false;
+    try{
+        for(int it=0;it<40;++it){
+            tick(stop);
+            Q mid=(ulo+u)/2;
+            if(angular_sturm(n,0,e,k,mid,false,stop)>=1)u=mid;else ulo=mid;
+            auto refine=[&](Q& lo,Q& hi,int l,int count){
+                Q cut=(lo+hi)/2;
+                if(angular_sturm(n,l,e,k,cut,true,stop)<=count)lo=cut;else hi=cut;
+            };
+            refine(l1,h1,0,1);refine(la,ha,1,0);
+            Q radial=l1-u,angular=2*(la-u);bound=radial<angular?radial:angular;
+            if(bound>=target){ok=true;break;}
+        }
+        tick(stop);
+    }catch(const Limit&){ok=false;}
+    if(ok){
+        std::ofstream o(out,std::ios::binary);
+        o<<"drnas-op-v1\n"<<hash(raw)<<"\nks-bouquet-gap "<<u<<" "<<l1<<" "<<la<<"\n";o.close();
+        if(!o)throw std::runtime_error("bouquet evidence");
+    }
+    std::cout<<"c {\"domain\":\"operator\",\"method\":\"ks_bouquet_exact_ground_cancellation\",\"certificate\":\""<<(ok?"OPERATOR_EXACT":"none")<<"\",\"candidate_bound\":\""<<bound<<"\"}\n";
+    return ok?30:0;
+}
+
 inline int run(const std::string& raw,const std::filesystem::path& out,double seconds){
     auto stop=Clock::now()+std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(seconds));
     if(raw.size()>65536)throw std::runtime_error("operator input limit");
     std::istringstream in(raw);std::string p,op,kind,extra;int n;
     if(!(in>>p>>op>>kind>>n)||p!="p"||op!="op"||n<1||((kind=="gauge-gap"||kind=="ks-ladder-gap")?n>256:n>24))throw std::runtime_error("operator header");
+    if(kind=="ks-bouquet-gap")return ks_bouquet_run(raw,in,n,out,stop);
     if(kind=="ks-ladder-gap")return ks_ladder_run(raw,in,n,out,stop);
     if(kind=="ks-pair-gap")return ks_pair_run(raw,in,n,out,stop);
     if(kind=="ks-loop-gap")return ks_loop_run(raw,in,n,out,stop);

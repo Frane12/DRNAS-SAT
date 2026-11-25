@@ -298,12 +298,47 @@ def ks_ladder_verify(words,raw,cert):
         per_plaquette_bracket_width=str(u-l0),cutoff=n,all_representations=True,
         volume_uniform=False,continuum=False,magnetic_electric_ratio=str(4/g2**2))
 
+def ks_bouquet_verify(words,raw,cert):
+    if len(words)!=8:raise ValueError('bouquet header')
+    length,n=map(int,words[3:5]);a,g2,target=map(q,words[5:8])
+    if not 3<=length<=24 or not 3<=n<=128 or min(a,g2,target)<=0:raise ValueError('bouquet parameters')
+    e=length*g2/(8*a);k=2/(a*g2);tau=e*n*(n+2)-2*k
+    z=Path(cert).read_text().split()
+    if len(z)!=6 or z[:3]!=['drnas-op-v1',hashlib.sha256(raw).hexdigest(),'ks-bouquet-gap']:raise ValueError('bouquet binding')
+    u,l1,la=map(Q,z[3:])
+    if max(l1,la)>=tau:raise ValueError('tail cut')
+    def hop(j,l):return k*k*(1-Q(l*(l+1),(j+1)*(j+2)))
+    def count(l,cut,correct):
+        d=[e*j*(j+2)-cut for j in range(l,n)]
+        if correct:d[-1]-=hop(n-1,l)/(tau-cut)
+        neg=0;i=0
+        while i<len(d):
+            if not d[i]:
+                if i+1<len(d):neg+=1;i+=2
+                else:i+=1
+                continue
+            neg+=d[i]<0
+            if i+1<len(d):d[i+1]-=hop(l+i,l)/d[i]
+            i+=1
+        return neg
+    if u>0 or (u and count(0,u,False)<1):raise ValueError('upper trial')
+    if count(0,l1,True)>1 or count(1,la,True)>0:raise ValueError('lower comparison')
+    radial=l1-u;angular=2*(la-u);gap=min(radial,angular)
+    if gap<target:raise ValueError('bouquet gap')
+    return dict(status='PROVED',certificate='OPERATOR_EXACT',task='ks-bouquet-gap',
+        gap_lower=str(gap),radial_gap_lower=str(radial),angular_pair_gap_lower=str(angular),
+        single_ground_upper=str(u),tail_lower=str(tau),cutoff=n,
+        applies_to_all_finite_bouquets_m_ge_2=True,volume_uniform=True,
+        topology='edge_disjoint_cycles_common_vertex',shared_edges=False,
+        all_representations=True,continuum=False,magnetic_electric_ratio=str(4/g2**2))
+
 def verify(source,cert):
     raw=Path(source).read_bytes()
     if len(raw)>65536: raise ValueError('size')
     words=raw.decode('ascii').split()
     if words[:2]!=['p','op']: raise ValueError('header')
     kind=words[2]; n=int(words[3])
+    if kind=='ks-bouquet-gap':return ks_bouquet_verify(words,raw,cert)
     if kind=='ks-ladder-gap':return ks_ladder_verify(words,raw,cert)
     if kind=='ks-pair-gap':return ks_pair_verify(words,raw,cert)
     if kind=='ks-loop-gap':return ks_loop_verify(words,raw,cert)

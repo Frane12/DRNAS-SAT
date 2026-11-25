@@ -54,5 +54,7 @@ jobs:
         run: python3 core/ks_pair_tests.py
       - name: Physical SU2 open ladder scaling (YM17B)
         run: python3 core/ks_ladder_tests.py
+      - name: Exact ground cancellation on SU2 bouquets (YM18B)
+        run: python3 core/ks_bouquet_tests.py
       - name: Existing CNF regression
         run: python3 core/tests.py
