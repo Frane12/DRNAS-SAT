@@ -1,0 +1,36 @@
+name: DRNAS UNIFIED7 - failure frontier and learned native policy
+on:
+  push:
+    branches: [experiment/drnas-unified7-failure-frontier-20261125]
+    paths:
+      - 'research/toolbox20_native/unified7*'
+      - 'research/toolbox20_native/frontier_reason.hpp'
+      - '.github/workflows/drnas-unified7.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build native frontier, frozen baseline and independent proof checker
+        run: |
+          set -eux
+          mkdir -p bin
+          c++ -std=c++20 -O3 -DNDEBUG research/toolbox20_native/unified4.cpp -lcrypto -o bin/unified4
+          c++ -std=c++20 -O3 -DNDEBUG research/toolbox20_native/unified7.cpp -lcrypto -o bin/unified7
+          git clone https://github.com/marijnheule/drat-trim.git /tmp/drat
+          git -C /tmp/drat checkout 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+          cc -O2 -std=gnu99 /tmp/drat/drat-trim.c -o bin/drat-trim
+          python3 -m py_compile research/toolbox20_native/unified7_failure.py
+      - name: Reconstruct eight misses, learn frontier policy, blind paired test
+        run: |
+          python3 -u research/toolbox20_native/unified7_failure.py --solver bin/unified7 --base bin/unified4 --checker bin/drat-trim --out u7-results --freeze "$GITHUB_SHA"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unified7-native-failure-frontier
+          path: u7-results/
+          if-no-files-found: warn
