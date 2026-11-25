@@ -1,0 +1,98 @@
+name: PCMAX vs Cardinality-CDCL — 2 GiB and no-proof controls
+on:
+  push:
+    branches: [experiment/pcmax-ccdcl-resource-controls-20261125]
+    paths: ['.github/workflows/pcmax-ccdcl-resource-controls.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      PYTHONHASHSEED: '0'
+      MAKEFLAGS: '-j2'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Freeze DRNAS and build the published Cardinality-CDCL artifact
+        run: |
+          set -euo pipefail
+          mkdir -p metadata
+          git fetch --depth=1 origin 8040855b2a3073122f6f852c69498f71af6b41ce
+          git diff --exit-code 8040855b2a3073122f6f852c69498f71af6b41ce HEAD -- src CMakeLists.txt research/pcmax_capacity/sources20.json research/pcmax_capacity/benchmark.py research/pcmax_capacity/emit_veripb_capacity_weighted2.py
+          git rev-parse HEAD > metadata/experiment.sha
+          lscpu > metadata/cpu.txt
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --target drnas-pcmax -j2
+          git clone --no-checkout https://github.com/jreeves3/Cardinality-CDCL.git cardinality
+          git -C cardinality checkout --detach 75b47e4454d89c61005c48c273c2d274adc82c6e
+          # Upstream stores a gitlink but omits .gitmodules. Recover exactly its pinned dependency.
+          expected_drat="$(git -C cardinality ls-tree HEAD Tools/drat-trim | awk '{print $3}')"
+          test "$expected_drat" = cbd29151d263c901ff2d7b7d6dd64af8f1ee9e23
+          git -C cardinality config submodule.Tools/drat-trim.url https://github.com/marijnheule/drat-trim.git
+          git clone --no-checkout https://github.com/marijnheule/drat-trim.git cardinality/Tools/drat-trim
+          git -C cardinality/Tools/drat-trim checkout --detach "$expected_drat"
+          test "$(git -C cardinality/Tools/drat-trim rev-parse HEAD)" = "$expected_drat"
+          printf '%s\n' "$expected_drat" > metadata/drat-trim.sha
+          git -C cardinality rev-parse HEAD > metadata/cardinality.sha
+          (cd cardinality/cardinality-cadical; ./configure; make -j2)
+          (cd cardinality/Extractor/cnf2knf/tbuddy; make -j2)
+          (cd cardinality/Extractor/cnf2knf/src; make -j2)
+          make -C cardinality/Tools derivation konly -j2
+          (cd cardinality/Tools/cadical; ./configure; make -j2)
+          gcc -D_GNU_SOURCE -std=c99 -O2 cardinality/Tools/drat-trim/drat-trim.c -o cardinality/Tools/drat-trim/drat-trim
+          test -x cardinality/cardinality-cadical/build/cadical
+          test -x cardinality/Extractor/cnf2knf/src/cnf2knf
+          test -x cardinality/Tools/cadical/build/cadical
+          test -x cardinality/Tools/drat-trim/drat-trim
+          sha256sum build/drnas-pcmax cardinality/cardinality-cadical/build/cadical cardinality/Extractor/cnf2knf/src/cnf2knf cardinality/Tools/drat-trim/drat-trim > metadata/binaries.sha
+          cargo install veripb --version 3.0.2 --locked --root "$PWD/veripb-tool" --quiet
+          veripb-tool/bin/veripb --version > metadata/veripb.txt
+          python3 -m py_compile research/pcmax_capacity/benchmark_ccdcl_resource_controls.py
+      - name: Smoke-test actual KNF extraction and source-bound DRAT check
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import sys, os, json
+          from pathlib import Path
+          sys.path.insert(0,"research/pcmax_capacity")
+          from benchmark_ccdcl_resource_controls import ccdcl
+          os.sched_setaffinity(0,{min(os.sched_getaffinity(0))})
+          base=Path("metadata").resolve()
+          src=base/"smoke.cnf"
+          src.write_text("p cnf 6 9\n1 2 0\n3 4 0\n5 6 0\n-1 -3 0\n-1 -5 0\n-3 -5 0\n-2 -4 0\n-2 -6 0\n-4 -6 0\n")
+          for hybrid in (False,True):
+              d=base/("smoke-plus" if hybrid else "smoke-native");d.mkdir()
+              r={"certified":False}
+              ccdcl(r,src,d,Path("cardinality").resolve(),hybrid)
+              print("CCDCL_SMOKE",json.dumps(r),flush=True)
+              # Preserve diagnostics; a rejected proof is not certified in the main benchmark.
+              if r.get("status")!="UNSAT_VERIFIED":
+                  print("::warning::Upstream pipeline smoke proof did not verify; inspect stage logs")
+          PY
+      - name: Original20 no standard proof generation — reported results separate
+        run: |
+          set -euo pipefail
+          CCDCL_NO_PROOF=1 python3 -u research/pcmax_capacity/benchmark_ccdcl_resource_controls.py --upstream cardinality --veripb veripb-tool/bin/veripb --out ccdcl-no-proof
+      - name: Original20 with 2 GiB file cap — source-bound proof verification
+        run: |
+          set -euo pipefail
+          CCDCL_NO_PROOF=0 python3 -u research/pcmax_capacity/benchmark_ccdcl_resource_controls.py --upstream cardinality --veripb veripb-tool/bin/veripb --out ccdcl-proof-2gib
+      - name: Archive evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pcmax-ccdcl-resource-controls
+          path: |
+            ccdcl-no-proof/
+            ccdcl-proof-2gib/
+            metadata/
+            research/pcmax_capacity/sources20.json
+            research/pcmax_capacity/benchmark_ccdcl_resource_controls.py
+          retention-days: 90
