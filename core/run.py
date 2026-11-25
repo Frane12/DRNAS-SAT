@@ -26,7 +26,7 @@ def run(source, evidence, seconds=5, mode='default', audit_seconds=5):
     if result['solve_s'] > seconds + .05:
         result['status'] = 'TIMEOUT'
         return result
-    if proc.returncode not in (0, 10, 20, 30):
+    if proc.returncode not in (0, 10, 20, 30, 31):
         result.update(status='ERROR', error=proc.stderr.strip())
         return result
     if not proc.returncode:
@@ -35,6 +35,8 @@ def run(source, evidence, seconds=5, mode='default', audit_seconds=5):
     try:
         command = ([sys.executable, ROOT / 'operator_verify.py', source, evidence]
                    if proc.returncode == 30 else
+                   [sys.executable, ROOT / 'symbolic_verify.py', source, evidence]
+                   if proc.returncode == 31 else
                    [sys.executable, ROOT / 'verify.py', source, evidence, str(proc.returncode), '--seconds', str(audit_seconds)])
         audit = subprocess.run(command,
                                capture_output=True, text=True, timeout=audit_seconds + .1)
