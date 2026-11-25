@@ -150,3 +150,7 @@ See [analytic equivalence and limitations](YM17_GAUGE_BLOCK.md). Actual pinned A
 ## YM18 — maximal-tree SU(2) coordinates (experimental)
 
 [Analytic transformation and scope](YM18_TREE_GAUGE.md). Pinned ATLAS30 chooses a rooted spanning tree using CNF parent choices; the independent structural auditor reconstructs all Wilson words and signed electric derivation rows, including mixed terms. CORE independently certifies the original gauge-gap bound. Run python3 core/tree_gauge_tests.py PATH_TO_PINNED_ATLAS. The gauge coordinates are eliminated exactly, but this is not physical coarse-graining or a new continuum gap result. CI pending.
+
+## YM19 — residual-gauge locality and tree obstruction (experimental)
+
+[Proof and limits](YM19_LOCALITY.md). Pinned ATLAS30 proposes trees with different roots. On the physical space each squared tree-cut electric row can be replaced by its signed complement using global gauge invariance; an independent audit checks the identity and the structural cost. A centroid/canonical-path bound shows that explicit row widths cannot stay uniformly bounded on growing grids by tree selection alone. This is not an operator-norm or continuum gap bound. Four grid cases, twelve planned trees and four path congestion controls. Run python3 core/tree_locality_tests.py PATH_TO_PINNED_ATLAS. CI pending.
