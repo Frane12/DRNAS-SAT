@@ -1,5 +1,7 @@
 # DRNAS TOOLBOX20 native experiment
 
+The paired benchmark, per-instance times and proof archives are available in the [Croatian results report](results/REPORT_HR.md).
+
 This standalone C++20 solver reads an anonymous DIMACS input and returns a checked model, a refutation, or UNKNOWN. The executable links OpenSSL for source digests. It never calls a reference solver. The archived Python TOOLBOX20 used guarded proof by cases and closed 14 of 66 earlier residuals. This implementation starts from the original formula and can reconstruct models after projecting a residual.
 
 * TOOLBOX16/17 inspired the exchange of proved units and binary implications. The repository's MATH4 extracts complete original parity half-cubes and independently checkable contradictions. A consistent triangular system now also supplies a candidate model. The existing signed clause-Hall rule can certify a capacity deficit.
@@ -39,3 +41,7 @@ python3 "$T/bench.py" --manifest "$T/results/manifest.json" --corpus data --out 
 Use a separate output directory with `--ablation` to repeat the diagnostic. The runner retains a first verified model or proof for each solver and instance and records the digest on every verified run. Source releases used in this experiment are Kissat `77bc7ea68afe80751a67df8561357f193e160fb1`, CaDiCaL `14593f819cb242082b127396218bd60889409737` and drat-trim `2e3b2dc0ecf938addbd779d42877b6ed69d9a985`. Configure and build the two solvers with their release defaults. Compile drat-trim with `cc -O2 -std=gnu99 drat-trim.c -o drat-trim`.
 
 Public corpus: [SATLIB benchmark collection](https://www.cs.ubc.ca/~hoos/SATLIB/benchm.html).
+
+## Standard proofs after the timed run
+
+All eight distinct native UNSAT cases have a standard DRUP proof accepted by drat-trim. Two came directly from the timed solver. The offline exporter converted the five parity certificates and one Hall certificate after timing. The original native output and standardized proofs are in the DRNAS evidence archive. Reproduce a conversion with `python3 research/toolbox20_native/standard_proof.py input.cnf certificate.json output.drat`, then run `drat-trim input.cnf output.drat`. The per-case export costs and proof digests are in [the audit](results/audit.json).

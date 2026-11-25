@@ -1,0 +1,106 @@
+{
+  "reverified_first_evidence": {
+    "primary/DRNAS": 26,
+    "primary/Kissat": 36,
+    "primary/CaDiCaL": 36,
+    "ablation/DRNAS-no-repair": 11
+  },
+  "standard_drat": [
+    {
+      "id": "g-circuit-1",
+      "origin": "direct solver DRUP",
+      "cnf_sha256": "7b020af0bfca7b732c0d6d53cb4592a02d3063d8c784a34180eb2fc82010ae58",
+      "drat_sha256": "58976d828949c73dd8fff62e86f0280e75e6cccb74a59c27de4c3e50bedc55b0",
+      "steps": 499,
+      "bytes": 4897,
+      "archive_path": "standard/g-circuit-1.drat.gz",
+      "offline_export_s": 0.00016057300035754452,
+      "recheck_s": 0.1716560639997624,
+      "verification": "drat-trim VERIFIED"
+    },
+    {
+      "id": "g-circuit-3",
+      "origin": "direct solver DRUP",
+      "cnf_sha256": "60042c9e035edb8e0bebcd4027a4a74c9763937922bd3f4e25e5a0c1b291ed33",
+      "drat_sha256": "89480af7814ca0e0dd665162643ffcab9a59828830bf907225395db4049df580",
+      "steps": 2812,
+      "bytes": 29203,
+      "archive_path": "standard/g-circuit-3.drat.gz",
+      "offline_export_s": 0.00039624400005777716,
+      "recheck_s": 0.17922195000028296,
+      "verification": "drat-trim VERIFIED"
+    },
+    {
+      "id": "g-colour-2",
+      "origin": "offline GF2/Hall conversion",
+      "cnf_sha256": "3e5c33af13a8ea6b47f2d7286569a14f2d393649d245f6a62b60f2c47ae7f70f",
+      "drat_sha256": "793fe37f359af45078791f8fd78abbb93abe18bc5f27858816096cd1181eaa41",
+      "steps": 121,
+      "bytes": 1875,
+      "archive_path": "standard/g-colour-2.drat.gz",
+      "offline_export_s": 0.001037785000335134,
+      "recheck_s": 0.04112730900033057,
+      "verification": "drat-trim VERIFIED"
+    },
+    {
+      "id": "g-tseitin-1",
+      "origin": "offline GF2/Hall conversion",
+      "cnf_sha256": "06db08fccadef66ecb6e61b1269b4981f9bd2fd367213f81867a8b3c8c87cf00",
+      "drat_sha256": "5f1a287424eb0f78479a550d0f2ade8176ba251ca8e07c7e77c4536613d23ea2",
+      "steps": 1711,
+      "bytes": 40531,
+      "archive_path": "standard/g-tseitin-1.drat.gz",
+      "offline_export_s": 0.0988861949999773,
+      "recheck_s": 0.19959823999988657,
+      "verification": "drat-trim VERIFIED"
+    },
+    {
+      "id": "p-dubois-1",
+      "origin": "offline GF2/Hall conversion",
+      "cnf_sha256": "dca9fd0f0114c62f8cd64f8e922b701352e42e2256e1574672ac5a1f2546463a",
+      "drat_sha256": "232a7f12f83163a3d6660097b6c16cee1ebd43296f19628abcd477899a20b812",
+      "steps": 295,
+      "bytes": 3351,
+      "archive_path": "standard/p-dubois-1.drat.gz",
+      "offline_export_s": 0.22476487999983874,
+      "recheck_s": 0.050361861000055796,
+      "verification": "drat-trim VERIFIED"
+    },
+    {
+      "id": "p-dubois-2",
+      "origin": "offline GF2/Hall conversion",
+      "cnf_sha256": "06b613f1188d38974488a23359bd615de58add89690efbbb0dac6a8d7bb789ca",
+      "drat_sha256": "bcf7985464ee9bdb3f6bee0c480074d888d6ab4d61c0d3185405db30429f115c",
+      "steps": 245,
+      "bytes": 2765,
+      "archive_path": "standard/p-dubois-2.drat.gz",
+      "offline_export_s": 0.15630159200009075,
+      "recheck_s": 0.18821373899982063,
+      "verification": "drat-trim VERIFIED"
+    },
+    {
+      "id": "p-dubois-3",
+      "origin": "offline GF2/Hall conversion",
+      "cnf_sha256": "8a8b128d48460c8398b449057b2da14eb398d57ffaa4633d7945bafadfa6412d",
+      "drat_sha256": "df4263c93eab54ef5b6dd1bc03d99f491aede5b9ccce60a2ab3f3ea482aba818",
+      "steps": 215,
+      "bytes": 2399,
+      "archive_path": "standard/p-dubois-3.drat.gz",
+      "offline_export_s": 0.12383290299976579,
+      "recheck_s": 0.04155973600018115,
+      "verification": "drat-trim VERIFIED"
+    },
+    {
+      "id": "g-tseitin-3",
+      "origin": "offline GF2/Hall conversion",
+      "cnf_sha256": "e8a87f425431ca0f7627e75b2cb53cc64a4181b74f2c8a9ba95927b8c2fd1913",
+      "drat_sha256": "f5cbffba8603daf7bac7cb5b0ff2e466bc5ecd548e908c79d0f430d6c6047864",
+      "steps": 197163,
+      "bytes": 10170757,
+      "archive_path": "standard/g-tseitin-3.drat.gz",
+      "offline_export_s": 0.8381557309999152,
+      "recheck_s": 5.897944596999878,
+      "verification": "drat-trim VERIFIED"
+    }
+  ]
+}

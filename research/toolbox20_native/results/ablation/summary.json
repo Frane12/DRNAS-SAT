@@ -1,0 +1,47 @@
+[
+  {
+    "group": "public",
+    "solver": "DRNAS-no-repair",
+    "instances": 24,
+    "sat_all_reps": 2,
+    "unsat_all_reps": 3,
+    "solved_all_reps": 5,
+    "unstable": 0,
+    "runs": 72,
+    "unknown": 57,
+    "timeouts": 0,
+    "errors": 0,
+    "par2_s": 4.755358230388866,
+    "mean_check_s_verified": 0.0014468418666183426
+  },
+  {
+    "group": "fresh",
+    "solver": "DRNAS-no-repair",
+    "instances": 12,
+    "sat_all_reps": 1,
+    "unsat_all_reps": 5,
+    "solved_all_reps": 6,
+    "unstable": 0,
+    "runs": 36,
+    "unknown": 18,
+    "timeouts": 0,
+    "errors": 0,
+    "par2_s": 3.0048381869444256,
+    "mean_check_s_verified": 0.01617630111107044
+  },
+  {
+    "group": "all",
+    "solver": "DRNAS-no-repair",
+    "instances": 36,
+    "sat_all_reps": 3,
+    "unsat_all_reps": 8,
+    "solved_all_reps": 11,
+    "unstable": 0,
+    "runs": 108,
+    "unknown": 75,
+    "timeouts": 0,
+    "errors": 0,
+    "par2_s": 4.17185154924072,
+    "mean_check_s_verified": 0.009481092363592214
+  }
+]
