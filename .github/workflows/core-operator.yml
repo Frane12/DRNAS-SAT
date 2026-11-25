@@ -26,5 +26,7 @@ jobs:
         run: python3 core/operator_rule_tests.py
       - name: Composed mathematical rule transfer
         run: python3 core/composed_rule_tests.py
+      - name: Recursive algebraic rule closure and transfer
+        run: python3 core/recursive_rule_tests.py
       - name: Existing CNF regression
         run: python3 core/tests.py
