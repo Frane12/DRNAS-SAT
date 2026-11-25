@@ -1,0 +1,52 @@
+{
+  "stable_transfer_gains": [],
+  "stable_transfer_losses": [],
+  "transfer_stage_solved": [],
+  "transfer_stage_entered_cases": 16,
+  "transfer_stage_measured_runs": 48,
+  "post_ms_min": 0.252522,
+  "post_ms_med": 1.2920335,
+  "post_ms_max": 51.8012,
+  "previous36_gain": [
+    "p-bridge-3"
+  ],
+  "previous36_loss": [],
+  "previous36_solved": 27,
+  "fault6_solved": 6,
+  "replay_stage_solved": [
+    "bf1355-075",
+    "p-bridge-3",
+    "ssa0432-003"
+  ],
+  "replay_stage_successful_trials": 9,
+  "transfer_primary": {
+    "DRNAS": [
+      16,
+      13,
+      3,
+      2.0350186600278133,
+      0
+    ],
+    "DRNAS-parent": [
+      16,
+      13,
+      3,
+      2.0347925205277875,
+      0
+    ],
+    "Kissat": [
+      22,
+      17,
+      5,
+      0.5879480679166451,
+      1
+    ],
+    "CaDiCaL": [
+      23,
+      17,
+      6,
+      0.4608598728610913,
+      0
+    ]
+  }
+}

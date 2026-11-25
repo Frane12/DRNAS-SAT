@@ -1,6 +1,6 @@
 # DRNAS TOOLBOX20 native experiment
 
-The paired benchmark, per-instance times and proof archives are available in the [Croatian results report](results/REPORT_HR.md).
+The [postprojection results](postprojection_results/REPORT_HR.md) compare this branch with its frozen parent, Kissat and CaDiCaL. The [original TOOLBOX20 report](results/REPORT_HR.md) documents the parent experiment.
 
 This standalone C++20 solver reads an anonymous DIMACS input and returns a checked model, a refutation, or UNKNOWN. The executable links OpenSSL for source digests. It never calls a reference solver. The archived Python TOOLBOX20 used guarded proof by cases and closed 14 of 66 earlier residuals. This implementation starts from the original formula and can reconstruct models after projecting a residual.
 

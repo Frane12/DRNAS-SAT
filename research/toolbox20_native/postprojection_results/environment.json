@@ -1,0 +1,27 @@
+{
+  "freeze": "c4da19253f25f954ebf75de4d2aeb529b46d7573",
+  "cap_s": 3.0,
+  "repetitions": 3,
+  "cpu": 0,
+  "cpu_model": "INTEL(R) XEON(R) PLATINUM 8573C",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "python": "3.12.14",
+  "manifest_sha256": "3d60dfe5fdeaf27221499d071530c4f4c4a585ec20b532ff8d5c52198a14bf53",
+  "binaries": {
+    "drnas": "1e416a99503649b93e5b3886e042277b86a2e8253ea3593a12cc718ad345839d",
+    "kissat": "ad499f92898138767e5a9c8be32c0f78a4d6d8151e14da05e556ba2b775d2a2b",
+    "cadical": "cd101575921ed5112a1a9d4b5293e01428e0d92391e5de14deb9098aa2d0707e",
+    "checker": "10fc707b9602e667c616d6e4341fbdbcf904b93fb58dacec6f224a67b385c188",
+    "parent": "98f63f91d6e99adddde344070d88d79b7bf86ed1430d0818f5334234ecdf01be"
+  },
+  "arms": [
+    "DRNAS",
+    "DRNAS-parent",
+    "Kissat",
+    "CaDiCaL"
+  ],
+  "versions": {
+    "kissat": "4.0.3",
+    "cadical": "2.2.0"
+  }
+}

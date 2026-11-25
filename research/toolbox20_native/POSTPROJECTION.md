@@ -16,3 +16,13 @@ python3 "$T/bench.py" --manifest "$T/postprojection_results/manifest.json" --cor
 ```
 
 Compile the parent at `9fd4539e47fca1b7dd76615740023ec3a60fc0c9` and the new source with the same compiler flags described in [the solver README](README.md).
+
+## Results and replay
+
+The [results report](postprojection_results/REPORT_HR.md) includes per-instance timings and the independent proof archives. To reproduce the previous 36 and six BF/SSA controls on this branch, first restore the parent corpus, then replay the integrated binary.
+
+```sh
+T=research/toolbox20_native
+python3 "$T/corpus.py" --restore "$T/results/manifest.json" --out parent-inputs
+python3 "$T/replay_postprojection.py" --previous "$T/results/manifest.json" --corpus parent-inputs --drnas ./drnas-new --checker ./drat-trim --out check-replay
+```
