@@ -146,11 +146,54 @@ inline std::string hash(const std::string& raw){
 #include "gauge_gap.hpp"
 #include "gauge_stability.hpp"
 #include "decimation_gap.hpp"
+// Physical one-cycle SU(2) Hamiltonian in the character basis chi_{j/2}.
+// Exact tridiagonal Sturm counts; the entire infinite tail is bounded.
+inline int ks_sturm(int n,const Q& e,const Q& k,const Q& cut,const Q& correction,Clock::time_point stop){
+    Q prev=1,last=1;int signs=0,prior=1;
+    for(int j=0;j<n;++j){
+        tick(stop);Q d=e*j*(j+2)-cut;if(j==n-1)d-=correction;
+        Q next=d*last;if(j)next-=k*k*prev;
+        int sign=next>0?1:next<0?-1:0;
+        if(sign){if(sign!=prior)++signs;prior=sign;}
+        prev=last;last=next;
+    }
+    return signs; // number strictly below cut, including terminal-zero handling
+}
+inline int ks_loop_run(const std::string& raw,std::istream& in,int len,const std::filesystem::path& out,Clock::time_point stop){
+    int cutoff;if(len<3||len>24||!(in>>cutoff)||cutoff<2||cutoff>128)throw std::runtime_error("ks loop dimensions");
+    Q a=rational(in),g2=rational(in),target=rational(in);std::string extra;
+    if(a<=0||g2<=0||target<=0||(in>>extra))throw std::runtime_error("ks loop parameters");
+    Q e=Q(len)*g2/(8*a),k=2/(a*g2),tail=e*cutoff*(cutoff+2)-2*k;
+    Q bottom=-2*k,upper=0,low=bottom,high=tail;
+    bool ok=false;
+    try{
+        if(high>low){
+            Q ground_lo=bottom;
+            for(int i=0;i<80;++i){
+                tick(stop);Q mid=(ground_lo+upper)/2;
+                if(ks_sturm(cutoff,e,k,mid,0,stop)>=1)upper=mid;else ground_lo=mid;
+                mid=(low+high)/2;
+                if(ks_sturm(cutoff,e,k,mid,k*k/(tail-mid),stop)<=1)low=mid;else high=mid;
+                if(low-upper>=target){ok=true;break;}
+            }
+        }
+        tick(stop);
+    }catch(const Limit&){ok=false;}
+    if(ok){
+        std::ofstream f(out,std::ios::binary);
+        f<<"drnas-op-v1\n"<<hash(raw)<<"\nks-loop-gap "<<upper<<" "<<low<<"\n";f.close();
+        if(!f)throw std::runtime_error("ks loop evidence");
+    }
+    std::cout<<"c {\"domain\":\"operator\",\"method\":\"ks_loop_sturm_schur\",\"certificate\":\""<<(ok?"OPERATOR_EXACT":"none")<<"\"}\n";
+    return ok?30:0;
+}
+
 inline int run(const std::string& raw,const std::filesystem::path& out,double seconds){
     auto stop=Clock::now()+std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(seconds));
     if(raw.size()>65536)throw std::runtime_error("operator input limit");
     std::istringstream in(raw);std::string p,op,kind,extra;int n;
     if(!(in>>p>>op>>kind>>n)||p!="p"||op!="op"||n<1||(kind=="gauge-gap"?n>256:n>24))throw std::runtime_error("operator header");
+    if(kind=="ks-loop-gap")return ks_loop_run(raw,in,n,out,stop);
     if(kind=="gauge-gap")return gauge_run(raw,in,n,out,stop);
     if(kind=="gauge-stability")return gauge_stability_run(raw,in,n,out,stop);
     if(kind=="decimation-gap")return decimation_run(raw,in,n,out,stop);

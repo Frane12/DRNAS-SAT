@@ -48,5 +48,7 @@ jobs:
         run: python3 core/gauge_gap_tests.py
       - name: Qualitative uniform SU2 stability theorem (YM14)
         run: python3 core/gauge_stability_tests.py
+      - name: Physical SU2 single-loop scaling (YM15)
+        run: python3 core/ks_loop_tests.py
       - name: Existing CNF regression
         run: python3 core/tests.py

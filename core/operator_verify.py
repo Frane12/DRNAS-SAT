@@ -160,12 +160,48 @@ def decimation_verify(words,raw,cert):
                 ground_upper=str(u),excited_lower=str(l),gap_lower=str(l-u),
                 eliminated=k,remaining=n-k,finite_only=True)
 
+def ks_loop_verify(words,raw,cert):
+    if len(words)!=8:raise ValueError('ks loop header')
+    length,cutoff=map(int,words[3:5]);a,g2,target=map(q,words[5:8])
+    if not 3<=length<=24 or not 2<=cutoff<=128 or min(a,g2,target)<=0:raise ValueError('ks loop parameters')
+    e=length*g2/(8*a);k=2/(a*g2);tail=e*cutoff*(cutoff+2)-2*k
+    z=Path(cert).read_text().split()
+    if len(z)!=5 or z[:3]!=['drnas-op-v1',hashlib.sha256(raw).hexdigest(),'ks-loop-gap']:raise ValueError('ks binding')
+    upper,lower=map(Q,z[3:])
+    if lower>=tail or lower-upper<target:raise ValueError('ks gap bound')
+    # Independent LDL congruence on the tridiagonal head. A zero pivot
+    # and its nonzero neighbor form an invertible 2x2 block of inertia (1,1).
+    def negative(cut,correction):
+        d=[e*j*(j+2)-cut for j in range(cutoff)]
+        d[-1]-=correction
+        count=0;i=0
+        while i<len(d):
+            pivot=d[i]
+            if not pivot:
+                if i+1<len(d):count+=1;i+=2
+                else:i+=1
+                continue
+            count+=pivot<0
+            if i+1<len(d):d[i+1]-=k*k/pivot
+            i+=1
+        return count
+    if upper>0 or (upper!=0 and negative(upper,Q(0))<1):raise ValueError('Rayleigh upper')
+    if negative(lower,k*k/(tail-lower))>1:raise ValueError('Schur lower')
+    # YM14 normalized perturbation factor for d=3, not a threshold.
+    alpha=g2/(2*a);beta=32*k/alpha
+    return dict(status='PROVED',certificate='OPERATOR_EXACT',task='ks-loop-gap',
+        ground_upper=str(upper),excited_lower=str(lower),gap_lower=str(lower-upper),
+        requested_gap=str(target),tail_lower=str(tail),lattice_spacing=str(a),
+        coupling_squared=str(g2),magnetic_electric_ratio=str(k/alpha),ym14_beta=str(beta),
+        cutoff=cutoff,all_representations=True,physical_single_cycle=True,volume_uniform=False,continuum=False)
+
 def verify(source,cert):
     raw=Path(source).read_bytes()
     if len(raw)>65536: raise ValueError('size')
     words=raw.decode('ascii').split()
     if words[:2]!=['p','op']: raise ValueError('header')
     kind=words[2]; n=int(words[3])
+    if kind=='ks-loop-gap':return ks_loop_verify(words,raw,cert)
     if kind=='gauge-gap':return gauge_verify(words,raw,cert)
     if kind=='gauge-stability':return gauge_stability_verify(words,raw,cert)
     if not 1<=n<=24: raise ValueError('dimension')
