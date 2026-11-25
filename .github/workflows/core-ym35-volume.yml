@@ -1,0 +1,18 @@
+name: DRNAS CORE - YM35 three-dimensional volume and scale
+on:
+  push:
+    branches: [experiment/ym35-volume-limit, development/drnas-core]
+    paths: ['core/ym35_volume*.py', 'core/YM35_3D_VOLUME_AND_LIMIT.md', '.github/workflows/core-ym35-volume.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  volume:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 core/ym35_volume_tests.py
+      - run: python3 core/ym34_local_tests.py
