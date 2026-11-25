@@ -1,0 +1,27 @@
+name: ATLAS and CORE - YM17 gauge-invariant spatial blocking
+on:
+  push:
+    branches: [development/drnas-core]
+    paths: ['core/**', '.github/workflows/core-ym17.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  paired:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: 283af5a80491d31b08250c62e91a8118cc8c20bc
+          path: atlas-source
+          persist-credentials: false
+      - name: Dependencies
+        run: sudo apt-get update && sudo apt-get install -y libssl-dev libboost-dev
+      - name: Build CORE
+        run: bash core/build.sh
+      - name: ATLAS gauge blocks and CORE exact gaps
+        run: python3 core/atlas_gauge_block_tests.py atlas-source
