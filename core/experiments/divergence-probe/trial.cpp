@@ -79,7 +79,7 @@ int main(int argc,char**argv){
     const int n=std::stoi(argv[1]);
     const int cap=2160000,window=10000;
     const std::string policy=argv[5];
-    if(n!=500 || (policy!="mean"&&policy!="force-first"&&policy!="force-rank"))return 2;
+    if(n!=500 || (policy!="mean"&&policy!="force-first"&&policy!="force-rank" && policy!="patience" && policy!="clock"))return 2;
     Lane a(argv[2],n,std::string(argv[4])+".a"),b(argv[3],n,std::string(argv[4])+".b");
     Lane* lanes[]={&a,&b};
     Cursor ac=observe(n,a.clauses,a.model,Time::max(),a.steps);
@@ -87,6 +87,8 @@ int main(int argc,char**argv){
     Cursor* cursors[]={&ac,&bc};
     int total=0,split=0,samples=0,selected=-1,winner=-1;
     long long sums[2]={};
+    int probe_best[2]={INT_MAX,INT_MAX};
+    int switched_at=0, switched_after=0;
     for(int j=0;j<2;++j)if(satisfied(lanes[j]->clauses,lanes[j]->model)){winner=j;break;}
     // Both order-specific states and RNGs remain alive on a single CPU.
     // Even identical prefix flips are charged separately.
@@ -96,17 +98,37 @@ int main(int argc,char**argv){
         Move y=bc.step();++total;
         if(!y.bad){winner=1;break;}
         if(!split && x.literal!=y.literal)split=int(a.steps);
-        if(split){sums[0]+=x.bad;sums[1]+=y.bad;++samples;}
+        if(split){
+            sums[0]+=x.bad;sums[1]+=y.bad;++samples;
+            probe_best[0]=std::min(probe_best[0],x.bad);
+            probe_best[1]=std::min(probe_best[1],y.bad);
+        }
     }
     if(winner<0 && samples==window){
         selected=policy=="force-rank"?1:policy=="force-first"?0:int(sums[1]<sums[0]);
+        int active=selected;
+        int best=probe_best[active];
+        int last_record=total;
+        const int probe_end=total;
         while(total<cap){
-            Move m=cursors[selected]->step();++total;
-            if(!m.bad){winner=selected;break;}
+            Move m=cursors[active]->step();++total;
+            if(!m.bad){winner=active;break;}
+            if(m.bad<best){
+                best=m.bad;
+                last_record=total;
+            }
+            if(!switched_at && total<cap &&
+               ((policy=="patience" && total-last_record>=window) ||
+                (policy=="clock" && total-probe_end>=window))){
+                switched_at=total;
+                switched_after=total-probe_end;
+                active=1-active;
+            }
         }
     }
     if(winner>=0)lanes[winner]->write_model(argv[6]);
     std::cout<<"{\"status\":\""<<(winner<0?"UNKNOWN":"SAT")<<"\",\"split\":"<<split
              <<",\"samples\":"<<samples<<",\"sums\":["<<sums[0]<<","<<sums[1]<<"],\"selected\":"<<selected
+             <<",\"switch_at\":"<<switched_at<<",\"switch_after\":"<<switched_after
              <<",\"winner\":"<<winner<<",\"lane_flips\":["<<a.steps<<","<<b.steps<<"],\"charged\":"<<total<<"}\n";
 }

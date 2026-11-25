@@ -38,3 +38,51 @@ python3 core/experiments/divergence-probe/build.py
 unzip -q core/experiments/lemma-priority/evidence.zip -d previous
 python3 core/experiments/divergence-probe/run.py previous new-results
 ```
+
+## Jedno prebacivanje pri zastoju
+
+Pravilo `patience` počinje od minimuma zabilježenog na odabranoj grani tijekom
+probe. Svaki novi strogi minimum ponovno pokreće brojač. Nakon 10 000 promjena
+bez novog minimuma automat nastavlja iz sačuvanog stanja druge grane do kraja
+budžeta. Kontrola `clock` uvijek prelazi nakon 10 000 promjena od kraja probe.
+Kontrola `mean` nastavlja prvotni izbor. Svaka varijanta koristi jedan logički
+CPU i zajednički budžet od 2 160 000 promjena po formuli. Pokus ispituje fazu
+popravka iz snimljenog stanja. Svi dobiveni modeli prolaze provjeru na izvornom CNF-u.
+
+| Dijagnostički ulaz | Bez prebacivanja | Fiksno prebacivanje | Prebacivanje pri zastoju |
+|---|---|---:|---:|
+| F26 | UNKNOWN | SAT, 1 900 543 | SAT, 1 901 840 |
+| H09 | UNKNOWN | SAT, 1 982 536 | SAT, 1 993 505 |
+
+Brojevi uključuju obje probe. Ishodi su se ponovili u sva tri izvođenja s istim
+sjemenom. Nakon probe pravilo je ostalo na prvom izboru još 11 297 promjena na
+F26 i 20 969 na H09.
+
+Nakon prolaska obaju dijagnostičkih ulaza generirano je 12 novih formula,
+po četiri iz svake od tri obitelji (slučajna, s ugrađenim modelom, s ugrađenim
+modelom i uravnoteženim očekivanim predznacima). Svaka ima 500 varijabli i
+2130 klauzula. Sjeme generatora je 69835217. Sažeci koda, binarnih programa
+i generatora zabilježeni su prije stvaranja ijednog novog ulaza. Svaki od
+triju načina pokrenut je jednom na svakom od sedam usporedivih stanja.
+Preostalih pet izvorni CORE riješio je prije te faze.
+
+| Novi ulazi | Bez prebacivanja | Fiksno prebacivanje | Prebacivanje pri zastoju |
+|---|---|---|---|
+| N00 | SAT, 1 301 887 | UNKNOWN | UNKNOWN |
+| N05 | SAT, 34 639 | SAT, 34 639 | SAT, 34 639 |
+| N02, N03, N06, N08, N11 | UNKNOWN | UNKNOWN | UNKNOWN |
+
+Prebacivanje se aktiviralo na četiri ulaza. Na N05 model je pronađen prije
+razlaza, a na N03 i N11 putanje su potrošile budžet bez zabilježenog razlaza.
+U ovoj seriji okidač daje jednu regresiju i nula dobitaka prema nastavku prve
+odabrane grane. Način ostaje u eksperimentalnom pokretaču.
+
+[CNF ulazi, zamrznuta stanja, pojedinačni zapisi i modeli](stagnation-results.tar.xz)
+
+Za ponavljanje, nakon gradnje osnovnog pokusa i raspakiravanja prethodnih
+stanja kako je opisano iznad, pokrenuti:
+
+```sh
+python3 core/experiments/f26-replay/build.py
+python3 core/experiments/divergence-probe/stagnation.py previous stagnation-rerun
+```
