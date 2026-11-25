@@ -1,0 +1,92 @@
+#pragma once
+#include <boost/multiprecision/cpp_int.hpp>
+namespace core_operator {
+using Q=boost::multiprecision::cpp_rational;
+using Z=boost::multiprecision::cpp_int;
+using M=std::vector<std::vector<Q>>;
+using Clock=std::chrono::steady_clock;
+struct Limit {};
+inline void tick(Clock::time_point stop){if(Clock::now()>=stop)throw Limit{};}
+inline Z integer(const std::string& s){
+    if(s.empty()||s.size()>17)throw std::runtime_error("operator integer limit");
+    bool neg=s[0]=='-';size_t i=neg?1:0;if(i==s.size())throw std::runtime_error("integer");
+    Z z=0;for(;i<s.size();++i){if(s[i]<'0'||s[i]>'9')throw std::runtime_error("integer");z=z*10+(s[i]-'0');}
+    return neg?-z:z;
+}
+inline Q rational(std::istream& in){
+    std::string s;if(!(in>>s))throw std::runtime_error("missing rational");
+    auto p=s.find('/');if(p==std::string::npos)return Q(integer(s));
+    Z d=integer(s.substr(p+1));if(d<=0)throw std::runtime_error("denominator");
+    return Q(integer(s.substr(0,p)))/Q(d);
+}
+inline M read_matrix(std::istream& in,int n){
+    M a(n,std::vector<Q>(n));for(auto& row:a)for(auto& x:row)x=rational(in);
+    for(int i=0;i<n;++i)for(int j=0;j<i;++j)if(a[i][j]!=a[j][i])throw std::runtime_error("not real symmetric");
+    return a;
+}
+inline M product(const M& a,const M& b,Clock::time_point stop){
+    int n=int(a.size());M c(n,std::vector<Q>(n));
+    for(int i=0;i<n;++i){tick(stop);for(int k=0;k<n;++k)if(a[i][k]!=0)
+        for(int j=0;j<n;++j)c[i][j]+=a[i][k]*b[k][j];}
+    return c;
+}
+inline M shift(M a,const Q& e){for(size_t i=0;i<a.size();++i)a[i][i]-=e;return a;}
+// Exact congruence elimination. A zero diagonal in a PSD matrix requires a zero row.
+// Returns -1 if not PSD, otherwise its rank.
+inline int psd(M a,Clock::time_point stop){
+    int n=int(a.size()),rank=0;
+    for(int k=0;k<n;++k){tick(stop);int p=-1;
+        for(int i=k;i<n;++i){if(a[i][i]<0)return -1;if(a[i][i]>0&&p<0)p=i;}
+        if(p<0){for(int i=k;i<n;++i)for(int j=k;j<n;++j)if(a[i][j]!=0)return -1;return rank;}
+        if(p!=k){std::swap(a[p],a[k]);for(auto& row:a)std::swap(row[p],row[k]);}
+        Q pivot=a[k][k];++rank;
+        for(int i=k+1;i<n;++i)for(int j=i;j<n;++j){
+            a[i][j]-=a[i][k]*a[k][j]/pivot;a[j][i]=a[i][j];}
+    }return rank;
+}
+inline bool gap(const M& h,const Q& e,const Q& g,Clock::time_point stop){
+    M a=shift(h,e);int r=psd(a,stop);
+    if(r<=0||r==int(a.size()))return false; // nonempty ground and excited subspaces
+    M b=product(a,a,stop);for(size_t i=0;i<a.size();++i)for(size_t j=0;j<a.size();++j)b[i][j]-=g*a[i][j];
+    return psd(std::move(b),stop)>=0;
+}
+inline std::string hash(const std::string& raw){
+    unsigned char bytes[EVP_MAX_MD_SIZE];unsigned count=0;
+    if(!EVP_Digest(raw.data(),raw.size(),bytes,&count,EVP_sha256(),nullptr)||count!=32)throw std::runtime_error("SHA256");
+    std::ostringstream o;o<<std::hex<<std::setfill('0');for(unsigned i=0;i<count;++i)o<<std::setw(2)<<unsigned(bytes[i]);return o.str();
+}
+inline int run(const std::string& raw,const std::filesystem::path& out,double seconds){
+    auto stop=Clock::now()+std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(seconds));
+    if(raw.size()>65536)throw std::runtime_error("operator input limit");
+    std::istringstream in(raw);std::string p,op,kind,extra;int n;
+    if(!(in>>p>>op>>kind>>n)||p!="p"||op!="op"||n<1||n>24)throw std::runtime_error("operator header");
+    Q e=0,g=0;
+    if(kind=="gap")e=rational(in);
+    if(kind=="gap"||kind=="auto-gap"){g=rational(in);if(g<=0)throw std::runtime_error("gap must be positive");}
+    else if(kind!="psd"&&kind!="pd"&&kind!="commute")throw std::runtime_error("operator task");
+    M a=read_matrix(in,n),b;
+    if(kind=="commute")b=read_matrix(in,n);
+    if(in>>extra)throw std::runtime_error("operator trailing data");
+    bool ok=false;std::string method="operator_limits";
+    try{
+        if(kind=="psd"||kind=="pd"){int r=psd(a,stop);ok=kind=="psd"?r>=0:r==n;method="exact_congruence";}
+        else if(kind=="commute"){ok=product(a,b,stop)==product(b,a,stop);method="exact_commutator";}
+        else if(kind=="gap"){ok=gap(a,e,g,stop);method="spectral_polynomial";}
+        else{
+            std::set<Q> candidates{Q(0)};Q lower=a[0][0];
+            for(int i=0;i<n;++i){Q radius=0,sum=0;for(int j=0;j<n;++j){sum+=a[i][j];if(i!=j)radius+=a[i][j]<0?-a[i][j]:a[i][j];}
+                Q lo=a[i][i]-radius;if(i==0||lo<lower)lower=lo;candidates.insert(a[i][i]);candidates.insert(sum);}
+            candidates.insert(lower);for(int i=-16;i<=16;++i)candidates.insert(Q(i));
+            for(const Q& q:candidates){tick(stop);if(gap(a,q,g,stop)){e=q;ok=true;break;}}
+            method="discover_rational_ground";
+        }
+        tick(stop);
+    }catch(const Limit&){ok=false;method="operator_limits";}
+    if(ok){
+        std::ofstream f(out,std::ios::binary);f<<"drnas-op-v1\n"<<hash(raw)<<"\n"<<kind<<" "<<e<<" "<<g<<"\n";f.close();
+        if(!f)throw std::runtime_error("operator evidence write");
+    }
+    std::cout<<"c {\"domain\":\"operator\",\"method\":\""<<method<<"\",\"certificate\":\""<<(ok?"OPERATOR_EXACT":"none")<<"\"}\n";
+    return ok?30:0;
+}
+}
