@@ -62,3 +62,11 @@ Rezultati početne integracije i sve regresije zapisani su u [VALIDATION.md](VAL
 Objedinjeni CORE zasebno je ponovio i **23/23 javne izvorne WORDLIFT formule**, s neovisno provjerenim modelima. To je poznat, odabran skup iz dvije obitelji. Ponoviti ga možeš naredbama `python3 core/public_replay.py download` i `python3 core/public_replay.py run`; podrijetlo ulaza i prihvaćeni modeli vezani su u izvještaju.
 
 Točno podrijetlo izvora: [provenance.json](provenance.json). Uvozi su sačuvani bez izmjena; integracija je u `core.cpp`. Datoteke iz drugih solvera služe samo kao razvojne reference i preuzimaju se u zanemareni direktorij `results/`.
+
+## Eksperiment s izravnim tabličnim certifikatima (CNF)
+
+`--mode table-first` prvo pokušava prenijeti lokalnu posljedicu iz potpune tablice
+izvornih premisa. `--mode table-fallback` isti prijenos iskušava nakon neuspjele
+konstrukcije uobičajenog RUP traga. Provjerivač ponovno računa tablicu i tek
+potom prihvaća klauzalni ili simbolički završetak dokaza.
+[Protokol, ograničenja i rezultati uparenog testa](experiments/direct-table/README.md).

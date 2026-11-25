@@ -50,7 +50,7 @@ if __name__ == '__main__':
     parser.add_argument('input')
     parser.add_argument('evidence', help='new evidence path; existing files are protected')
     parser.add_argument('--seconds', type=float, default=5)
-    parser.add_argument('--mode', choices=['default', 'memory', 'no-share'], default='default')
+    parser.add_argument('--mode', choices=['default', 'memory', 'no-share', 'table-first', 'table-fallback'], default='default')
     parser.add_argument('--audit-seconds', type=float, default=5)
     args = parser.parse_args()
     answer = run(args.input, args.evidence, args.seconds, args.mode, args.audit_seconds)

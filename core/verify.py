@@ -126,6 +126,29 @@ def verify(source, evidence, status, seconds=5):
     if lines[0] == 'drnas-capacity-v1':
         check_capacity(n, cs, lines[1:])
         return 'UNSAT', 'CAPACITY'
+    if lines[0].startswith('drnas-table-v1 '):
+        from table_verify import verify_tables
+        deadline = started + seconds
+        claims, suffix = verify_tables(source, cs, n, lines, deadline)
+        with tempfile.TemporaryDirectory() as directory:
+            augmented = pathlib.Path(directory) / 'augmented.cnf'
+            suffix_path = pathlib.Path(directory) / 'suffix.cert'
+            with augmented.open('w') as out:
+                print('p cnf', n, len(cs) + len(claims), file=out)
+                for item in cs:
+                    print(*item, 0, file=out)
+                for item in claims:
+                    print(*item, 0, file=out)
+            suffix_path.write_text('\n'.join(suffix) + '\n')
+            status, kind = verify_clausal(augmented, suffix_path, n, suffix, deadline)
+            return status, 'TABLE+' + kind
+    return verify_clausal(source, evidence, n, lines, started + seconds)
+
+
+def verify_clausal(source, evidence, n, lines, deadline):
+    seconds = deadline - time.monotonic()
+    if seconds <= 0:
+        raise AuditLimit('audit deadline')
     if n > 10000:
         raise AuditLimit('RUP auditor variable limit')
     checked = subprocess.run([ROOT / 'bin/check-rup', source, evidence], capture_output=True,
@@ -141,7 +164,7 @@ def verify(source, evidence, status, seconds=5):
     with tempfile.TemporaryDirectory() as directory:
         order = pathlib.Path(directory) / 'order.cert'
         order.write_text('symbolic-elimination-v1\n' + lines[-1][2:] + '\n')
-        remaining = seconds - (time.monotonic() - started)
+        remaining = deadline - time.monotonic()
         if remaining <= 0:
             raise AuditLimit('audit deadline')
         if not verify_symbolic(n, residual, order, seconds=remaining, max_nodes=800000):

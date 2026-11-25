@@ -8,6 +8,7 @@ struct FactorStats {
         novel=0,wide=0,units=0,binaries=0,joins=0,global_blocked=0,stalls=0,
         proof_lines=0,mode=0,root_before=0,root_after=0;
     uint64_t rows=0,feasible=0;
+    int trace_attempts=0,trace_failures=0,trace_deadlines=0;
 };
 struct FactorRow { unsigned pos,neg; };
 struct FactorTable {
@@ -15,6 +16,7 @@ struct FactorTable {
     std::vector<unsigned> allowed;
     bool complete=false;
 };
+#include "table_messages.hpp"
 // Exact local Boolean factor: a join of all supplied clausal relations.
 inline FactorTable factor_table(const Clause& scope,const Clauses& local,Time until){
     FactorTable t;t.scope=scope;
@@ -80,7 +82,7 @@ inline Clauses factor_prime_blockers(const Clause& vs,const std::vector<unsigned
     std::sort(out.begin(),out.end(),[](const Clause&a,const Clause&b){return a.size()!=b.size()?a.size()<b.size():a<b;});
     out.erase(std::unique(out.begin(),out.end()),out.end());return out;
 }
-inline bool factor_stage(const Input& f,Clauses& work,Model& fixed,Proof& proof,Time until,FactorStats& st,int mode){
+inline bool factor_stage(const Input& f,Clauses& work,Model& fixed,Proof& proof,Time until,FactorStats& st,int mode,TableMessages* direct=nullptr){
     st.mode=mode;
     if(f.n<32||f.n>512||f.cs.size()>12000||work.empty()||Clock::now()>=until)return true;
     DiscoveryStats mem;
@@ -133,6 +135,29 @@ inline bool factor_stage(const Input& f,Clauses& work,Model& fixed,Proof& proof,
             if(!table.complete)continue;
             st.rows+=1u<<bag.size();st.feasible+=table.allowed.size();
             AdaptivePropagator local_prop(f.n,local);
+            std::vector<int> premise_ids;
+            Clauses source_local;
+            FactorTable source_table;
+            bool source_ready = false;
+            auto record_table = [&](const Clause& claim) {
+                if (!direct || direct->accepted >= 24 || Clock::now() >= until) return false;
+                if (!source_ready) {
+                    for (const auto& premise : local) {
+                        auto found = direct->source_ids.find(premise);
+                        if (found != direct->source_ids.end()) {
+                            premise_ids.push_back(found->second);
+                            source_local.push_back(premise);
+                        }
+                    }
+                    if (source_local.size() != local.size() && !source_local.empty())
+                        source_table = factor_table(bag, source_local, std::min(until, after(.045)));
+                    source_ready = true;
+                }
+                // Global probes and derived local premises may have deleted rows.
+                // Recheck the candidate against original clauses alone.
+                const auto& witness = source_local.size() == local.size() ? table : source_table;
+                return direct->record(claim, witness, premise_ids, until);
+            };
             int before=st.novel;
             auto emit=[&](Clause c,AdaptivePropagator& prop,const Clause& support,Time limit){
                 if(Clock::now()>=limit||st.novel>=220||st.proof_lines>=45000||subsumed_short(c,known))return false;
@@ -140,8 +165,21 @@ inline bool factor_stage(const Input& f,Clauses& work,Model& fixed,Proof& proof,
                 Clause hidden;
                 std::set_difference(support.begin(),support.end(),target_vars.begin(),target_vars.end(),std::back_inserter(hidden));
                 Clauses trace;
-                if(!region_trace(prop,c,hidden,trace,limit)||st.proof_lines+int(trace.size())>45000)return false;
-                for(const auto& q:trace){proof.add(q);++st.proof_lines;}
+                bool stored = direct && direct->first && record_table(c);
+                if (!stored) {
+                    ++st.trace_attempts;
+                    if (region_trace(prop,c,hidden,trace,limit) && st.proof_lines+int(trace.size())<=45000) {
+                        for(const auto& q:trace){proof.add(q);++st.proof_lines;}
+                    } else {
+                        ++st.trace_failures;
+                        if (Clock::now() >= limit) ++st.trace_deadlines;
+                        if (!direct || direct->first || !record_table(c)) return false;
+                        stored = true;
+                    }
+                }
+                // The CORE integration installs source-certified premises before
+                // replaying this stream. Standalone callers never enable direct mode.
+                if (stored) proof.add(c);
                 known.insert(c);active.push_back(c);++st.novel;
                 st.wide+=c.size()>3;st.units+=c.size()==1;st.binaries+=c.size()==2;
                 bool free=true;for(int l:c)if(fixed[std::abs(l)]>=0){free=false;break;}

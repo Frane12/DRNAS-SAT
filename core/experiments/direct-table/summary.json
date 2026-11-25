@@ -1,0 +1,124 @@
+{
+  "arms": {
+    "default": {
+      "final_certificates": {
+        "DRUP": 67,
+        "GF2": 12,
+        "HALL": 21,
+        "MODEL": 126
+      },
+      "inputs_with_table": [],
+      "lost_vs_default": [],
+      "missing_telemetry": 0,
+      "only_vs_default": [],
+      "solved_every_rep": 75,
+      "solved_per_rep": [
+        76,
+        75,
+        75
+      ],
+      "statuses": {
+        "SAT": 126,
+        "UNKNOWN": 38,
+        "UNSAT": 100
+      },
+      "table_messages": 0,
+      "trace_attempts": 2696,
+      "trace_deadlines": 0,
+      "trace_failures": 0
+    },
+    "table-fallback": {
+      "final_certificates": {
+        "DRUP": 68,
+        "GF2": 12,
+        "HALL": 21,
+        "MODEL": 126
+      },
+      "inputs_with_table": [],
+      "lost_vs_default": [],
+      "missing_telemetry": 0,
+      "only_vs_default": [],
+      "solved_every_rep": 75,
+      "solved_per_rep": [
+        76,
+        75,
+        76
+      ],
+      "statuses": {
+        "SAT": 126,
+        "TIMEOUT": 1,
+        "UNKNOWN": 36,
+        "UNSAT": 101
+      },
+      "table_messages": 0,
+      "trace_attempts": 2710,
+      "trace_deadlines": 0,
+      "trace_failures": 0
+    },
+    "table-first": {
+      "final_certificates": {
+        "DRUP": 62,
+        "GF2": 12,
+        "HALL": 21,
+        "MODEL": 126,
+        "TABLE+DRUP": 6
+      },
+      "inputs_with_table": [
+        "F03",
+        "F07",
+        "F09",
+        "F10",
+        "F11",
+        "F12",
+        "F13",
+        "F14",
+        "F15",
+        "F16",
+        "F17",
+        "F18",
+        "F19",
+        "F20",
+        "F21",
+        "F23",
+        "F24",
+        "F25",
+        "F26",
+        "N25",
+        "N31",
+        "N32"
+      ],
+      "lost_vs_default": [],
+      "missing_telemetry": 0,
+      "only_vs_default": [],
+      "solved_every_rep": 75,
+      "solved_per_rep": [
+        76,
+        75,
+        76
+      ],
+      "statuses": {
+        "SAT": 126,
+        "TIMEOUT": 2,
+        "UNKNOWN": 35,
+        "UNSAT": 101
+      },
+      "table_messages": 293,
+      "trace_attempts": 2405,
+      "trace_deadlines": 0,
+      "trace_failures": 0
+    }
+  },
+  "audit_cap_s": 5,
+  "cap_s": 1,
+  "inputs": 88,
+  "repetitions": 3,
+  "runs": 792,
+  "table_suffix_ablation": {
+    "F09-table-first-1.cert": "accepted_without_table",
+    "F09-table-first-2.cert": "accepted_without_table",
+    "F09-table-first-3.cert": "accepted_without_table",
+    "F11-table-first-1.cert": "accepted_without_table",
+    "F11-table-first-2.cert": "accepted_without_table",
+    "F11-table-first-3.cert": "accepted_without_table"
+  }
+}

@@ -63,6 +63,24 @@ struct Core {
     toolbox::AdaptiveStats adaptive;
     toolbox::DiscoveryStats discovery;
     toolbox::FactorStats factors;
+    bool table_enabled = false;
+    std::string source_digest;
+    toolbox::TableMessages table_messages;
+
+    void wrap_table_proof() {
+        if (!table_messages.accepted || (format != "DRUP" && format != "RUP+SYMBOLIC")) return;
+        std::ostringstream out;
+        out << "drnas-table-v1 " << source_digest << '\n';
+        for (const auto& group : table_messages.groups) {
+            out << "i";
+            for (int id : group.premises) out << ' ' << id;
+            out << " 0\n";
+            for (const auto& claim : group.claims) out << "t " << clauses_text({claim});
+        }
+        out << "suffix\n" << artifact;
+        artifact = out.str();
+        format = "TABLE+" + format;
+    }
     explicit Core(double s):seconds(s){deadline=start+chrono::duration_cast<Clock::duration>(chrono::duration<double>(s));}
     double left()const{return max(0.0,chrono::duration<double>(deadline-Clock::now()).count());}
     Time budget(double fraction,double cap=1e30)const{return min(deadline,toolbox::after(min(cap,left()*fraction)));}
@@ -71,7 +89,7 @@ struct Core {
         ostringstream o;o<<"v ";for(int i=1;i<=original.n;++i)o<<(m[i]==1?i:-i)<<' ';o<<"0\n";
         artifact=o.str();format="MODEL";method=name;return true;
     }
-    // The only cross-kernel messages are independently RUP-checked additions.
+    // RUP checks use the source and any previously installed source-table lemmas.
     // Keep source clauses: eliminated-variable state never crosses this boundary.
     bool absorb(const F& additions,const F& messages,Time until){
         fusion_kernel::AssumptionPropagator checker(proof_db,original.n);
@@ -102,7 +120,16 @@ struct Core {
         bool consistent=toolbox::reduce_root(original.n,active,fixed,p);
         if(consistent)consistent=toolbox::cooperate(original.n,active,fixed,p,budget(.18,.7),cases,unified,4);
         if(consistent&&!active.empty()&&left()>.04){
-            consistent=toolbox::factor_stage(original,active,fixed,p,budget(.12,.35),factors,2);
+            if (table_enabled) table_messages.index(original.cs);
+            consistent=toolbox::factor_stage(original,active,fixed,p,budget(.12,.35),factors,2,
+                                             table_enabled ? &table_messages : nullptr);
+            for (const auto& group : table_messages.groups) {
+                for (auto c : group.claims) {
+                    c = fusion_kernel::norm(move(c));
+                    if (known.insert(c).second) proof_db.push_back(c);
+                    if (active_known.insert(c).second) { all.push_back(c); ++shared; }
+                }
+            }
             if(consistent)consistent=toolbox::reduce_root(original.n,active,fixed,p);
         }
         p.out.flush();
@@ -200,6 +227,7 @@ struct Core {
         unsigned char bytes[EVP_MAX_MD_SIZE];unsigned count=0;
         if(!EVP_Digest(raw.data(),raw.size(),bytes,&count,EVP_sha256(),nullptr)||count!=32)throw runtime_error("SHA256");
         ostringstream hash;hash<<hex<<setfill('0');for(unsigned i=0;i<count;++i)hash<<setw(2)<<unsigned(bytes[i]);
+        source_digest = hash.str();
         toolbox::Model seed;
         auto gf2=pcmax::math4::xor_unit(original.cs,original.n,hash.str(),min({left(),.25,seconds*.08}),&seed);
         if(gf2.verified){artifact=gf2.certificate_json+"\n";format="GF2";method="structural_GF2";return 20;}
@@ -223,7 +251,10 @@ struct Core {
     }
     void report(int rc)const{
         cout<<"c {\"version\":\"0.1.2\",\"method\":\""<<method<<"\",\"certificate\":\""<<format
-            <<"\",\"shared_clauses\":"<<shared<<",\"share_budget_stops\":"<<rejected_by_budget
+            <<"\",\"table_messages\":"<<table_messages.accepted
+            <<",\"factor_trace_attempts\":"<<factors.trace_attempts<<",\"factor_trace_failures\":"<<factors.trace_failures
+            <<",\"factor_trace_deadlines\":"<<factors.trace_deadlines
+            <<",\"shared_clauses\":"<<shared<<",\"share_budget_stops\":"<<rejected_by_budget
             <<",\"relation_pairs\":"<<unified.pairs<<",\"feedback_messages\":"<<fb_messages
             <<",\"proof_helpers\":"<<ledger.size()<<",\"active_clauses\":"<<all.size()
             <<",\"unified_projected\":"<<projected_variables<<",\"unified_repair_flips\":"<<repair_flips
@@ -238,16 +269,19 @@ struct Core {
 };
 int main(int argc,char** argv){
     try{
-        if(argc<3||argc>5)throw runtime_error("usage: drnas-core INPUT.cnf EVIDENCE [seconds [default|memory|no-share]]");
+        if(argc<3||argc>5)throw runtime_error("usage: drnas-core INPUT.cnf EVIDENCE [seconds [default|memory|no-share|table-first|table-fallback]]");
         double seconds=5;if(argc>=4){size_t used;seconds=stod(argv[3],&used);if(used!=strlen(argv[3]))throw runtime_error("invalid budget");}
         if(!isfinite(seconds)||seconds<=0||seconds>86400)throw runtime_error("invalid budget");
         string mode=argc==5?argv[4]:"default";
-        if(mode!="default"&&mode!="memory"&&mode!="no-share")throw runtime_error("invalid mode");
+        if(mode!="default"&&mode!="memory"&&mode!="no-share"&&mode!="table-first"&&mode!="table-fallback")throw runtime_error("invalid mode");
         fs::path out=argv[2];
         if(fs::exists(out)&&fs::equivalent(argv[1],out))throw runtime_error("evidence must differ from input");
         if(fs::exists(out))throw runtime_error("evidence already exists; choose a new path");
         Core core(seconds);core.memory=mode=="memory";core.no_share=mode=="no-share";
+        core.table_enabled=(mode=="table-first"||mode=="table-fallback");
+        core.table_messages.first=(mode=="table-first");
         int rc=core.solve(argv[1]);
+        if(rc==20)core.wrap_table_proof();
         if(core.left()==0){rc=0;core.artifact.clear();core.format="none";core.method="solve_budget";}
         if(rc)write_file(out,core.artifact);
         core.report(rc);return rc;
