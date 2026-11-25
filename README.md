@@ -1,5 +1,7 @@
 # DRNAS SAT
 
+**Continuing automaton development: [DRNAS CORE](core/README.md)** on `development/drnas-core`. This branch consolidates the strongest checked structural kernels into one executable and one development path. See [validation and limitations](core/VALIDATION.md).
+
 **Structural SAT solving and independently checkable proofs** · Frane Drnas, Croatia
 
 > **Moto · Motto**

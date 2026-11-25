@@ -1,0 +1,12 @@
+{
+  "instances": 23,
+  "solved": 23,
+  "sat": 23,
+  "unsat": 0,
+  "solve_s": 39.2569592869977,
+  "audit_s": 0.8637351990000752,
+  "scope": "23 selected previously tested public originals; CORE only, no concurrent reference rerun",
+  "cap_s": 15,
+  "audit_cap_s": 5,
+  "one_logical_cpu": true
+}

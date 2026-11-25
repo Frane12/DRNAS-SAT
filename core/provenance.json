@@ -1,0 +1,182 @@
+{
+  "version": "0.1.2",
+  "base": "9a1b361ec369816f3aec4cbc64db987eb4133377",
+  "sources": [
+    {
+      "path": "vendor/fusion/repair.hpp",
+      "sha256": "7db294db98a7a92bdc2f4bbd5e7b7615c670b50338f03d9fb7d3e2133d2f0298",
+      "origin": "DRNAS_FUSION1.zip"
+    },
+    {
+      "path": "vendor/fusion/fusion.hpp",
+      "sha256": "8158baebb9faf6824f37f8b4015335c04a90faad10f5b188b5ab597e1cd9ce57",
+      "origin": "DRNAS_FUSION1.zip"
+    },
+    {
+      "path": "vendor/fusion/native.cpp",
+      "sha256": "8ba7955dc218d66798fb884d2e513b9d2756c09cdfbcaec828f9ba37824d1aae",
+      "origin": "DRNAS_FUSION1.zip"
+    },
+    {
+      "path": "vendor/fusion/parity_proof.hpp",
+      "sha256": "7f33ccba7eefda8bab9f70120a265fe03a700ec929c50d6aacfca655551b4f88",
+      "origin": "DRNAS_FUSION1.zip"
+    },
+    {
+      "path": "vendor/fusion/assumption_propagator.hpp",
+      "sha256": "6fca3f7e5ec48eb1b85d030a3f76e10698f379e9efa3a8fe80d9e4bcc5c150ae",
+      "origin": "DRNAS_FUSION1.zip"
+    },
+    {
+      "path": "vendor/fusion/general4.hpp",
+      "sha256": "3dbc86d8b24d4b85c7f429fc2ebef3664fd419a092ad017adca29738a12c89ba",
+      "origin": "DRNAS_FUSION1.zip"
+    },
+    {
+      "path": "vendor/general/general14.cpp",
+      "sha256": "d6f13f782f63880ee716b202cdb1d29dae2090b8acfb3c16f98167f5772ed09e",
+      "origin": "DRNAS_GENERAL14_Delayed_Utility_Memory.zip"
+    },
+    {
+      "path": "vendor/general/feedback.hpp",
+      "sha256": "41fa7e87b9f8687bdb94b72fe58dccbe96a38dc7644e6707624a28ba2a26ed64",
+      "origin": "DRNAS_GENERAL14_Delayed_Utility_Memory.zip"
+    },
+    {
+      "path": "vendor/general/g11_table.hpp",
+      "sha256": "aa349c30366459246d20687327f8b50fbcdf036261e3ef0c48a205b4c14480ef",
+      "origin": "DRNAS_GENERAL14_Delayed_Utility_Memory.zip"
+    },
+    {
+      "path": "vendor/general/base/g11_projection.hpp",
+      "sha256": "b9916d44799616484cde2bb92cf11a4177554538730746f9a5104d8064d3a76e",
+      "origin": "DRNAS_GENERAL14_Delayed_Utility_Memory.zip"
+    },
+    {
+      "path": "vendor/general/base/affine.cpp",
+      "sha256": "d4c2ebcde8b0e96ea099b19021e510c9d81c5c90e445a4432d71cd507eda3095",
+      "origin": "DRNAS_GENERAL14_Delayed_Utility_Memory.zip"
+    },
+    {
+      "path": "vendor/general/base/symbolic_local.hpp",
+      "sha256": "df2194721d9deeb91473835b0c9b57f8d131f8a9bdaca7574f2c68f7102a531b",
+      "origin": "DRNAS_GENERAL14_Delayed_Utility_Memory.zip"
+    },
+    {
+      "path": "vendor/general/base/symbolic_audit.py",
+      "sha256": "dc0466d25f667b9e2e536103a43d08ad8d172888c0872d2d7f391936da968c48",
+      "origin": "DRNAS_GENERAL14_Delayed_Utility_Memory.zip"
+    },
+    {
+      "path": "vendor/general/check_rup.cpp",
+      "sha256": "0d190e03b911d1d0fb9ad4fa5bd12bcf10b548826b9db1dc9b3ce6e08963f297",
+      "origin": "DRNAS_GENERAL14_Delayed_Utility_Memory.zip"
+    },
+    {
+      "path": "vendor/unified/unified_reason.hpp",
+      "sha256": "af5630364d2e60929cfcc1b2960ef838a83df5736a0d45883442f573f4b80890",
+      "origin": "15b4c071644a393a9eb6f3ff181cb0f6b5a2a16b"
+    },
+    {
+      "path": "vendor/unified/cases.hpp",
+      "sha256": "a2a6ca68afb63261804f5ded7efafee092e55a64dba52a700c4e283b412f85a3",
+      "origin": "15b4c071644a393a9eb6f3ff181cb0f6b5a2a16b"
+    },
+    {
+      "path": "vendor/unified/formula.hpp",
+      "sha256": "a1b741623675d69e5468f2d3bba4b508b530876091285fd6479ce7ef351b8a48",
+      "origin": "15b4c071644a393a9eb6f3ff181cb0f6b5a2a16b"
+    },
+    {
+      "path": "vendor/unified/adaptive_reason.hpp",
+      "sha256": "2b863f7c565c7287107c9ca97d34d6b5501d8cf68b3255f44bdc97711fa12e81",
+      "origin": "15b4c071644a393a9eb6f3ff181cb0f6b5a2a16b"
+    },
+    {
+      "path": "vendor/unified/adaptive_projection.hpp",
+      "sha256": "3f8ed3fbe8340d0e1487721c2aa0ebca6b7861df7cc2639ffaaec3b0a91f1e96",
+      "origin": "15b4c071644a393a9eb6f3ff181cb0f6b5a2a16b"
+    },
+    {
+      "path": "vendor/unified/repair.hpp",
+      "sha256": "a90f7c0658516696daa8b084a43c112e7fe11132215577a0413a2f8d3f79d8ad",
+      "origin": "15b4c071644a393a9eb6f3ff181cb0f6b5a2a16b"
+    },
+    {
+      "path": "vendor/unified/discovery_reason.hpp",
+      "sha256": "8f309350a315a40b6f98036b7cb776e0be9f1398a71a291c6e5a51a53cbb5a07",
+      "origin": "15b4c071644a393a9eb6f3ff181cb0f6b5a2a16b"
+    },
+    {
+      "path": "vendor/unified/projection.hpp",
+      "sha256": "a687d27729977c30a5549f1ca19299a6be68db8bf2f4111f67d6fbeb92f53296",
+      "origin": "15b4c071644a393a9eb6f3ff181cb0f6b5a2a16b"
+    },
+    {
+      "sha256": "8571325ff1936b638a16e4eea9a80f54132a62e3af5e81ce9790e188b5e60ace",
+      "origin": "cf2da80e9c5646942951210402568e30fed561ba",
+      "superseded_by": "ceb70fa6d2ef0b92642c2ee716b94fdb54e4111e",
+      "historical_path": "vendor/unified/affine_domains.hpp"
+    },
+    {
+      "path": "vendor/unified/factor_reason.hpp",
+      "sha256": "ce54abd9c0dadb8fcb09a5d95c4dbe30e0be5dc5793206115b60696121117cb3",
+      "origin": "66a47e0c868e93c9de619f6cac81feddc8f5ca05"
+    },
+    {
+      "path": "vendor/unified/unified8_kernel.cpp",
+      "sha256": "00a69d80009cf3d9d6028dc709f1f2f8dc069bf17102acfd5f2402e19972bb59",
+      "origin": "66a47e0c868e93c9de619f6cac81feddc8f5ca05"
+    },
+    {
+      "path": "vendor/unified/unified8_audit.py",
+      "sha256": "871773bae0e048dff59f81d5d2a4562ff762cb2e2d1139b3d53941e587f50052",
+      "origin": "66a47e0c868e93c9de619f6cac81feddc8f5ca05"
+    },
+    {
+      "path": "vendor/structural/src/pcmax_capacity.hpp",
+      "sha256": "1a319350ca982b2344d1a7f3a1e7773d7380cd0fd85ac354cc9fd64f9d969a99",
+      "origin": "15b4c071644a393a9eb6f3ff181cb0f6b5a2a16b"
+    },
+    {
+      "path": "vendor/structural/src/pcmax_clause_hall.hpp",
+      "sha256": "f9cb1ce1a08e4d819c465b4c28a43fb8c4576641f4c2b7fb633ecd11f5d5ad8e",
+      "origin": "15b4c071644a393a9eb6f3ff181cb0f6b5a2a16b"
+    },
+    {
+      "path": "vendor/structural/src/math4_xor_unit.hpp",
+      "sha256": "e96f72658f57234d593db98151214148813c05db815c034083988d3debab6b67",
+      "origin": "15b4c071644a393a9eb6f3ff181cb0f6b5a2a16b"
+    },
+    {
+      "path": "vendor/structural/research/pcmax_capacity/check_capacity.py",
+      "sha256": "08ee88608f173b0a08bb053f88f40a120b10b675e019d9205296aed007701b0f",
+      "origin": "15b4c071644a393a9eb6f3ff181cb0f6b5a2a16b"
+    },
+    {
+      "path": "vendor/structural/research/pcmax_capacity/check_clause_hall.py",
+      "sha256": "d169bd1740fa5b7d9c53a0abc0b0c01352d3d35be7eb75f687a7a989bf8b4ba1",
+      "origin": "15b4c071644a393a9eb6f3ff181cb0f6b5a2a16b"
+    },
+    {
+      "path": "vendor/structural/research/math4/check_xor_units.py",
+      "sha256": "526b54e224ccf93e0d1a158ae56aa3e6b97b1b3241f48c587daba555c4c7c4fe",
+      "origin": "15b4c071644a393a9eb6f3ff181cb0f6b5a2a16b"
+    },
+    {
+      "path": "vendor/structural/src/hall3_guard.hpp",
+      "sha256": "53fd9b4de3dc8c25eec5d90888853c7d0d505515f609fe318357980a04c1d890",
+      "origin": "15b4c071644a393a9eb6f3ff181cb0f6b5a2a16b"
+    },
+    {
+      "path": "vendor/unified/word_lift.hpp",
+      "sha256": "7993c3edc9971249da3fb825c7ba95c14f4539bb3fc9044654f6d6dde5860cd7",
+      "origin": "ceb70fa6d2ef0b92642c2ee716b94fdb54e4111e"
+    },
+    {
+      "path": "vendor/unified/affine_domains.hpp",
+      "sha256": "511524784f9c78ec853401605aa764593e842feee838ffded052e29d07da5032",
+      "origin": "ceb70fa6d2ef0b92642c2ee716b94fdb54e4111e"
+    }
+  ]
+}
