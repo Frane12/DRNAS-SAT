@@ -70,3 +70,9 @@ izvornih premisa. `--mode table-fallback` isti prijenos iskušava nakon neuspjel
 konstrukcije uobičajenog RUP traga. Provjerivač ponovno računa tablicu i tek
 potom prihvaća klauzalni ili simbolički završetak dokaza.
 [Protokol, ograničenja i rezultati uparenog testa](experiments/direct-table/README.md).
+
+Na istoj eksperimentalnoj grani `--mode table-rank` daje jednoj dokazanoj
+tabličnoj klauzuli prednost prije projekcije i popravka modela. Procjena se
+računa iz pojavljivanja literala u izvornom CNF-u. Kontrola
+`--mode table-pick-first` na isto mjesto stavlja prvi raspoloživi zaključak.
+[Pravilo, kontrole i rezultati na novim formulama](experiments/lemma-priority/README.md).

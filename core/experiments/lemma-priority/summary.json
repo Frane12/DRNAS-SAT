@@ -1,0 +1,1673 @@
+{
+  "fresh_inputs": 12,
+  "repetitions": 3,
+  "e2e": {
+    "default": {
+      "per_input": {
+        "H00": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "H01": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H02": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "H03": {
+          "status": [
+            "TIMEOUT",
+            "UNKNOWN",
+            "TIMEOUT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "H04": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H05": {
+          "status": [
+            "TIMEOUT",
+            "TIMEOUT",
+            "UNKNOWN"
+          ],
+          "choice": [
+            null,
+            0,
+            0
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "H06": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H07": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H08": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H09": {
+          "status": [
+            "SAT",
+            "TIMEOUT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            null,
+            "MODEL"
+          ]
+        },
+        "H10": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H11": {
+          "status": [
+            "TIMEOUT",
+            "TIMEOUT",
+            "UNKNOWN"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "F26": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        }
+      },
+      "all_three": [
+        "H01",
+        "H04",
+        "H06",
+        "H07",
+        "H08",
+        "H10"
+      ],
+      "solved_per_rep": [
+        7,
+        6,
+        7
+      ]
+    },
+    "table-first": {
+      "per_input": {
+        "H00": {
+          "status": [
+            "TIMEOUT",
+            "TIMEOUT",
+            "TIMEOUT"
+          ],
+          "choice": [
+            0,
+            null,
+            0
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "H01": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H02": {
+          "status": [
+            "TIMEOUT",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "H03": {
+          "status": [
+            "TIMEOUT",
+            "TIMEOUT",
+            "UNKNOWN"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "H04": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H05": {
+          "status": [
+            "TIMEOUT",
+            "TIMEOUT",
+            "UNKNOWN"
+          ],
+          "choice": [
+            null,
+            0,
+            0
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "H06": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H07": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H08": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H09": {
+          "status": [
+            "TIMEOUT",
+            "TIMEOUT",
+            "TIMEOUT"
+          ],
+          "choice": [
+            null,
+            0,
+            0
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "H10": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H11": {
+          "status": [
+            "TIMEOUT",
+            "TIMEOUT",
+            "UNKNOWN"
+          ],
+          "choice": [
+            0,
+            null,
+            0
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "F26": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        }
+      },
+      "all_three": [
+        "H01",
+        "H04",
+        "H06",
+        "H07",
+        "H08",
+        "H10"
+      ],
+      "solved_per_rep": [
+        6,
+        6,
+        6
+      ]
+    },
+    "table-pick-first": {
+      "per_input": {
+        "H00": {
+          "status": [
+            "TIMEOUT",
+            "TIMEOUT",
+            "UNKNOWN"
+          ],
+          "choice": [
+            1,
+            null,
+            1
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "H01": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H02": {
+          "status": [
+            "UNKNOWN",
+            "TIMEOUT",
+            "UNKNOWN"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "H03": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "TIMEOUT"
+          ],
+          "choice": [
+            1,
+            1,
+            1
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "H04": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H05": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "TIMEOUT"
+          ],
+          "choice": [
+            1,
+            1,
+            1
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "H06": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H07": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H08": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            1,
+            1,
+            1
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H09": {
+          "status": [
+            "TIMEOUT",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "choice": [
+            1,
+            1,
+            1
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "H10": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H11": {
+          "status": [
+            "TIMEOUT",
+            "UNKNOWN",
+            "TIMEOUT"
+          ],
+          "choice": [
+            1,
+            1,
+            1
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "F26": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "choice": [
+            1,
+            1,
+            1
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        }
+      },
+      "all_three": [
+        "H01",
+        "H04",
+        "H06",
+        "H07",
+        "H08",
+        "H10"
+      ],
+      "solved_per_rep": [
+        6,
+        6,
+        6
+      ]
+    },
+    "table-rank": {
+      "per_input": {
+        "H00": {
+          "status": [
+            "TIMEOUT",
+            "TIMEOUT",
+            "TIMEOUT"
+          ],
+          "choice": [
+            1,
+            1,
+            1
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "H01": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H02": {
+          "status": [
+            "TIMEOUT",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "choice": [
+            null,
+            0,
+            0
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "H03": {
+          "status": [
+            "UNKNOWN",
+            "TIMEOUT",
+            "TIMEOUT"
+          ],
+          "choice": [
+            1,
+            1,
+            1
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "H04": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H05": {
+          "status": [
+            "UNKNOWN",
+            "TIMEOUT",
+            "UNKNOWN"
+          ],
+          "choice": [
+            1,
+            1,
+            1
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "H06": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H07": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H08": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            3,
+            3,
+            3
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H09": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            2,
+            2,
+            2
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H10": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "choice": [
+            0,
+            0,
+            0
+          ],
+          "certificate": [
+            "MODEL",
+            "MODEL",
+            "MODEL"
+          ]
+        },
+        "H11": {
+          "status": [
+            "TIMEOUT",
+            "TIMEOUT",
+            "UNKNOWN"
+          ],
+          "choice": [
+            1,
+            1,
+            1
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        },
+        "F26": {
+          "status": [
+            "TIMEOUT",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "choice": [
+            2,
+            2,
+            2
+          ],
+          "certificate": [
+            null,
+            null,
+            null
+          ]
+        }
+      },
+      "all_three": [
+        "H01",
+        "H04",
+        "H06",
+        "H07",
+        "H08",
+        "H09",
+        "H10"
+      ],
+      "solved_per_rep": [
+        7,
+        7,
+        7
+      ]
+    }
+  },
+  "fixed": {
+    "H00": {
+      "choice": 1,
+      "clause": [
+        86,
+        247,
+        -299,
+        320,
+        -387
+      ],
+      "candidates": 3,
+      "outcomes": {
+        "table-first": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "table-pick-first": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "table-rank": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-1": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-2": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-3": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        }
+      },
+      "stable_singletons": []
+    },
+    "H01": {
+      "skipped": "solver finished before model discovery"
+    },
+    "H02": {
+      "skipped": "no certified table claims"
+    },
+    "H03": {
+      "choice": 1,
+      "clause": [
+        -4,
+        123,
+        -321,
+        -454
+      ],
+      "candidates": 8,
+      "outcomes": {
+        "table-first": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "table-pick-first": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "table-rank": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-1": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-2": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-3": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-4": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-5": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-6": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-7": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-8": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        }
+      },
+      "stable_singletons": []
+    },
+    "H04": {
+      "skipped": "solver finished before model discovery"
+    },
+    "H05": {
+      "choice": 1,
+      "clause": [
+        40,
+        120,
+        154,
+        216,
+        -409
+      ],
+      "candidates": 2,
+      "outcomes": {
+        "table-first": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "table-pick-first": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "table-rank": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-1": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-2": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        }
+      },
+      "stable_singletons": []
+    },
+    "H06": {
+      "skipped": "solver finished before model discovery"
+    },
+    "H07": {
+      "skipped": "solver finished before model discovery"
+    },
+    "H08": {
+      "choice": 3,
+      "clause": [
+        7,
+        -38,
+        -71,
+        -470
+      ],
+      "candidates": 3,
+      "outcomes": {
+        "table-first": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "flips": [
+            876959,
+            876959,
+            876959
+          ]
+        },
+        "table-pick-first": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "flips": [
+            250747,
+            250747,
+            250747
+          ]
+        },
+        "table-rank": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "flips": [
+            553226,
+            553226,
+            553226
+          ]
+        },
+        "ordinal-1": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "flips": [
+            250747,
+            250747,
+            250747
+          ]
+        },
+        "ordinal-2": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "flips": [
+            250747,
+            250747,
+            250747
+          ]
+        },
+        "ordinal-3": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "flips": [
+            553226,
+            553226,
+            553226
+          ]
+        }
+      },
+      "stable_singletons": [
+        1,
+        2,
+        3
+      ]
+    },
+    "H09": {
+      "choice": 2,
+      "clause": [
+        -6,
+        -64,
+        -120,
+        -156,
+        -484
+      ],
+      "candidates": 2,
+      "outcomes": {
+        "table-first": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "table-pick-first": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "table-rank": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "flips": [
+            1302534,
+            1302534,
+            1302534
+          ]
+        },
+        "ordinal-1": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-2": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "flips": [
+            1302534,
+            1302534,
+            1302534
+          ]
+        }
+      },
+      "stable_singletons": [
+        2
+      ]
+    },
+    "H10": {
+      "skipped": "solver finished before model discovery"
+    },
+    "H11": {
+      "choice": 1,
+      "clause": [
+        3,
+        368,
+        -445,
+        479
+      ],
+      "candidates": 4,
+      "outcomes": {
+        "table-first": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "table-pick-first": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "table-rank": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-1": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-2": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-3": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-4": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        }
+      },
+      "stable_singletons": []
+    },
+    "F26": {
+      "choice": 2,
+      "clause": [
+        5,
+        16,
+        430,
+        -491
+      ],
+      "candidates": 6,
+      "outcomes": {
+        "table-first": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "flips": [
+            1816399,
+            1816399,
+            1816399
+          ]
+        },
+        "table-pick-first": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "table-rank": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-1": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-2": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-3": {
+          "status": [
+            "SAT",
+            "SAT",
+            "SAT"
+          ],
+          "flips": [
+            794636,
+            794636,
+            794636
+          ]
+        },
+        "ordinal-4": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-5": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        },
+        "ordinal-6": {
+          "status": [
+            "UNKNOWN",
+            "UNKNOWN",
+            "UNKNOWN"
+          ],
+          "flips": [
+            2160000,
+            2160000,
+            2160000
+          ]
+        }
+      },
+      "stable_singletons": [
+        3
+      ]
+    }
+  },
+  "priority_gains_vs_all": [
+    "H09"
+  ],
+  "priority_losses_vs_all": []
+}

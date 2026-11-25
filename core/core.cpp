@@ -7,6 +7,7 @@
 #include "vendor/unified/affine_domains.hpp"
 #include "vendor/unified/factor_reason.hpp"
 #include "vendor/unified/projection.hpp"
+#include "lemma_priority.hpp"
 #include "vendor/structural/src/pcmax_capacity.hpp"
 #include "vendor/structural/src/pcmax_clause_hall.hpp"
 #include "vendor/structural/src/hall3_guard.hpp"
@@ -64,6 +65,8 @@ struct Core {
     toolbox::DiscoveryStats discovery;
     toolbox::FactorStats factors;
     bool table_enabled = false;
+    toolbox::LemmaPriority priority = toolbox::LemmaPriority::unchanged;
+    toolbox::PriorityResult selection;
     std::string source_digest;
     toolbox::TableMessages table_messages;
 
@@ -166,6 +169,7 @@ struct Core {
         toolbox::Model answer;
         auto stop=budget(.50,.6);
         auto work=f.cs;toolbox::Model fixed(original.n+1,-1);
+        selection = toolbox::prioritize_lemma(original, work, table_messages, priority);
         bool consistent=toolbox::reduce_root(f.n,work,fixed,p);
         if(consistent){
             auto part=[&](double fraction){return min(stop,toolbox::after(max(0.0,chrono::duration<double>(stop-Clock::now()).count()*fraction)));};
@@ -250,8 +254,15 @@ struct Core {
         return general();
     }
     void report(int rc)const{
+        ostringstream literals;
+        for (size_t i=0; i<selection.chosen.size(); ++i) {
+            if (i) literals << ',';
+            literals << selection.chosen[i];
+        }
         cout<<"c {\"version\":\"0.1.2\",\"method\":\""<<method<<"\",\"certificate\":\""<<format
             <<"\",\"table_messages\":"<<table_messages.accepted
+            <<",\"priority_candidates\":"<<selection.candidates<<",\"priority_ordinal\":"<<selection.ordinal
+            <<",\"priority_clause\":["<<literals.str()<<"],\"priority_score\":"<<selection.score
             <<",\"factor_trace_attempts\":"<<factors.trace_attempts<<",\"factor_trace_failures\":"<<factors.trace_failures
             <<",\"factor_trace_deadlines\":"<<factors.trace_deadlines
             <<",\"shared_clauses\":"<<shared<<",\"share_budget_stops\":"<<rejected_by_budget
@@ -269,17 +280,19 @@ struct Core {
 };
 int main(int argc,char** argv){
     try{
-        if(argc<3||argc>5)throw runtime_error("usage: drnas-core INPUT.cnf EVIDENCE [seconds [default|memory|no-share|table-first|table-fallback]]");
+        if(argc<3||argc>5)throw runtime_error("usage: drnas-core INPUT.cnf EVIDENCE [seconds [default|memory|no-share|table-first|table-fallback|table-rank|table-pick-first]]");
         double seconds=5;if(argc>=4){size_t used;seconds=stod(argv[3],&used);if(used!=strlen(argv[3]))throw runtime_error("invalid budget");}
         if(!isfinite(seconds)||seconds<=0||seconds>86400)throw runtime_error("invalid budget");
         string mode=argc==5?argv[4]:"default";
-        if(mode!="default"&&mode!="memory"&&mode!="no-share"&&mode!="table-first"&&mode!="table-fallback")throw runtime_error("invalid mode");
+        if(mode!="default"&&mode!="memory"&&mode!="no-share"&&mode!="table-first"&&mode!="table-fallback"&&mode!="table-rank"&&mode!="table-pick-first")throw runtime_error("invalid mode");
         fs::path out=argv[2];
         if(fs::exists(out)&&fs::equivalent(argv[1],out))throw runtime_error("evidence must differ from input");
         if(fs::exists(out))throw runtime_error("evidence already exists; choose a new path");
         Core core(seconds);core.memory=mode=="memory";core.no_share=mode=="no-share";
-        core.table_enabled=(mode=="table-first"||mode=="table-fallback");
-        core.table_messages.first=(mode=="table-first");
+        if (mode=="table-rank") core.priority=toolbox::LemmaPriority::polarity;
+        if (mode=="table-pick-first") core.priority=toolbox::LemmaPriority::first;
+        core.table_messages.first=(mode=="table-first" || core.priority!=toolbox::LemmaPriority::unchanged);
+        core.table_enabled=(core.table_messages.first || mode=="table-fallback");
         int rc=core.solve(argv[1]);
         if(rc==20)core.wrap_table_proof();
         if(core.left()==0){rc=0;core.artifact.clear();core.format="none";core.method="solve_budget";}
