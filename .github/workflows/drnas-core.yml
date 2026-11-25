@@ -1,7 +1,7 @@
 name: DRNAS CORE - canonical automaton
 on:
   push:
-    branches: [development/drnas-core]
+    branches: [main, development/drnas-core]
     paths: ['core/**', '.github/workflows/drnas-core.yml']
   workflow_dispatch:
 permissions:

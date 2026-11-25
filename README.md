@@ -1,6 +1,13 @@
 # DRNAS SAT
 
-**Continuing automaton development: [DRNAS CORE](core/README.md)** on `development/drnas-core`. This branch consolidates the strongest checked structural kernels into one executable and one development path. See [validation and limitations](core/VALIDATION.md).
+**Primary automaton: [DRNAS CORE 0.1.2](core/README.md).** The canonical version lives in `core/` on `main`; further development continues on `development/drnas-core`. New reasoning methods, improvements and benchmarks extend this same automaton. See [validation and limitations](core/VALIDATION.md).
+
+```bash
+bash core/build.sh
+python3 core/run.py formula.cnf dokaz.cert --seconds 5
+```
+
+CORE combines the checked FUSION, GENERAL, UNIFIED, AFFINE/WORDLIFT and Hall/GF(2) kernels. It is the default starting point for further work; the older experiments below remain historical evidence.
 
 **Structural SAT solving and independently checkable proofs** · Frane Drnas, Croatia
 
@@ -14,7 +21,7 @@ Can a solver explain why a schedule is impossible before it tries every assignme
 
 ## November 2026 research update · HYBRID6–10
 
-The recent experiments connect independently checked source-CNF reasoning with **symbolic BDD products**, **machine symmetry**, **weighted capacity bounds**, and **restricted-group Hall cuts**. The C++ solver on main is **not** claimed to contain these isolated experimental Python prototypes. Each result below identifies its input type and level of proof validation.
+These archived experiments connect independently checked source-CNF reasoning with **symbolic BDD products**, **machine symmetry**, **weighted capacity bounds**, and **restricted-group Hall cuts**. They are historical Python prototypes; inclusion in this overview does not imply integration into CORE. Each result below identifies its input type and level of proof validation.
 
 | Method | Key result | Evidence and scope |
 |---|---|---|

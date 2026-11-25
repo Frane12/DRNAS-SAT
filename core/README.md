@@ -1,6 +1,6 @@
 # DRNAS CORE 0.1.2
 
-Jedan automat za daljnji razvoj DRNAS SAT-a. Nastavak razvoja ide u ovaj direktorij i na granu `development/drnas-core`, uz verzije i dnevnik promjena. FUSION, GENERAL, UNIFIED i ATLAS ostaju izvori metoda i povijesnih rezultata.
+**Glavni i zadani automat za daljnji rad na DRNAS SAT-u.** Objavljena verzija nalazi se u `core/` na grani `main`. Daljnji razvoj, poboljšanja i benchmarkovi nastavljaju se u istom direktoriju na stalnoj grani `development/drnas-core`, uz verzije i dnevnik promjena. FUSION, GENERAL, UNIFIED i ATLAS ostaju izvori metoda i povijesnih rezultata.
 
 CORE je jedan izvorni C++ program. Metode rade redom na jednom CPU-u, unutar zajedničkog vremenskog budžeta. Zajednički zapis sadrži izvornu formulu i provjerene RUP posljedice. Metode ne dijele nepotpunu rekonstrukciju eliminiranih varijabli. Unutar GENERAL jezgre nastavlja se prijenos između projekcije, tablica i simboličkog zaključivanja.
 
