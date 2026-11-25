@@ -15,6 +15,9 @@ def check(source,cert):
     task=next(w); n=int(next(w)); m=int(next(w))
     if not 1<=n<=256: raise ValueError('dimension')
     if task in ('lower','lower-fixed','projector-gap','product-gap'): target=Q(next(w)); k=0
+    elif task=='stabilizer-gap':
+        target=Q(next(w)); k=int(next(w))
+        if not 1<=k<=256: raise ValueError('stabilizer count')
     elif task=='commute': k=int(next(w)); target=0
     else: raise ValueError('task')
     def read(m):
@@ -79,7 +82,40 @@ def check(source,cert):
         result={}
     else:
         gamma=None
-        if task=='product-gap':
+        if task=='stabilizer-gap':
+            gamma=target; claimed_rank=int(next(z))
+            if gamma<=0 or len(b)!=k or 'I'*n in b or any(abs(c)!=1 for c in b.values()):
+                raise ValueError('stabilizer source')
+            rows=[(bits(s),c) for s,c in b.items()]
+            if any(anti(u,v) for (u,c),(v,d) in itertools.combinations(rows,2)):
+                raise ValueError('noncommuting stabilizers')
+            # Independent descending binary pivots in X^x Z^z representation.
+            basis={}
+            for (x,y),c in rows:
+                phase=((x&y).bit_count()+(2 if c<0 else 0))%4
+                while x or y:
+                    pivot=(x|(y<<n)).bit_length()-1
+                    if pivot not in basis:
+                        basis[pivot]=(x,y,phase);break
+                    X,Y,p=basis[pivot]
+                    phase=(phase+p+2*(y&X).bit_count())%4;x^=X;y^=Y
+                else:
+                    if phase: raise ValueError('inconsistent stabilizers')
+            rank=len(basis)
+            if rank!=claimed_rank or not 1<=rank<=n: raise ValueError('rank')
+            amps=defaultdict(Q)
+            for word,c in a.items():
+                x,y=bits(word);phase=(x&y).bit_count()%4
+                for pivot,(X,Y,p) in sorted(basis.items(),reverse=True):
+                    if (x|(y<<n))>>pivot&1:
+                        phase=(phase+p+2*(y&X).bit_count())%4;x^=X;y^=Y
+                amps[(x,y,phase%2)]+=c*(1 if phase<2 else -1)
+            if any(amps.values()): raise ValueError('ground space witness')
+            a['I'*n]=a.get('I'*n,Q(0))-gamma*k/2
+            for s,c in b.items():a[s]=a.get(s,Q(0))+gamma*c/2
+            a={s:c for s,c in a.items() if c}
+            target=Q(0)
+        elif task=='product-gap':
             gamma=target
             if gamma<=0: raise ValueError('positive gap required')
             # Independent exact amplitude calculation using bit masks.
@@ -190,6 +226,7 @@ def check(source,cert):
                 rules.update(composed)
         if len(seen)!=len(terms) or lower!=claimed or lower<target: raise ValueError('lower bound')
         result=dict(lower=str(lower),target=str(target),groups=count,learned_rules=sorted(rules),composed_rules=sorted(composed),closure_depth=max_depth,closure_steps=closure_steps,rule_derivations=derivations)
+    if task=='stabilizer-gap': result.update(ground='0',gap_lower=str(gamma),rank=rank,ground_dimension=str(1<<(n-rank)))
     if task=='product-gap': result.update(ground='0',gap_lower=str(gamma),ground_dimension='1')
     if next(z,None) is not None: raise ValueError('trailing certificate')
     return dict(status='PROVED',certificate='SYMBOLIC_OPERATOR_EXACT',task=task,**result)

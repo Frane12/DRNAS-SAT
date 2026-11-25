@@ -34,5 +34,7 @@ jobs:
         run: python3 core/noncommuting_gap_tests.py
       - name: Contextual rule utility feedback and controls
         run: python3 core/rule_utility_tests.py
+      - name: Entangled stabilizer ground comparison (YM10)
+        run: python3 core/stabilizer_gap_tests.py
       - name: Existing CNF regression
         run: python3 core/tests.py
