@@ -154,3 +154,7 @@ See [analytic equivalence and limitations](YM17_GAUGE_BLOCK.md). Actual pinned A
 ## YM19 — residual-gauge locality and tree obstruction (experimental)
 
 [Proof and limits](YM19_LOCALITY.md). Pinned ATLAS30 proposes trees with different roots. On the physical space each squared tree-cut electric row can be replaced by its signed complement using global gauge invariance; an independent audit checks the identity and the structural cost. A centroid/canonical-path bound shows that explicit row widths cannot stay uniformly bounded on growing grids by tree selection alone. This is not an operator-norm or continuum gap bound. Four grid cases, twelve planned trees and four path congestion controls. Run python3 core/tree_locality_tests.py PATH_TO_PINNED_ATLAS. CI pending.
+
+## YM20 — local gauge forests (experimental)
+
+[Form comparison and limits](YM20_LOCAL_FOREST.md). Pinned ATLAS30 proposes local trees, independent auditor checks all root actions, Wilson words, electric rows and an exact rational electric form factor uniform in volume for fixed box size. CORE certifies the original finite graph separately. This does not prove a uniform interacting gap or the continuum limit. Eight prepared controls. CI pending.
