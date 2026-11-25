@@ -135,6 +135,31 @@ def gauge_stability_verify(words,raw,cert):
         beta_per_abs_k=str(beta_factor),volume_uniform_for_sufficiently_small_coupling=True,
         numerical_threshold_known=False,numerical_gap_known=False,continuum=False)
 
+
+def decimation_verify(words,raw,cert):
+    n=int(words[3]);g=q(words[4]);k=int(words[5])
+    if not 2<=n<=24 or g<=0 or not 1<=k<n or len(words)!=6+k+n*n: raise ValueError('decimation dimensions')
+    drop=list(map(int,words[6:6+k]))
+    if len(set(drop))!=k or any(not 0<=i<n for i in drop): raise ValueError('decimation indices')
+    v=list(map(q,words[6+k:]));h=[v[i*n:(i+1)*n] for i in range(n)]
+    if any(h[i][j]!=h[j][i] for i in range(n) for j in range(n)):raise ValueError('symmetry')
+    if any(h[i][j] for i in drop for j in drop if i!=j):raise ValueError('diagonal block')
+    lines=Path(cert).read_text().split()
+    if len(lines)!=6 or lines[:3]!=['drnas-op-v1',hashlib.sha256(raw).hexdigest(),'decimation-gap']:raise ValueError('decimation binding')
+    u,requested,l=map(Q,lines[3:])
+    if requested!=g or l-u<g or any(h[i][i]<=l for i in drop):raise ValueError('cut or bound')
+    # Independent check uses the original full matrix, not the Schur reduction.
+    def counts(t):
+        c=characteristic_plus(shift(h,t))
+        nz=[x for x in c if x]
+        neg=sum((x<0)!=(y<0) for x,y in zip(nz,nz[1:]))
+        return neg,n-max(i for i,x in enumerate(c) if x)
+    a,b=counts(u)
+    if a+b<1 or counts(l)[0]>1:raise ValueError('spectral count')
+    return dict(status='PROVED',certificate='OPERATOR_EXACT',task='decimation-gap',
+                ground_upper=str(u),excited_lower=str(l),gap_lower=str(l-u),
+                eliminated=k,remaining=n-k,finite_only=True)
+
 def verify(source,cert):
     raw=Path(source).read_bytes()
     if len(raw)>65536: raise ValueError('size')
@@ -145,6 +170,7 @@ def verify(source,cert):
     if kind=='gauge-stability':return gauge_stability_verify(words,raw,cert)
     if not 1<=n<=24: raise ValueError('dimension')
     if kind=='rotor-gap':return rotor_verify(words,raw,cert)
+    if kind=='decimation-gap':return decimation_verify(words,raw,cert)
     i=4; e=Q(0); g=Q(0)
     if kind=='gap': e=q(words[i]); i+=1
     if kind in ('gap','auto-gap','interval-gap'):
