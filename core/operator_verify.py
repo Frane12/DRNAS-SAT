@@ -39,7 +39,7 @@ def verify(source,cert):
     if not 1<=n<=24: raise ValueError('dimension')
     i=4; e=Q(0); g=Q(0)
     if kind=='gap': e=q(words[i]); i+=1
-    if kind in ('gap','auto-gap'):
+    if kind in ('gap','auto-gap','interval-gap'):
         g=q(words[i]); i+=1
         if g<=0: raise ValueError('gap')
     elif kind not in ('psd','pd','commute'): raise ValueError('task')
@@ -51,9 +51,27 @@ def verify(source,cert):
     a=matrix(); b=matrix() if kind=='commute' else None
     if i!=len(words): raise ValueError('trailing input')
     lines=Path(cert).read_text().split()
-    if len(lines)!=5 or lines[:3]!=['drnas-op-v1',hashlib.sha256(raw).hexdigest(),kind]:
+    if len(lines)!=(6 if kind=='interval-gap' else 5) or lines[:3]!=['drnas-op-v1',hashlib.sha256(raw).hexdigest(),kind]:
         raise ValueError('evidence binding')
     ce,cg=Q(lines[3]),Q(lines[4])
+    if kind=='interval-gap':
+        # Independent inertia via signs of coefficients of det(I+tA).
+        # This polynomial has only real roots, all nonzero; the positive
+        # roots count negative eigenvalues. Descartes is exact here.
+        def counts(t):
+            c=characteristic_plus(shift(a,t))
+            nonzero=[x for x in c if x]
+            neg=sum((x<0)!=(y<0) for x,y in zip(nonzero,nonzero[1:]))
+            degree=max(i for i,x in enumerate(c) if x)
+            return neg,n-degree
+        lower=Q(lines[5])
+        if n<2 or cg!=g or lower-ce<g: raise ValueError('interval gap claim')
+        neg,z=counts(ce)
+        neg2,z2=counts(lower)
+        if neg+z<1 or neg2>1: raise ValueError('spectral count')
+        return dict(status='PROVED',certificate='OPERATOR_EXACT',task=kind,
+                    ground_upper=str(ce),excited_lower=str(lower),gap_lower=str(lower-ce),
+                    requested_gap=str(g),ground_dimension='1')
     if cg!=g or (kind!='auto-gap' and ce!=e): raise ValueError('claim mismatch')
     if kind=='commute': ok=matmul(a,b)==matmul(b,a)
     elif kind in ('psd','pd'):
