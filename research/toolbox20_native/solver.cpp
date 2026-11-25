@@ -34,7 +34,11 @@ struct Stats {
                  <<" gf3_domains "<<algebra.domains<<" gf3_relations "<<algebra.relations
                  <<" gf3_rank "<<algebra.rank3<<" circuit_gates "<<algebra.gates
                  <<" circuit_inputs "<<algebra.inputs<<" circuit_free "<<algebra.free
-                 <<" affine_rounds "<<algebra.affine_rounds<<" circuit_blocks "<<algebra.blocks<<"\n";
+                 <<" affine_rounds "<<algebra.affine_rounds<<" circuit_blocks "<<algebra.blocks
+                 <<" word_recovered "<<algebra.word.recovered<<" word_pool "<<algebra.word.pool
+                 <<" word_nodes "<<algebra.word.nodes<<" word_shifts "<<algebra.word.shifts
+                 <<" word_xors "<<algebra.word.xors<<" word_adds "<<algebra.word.adds
+                 <<" word_bits "<<algebra.word.bits<<" word_candidates "<<algebra.word.candidates<<"\n";
     }
 };
 int emit_sat(const Input& input,const Model& m,const char* phase,const Stats& stats) {
@@ -86,7 +90,7 @@ int solve(const std::string& path,const std::string& artifact,double seconds,boo
         }
     }
     if (construct && circuit_affine_model(f,fixed,algebra_model,std::min(deadline,after(std::min(left(),seconds*.68))),stats.algebra))
-        return emit_sat(f,algebra_model,"affine-circuit-model",stats);
+        return emit_sat(f,algebra_model,stats.algebra.word.recovered&&stats.algebra.word.candidates?"word-lift-circuit-model":"affine-circuit-model",stats);
     const bool compact=f.n<=192 && cs.size()<=2200;
     auto case_end=std::min(deadline,after(std::min(.60,seconds*.30)));
     for (int round=0;round<(compact?10:2) && Clock::now()<case_end;++round) {
