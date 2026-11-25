@@ -14,7 +14,7 @@ def check(source,cert):
     if (next(w),next(w))!=('p','sop'): raise ValueError('header')
     task=next(w); n=int(next(w)); m=int(next(w))
     if not 1<=n<=256: raise ValueError('dimension')
-    if task=='lower': target=Q(next(w)); k=0
+    if task in ('lower','lower-fixed'): target=Q(next(w)); k=0
     elif task=='commute': k=int(next(w)); target=0
     else: raise ValueError('task')
     def read(m):
@@ -64,6 +64,35 @@ def check(source,cert):
                 if bound<0 or bound*bound<sum(c*c for s,c in group): raise ValueError('norm bound')
                 if any(not anti(bits(s),bits(t)) for (s,c),(t,d) in itertools.combinations(group,2)): raise ValueError('anticommutation')
                 lower-=bound
+            elif typ=='C':
+                if size>10: raise ValueError('commuting block size')
+                bs=[bits(s) for s,c in group]
+                if any(anti(u,v) for u,v in itertools.combinations(bs,2)): raise ValueError('noncommuting group')
+                # Work in the X^x Z^z basis, storing phase modulo four.
+                # A pivot reduction derives each generator dependency without
+                # building the native product lookup table.
+                basis={}; encoded=[]; generators=[]
+                for (s,c),(x,y) in zip(group,bs):
+                    original=(x,y); phase=(x&y).bit_count()%4
+                    mask=0; px=py=pp=0; v=x|(y<<n)
+                    while v:
+                        pivot=v.bit_length()-1
+                        if pivot not in basis:
+                            j=len(basis)
+                            # Store the original word as a new independent generator,
+                            # reduced binary row and its expression in original generators.
+                            basis[pivot]=(v,mask^(1<<j))
+                            generators.append((x,y,phase))
+                            mask=1<<j
+                            break
+                        row,expr=basis[pivot]; v^=row;mask^=expr
+                    for j,(gx,gy,gp) in enumerate(generators):
+                        if mask>>j&1:
+                            pp=(pp+gp+2*(py&gx).bit_count())%4
+                            px^=gx;py^=gy
+                    if (px,py)!=original or (pp-phase)%2: raise ValueError('dependency')
+                    encoded.append((mask,c*(1 if (pp-phase)%4==0 else -1)))
+                lower+=min(sum(c*(-1 if (mask&val).bit_count()%2 else 1) for mask,c in encoded) for val in range(1<<len(generators)))
             elif typ=='D':
                 if any(set(s)-set('IZ') for s,c in group): raise ValueError('diagonal word')
                 support=sorted({i for s,c in group for i,ch in enumerate(s) if ch=='Z'})
