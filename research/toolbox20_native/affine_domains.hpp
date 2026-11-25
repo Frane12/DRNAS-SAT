@@ -3,6 +3,7 @@
 // SAT only: every proposed model must satisfy the full input, independently checked by bench.py.
 // No family names, saved models, expected answers, CDCL, or external solving oracle.
 #include "formula.hpp"
+#include "word_lift.hpp"
 #include <array>
 #include <bit>
 #include <map>
@@ -12,6 +13,7 @@ namespace toolbox {
 struct AlgebraStats {
     int domains=0, relations=0, rank3=0, gates=0, inputs=0, free=0, affine_rounds=0;
     uint64_t blocks=0;
+    WordLiftStats word;
 };
 inline int mod3(int x){x%=3;return x<0?x+3:x;}
 inline bool finite3_model(const Input& f,Model& model,Time deadline,AlgebraStats& st){
@@ -209,6 +211,9 @@ inline bool circuit_affine_model(const Input& f,const Model& root,Model& model,T
         for(auto& e:expr)e=compose_affine(e,sub);
         d=nf;st.free=d;
     }
+    // Try a source-verified word-level expression before gate-by-gate enumeration.
+    if(word_lift_model(f,gs,primary,expr,d,model,deadline,st.word))return true;
+    if(Clock::now()>=deadline)return false;
     // Bounded bit-parallel search on the remaining independent coordinates.
     // This is explicitly enumeration, not a polynomial decision algorithm.
     constexpr std::array<uint64_t,6> pat={0xaaaaaaaaaaaaaaaaULL,0xccccccccccccccccULL,0xf0f0f0f0f0f0f0f0ULL,0xff00ff00ff00ff00ULL,0xffff0000ffff0000ULL,0xffffffff00000000ULL};
