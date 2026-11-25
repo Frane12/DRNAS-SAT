@@ -14,7 +14,7 @@ def check(source,cert):
     if (next(w),next(w))!=('p','sop'): raise ValueError('header')
     task=next(w); n=int(next(w)); m=int(next(w))
     if not 1<=n<=256: raise ValueError('dimension')
-    if task in ('lower','lower-fixed','projector-gap'): target=Q(next(w)); k=0
+    if task in ('lower','lower-fixed','projector-gap','product-gap'): target=Q(next(w)); k=0
     elif task=='commute': k=int(next(w)); target=0
     else: raise ValueError('task')
     def read(m):
@@ -78,6 +78,22 @@ def check(source,cert):
         if any(accum.values()): raise ValueError('nonzero commutator')
         result={}
     else:
+        gamma=None
+        if task=='product-gap':
+            gamma=target
+            if gamma<=0: raise ValueError('positive gap required')
+            # Independent exact amplitude calculation using bit masks.
+            amplitudes=defaultdict(Q)
+            for word,c in a.items():
+                x,y=bits(word);phase=(x&y).bit_count()%4
+                amplitudes[(x,phase%2)]+=c*(1 if phase<2 else -1)
+            if any(amplitudes.values()): raise ValueError('ground witness')
+            a['I'*n]=a.get('I'*n,Q(0))-gamma*n/2
+            for i in range(n):
+                s='I'*i+'Z'+'I'*(n-i-1)
+                a[s]=a.get(s,Q(0))+gamma/2
+            a={s:c for s,c in a.items() if c}
+            target=Q(0)
         claimed=Q(next(z)); count=int(next(z))
         lower=a.pop('I'*n,Q(0)); terms=sorted(a.items()); seen=set(); rules=set(); composed=set(); max_depth=0; closure_steps=0; derivations=[]
         if not 0<=count<=len(terms): raise ValueError('group count')
@@ -174,6 +190,7 @@ def check(source,cert):
                 rules.update(composed)
         if len(seen)!=len(terms) or lower!=claimed or lower<target: raise ValueError('lower bound')
         result=dict(lower=str(lower),target=str(target),groups=count,learned_rules=sorted(rules),composed_rules=sorted(composed),closure_depth=max_depth,closure_steps=closure_steps,rule_derivations=derivations)
+    if task=='product-gap': result.update(ground='0',gap_lower=str(gamma),ground_dimension='1')
     if next(z,None) is not None: raise ValueError('trailing certificate')
     return dict(status='PROVED',certificate='SYMBOLIC_OPERATOR_EXACT',task=task,**result)
 

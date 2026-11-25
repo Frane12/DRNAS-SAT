@@ -281,12 +281,40 @@ inline bool commuting_projector_gap(Sum a,int n,Q target,Clock::time_point stop,
     rank=int(basis.size());return rank>0&&rank<=n;
 }
 
+// Compare H against gamma times the Hamming-weight operator D.
+// H|0...0>=0 is checked without constructing a state vector.
+// If H-gamma D >= 0, the orthogonal complement has energy >= gamma.
+inline bool product_zero(const Sum& a,int n,Clock::time_point stop){
+    std::map<std::pair<std::string,int>,Q> amplitudes;
+    for(const auto& [word,c]:a){
+        tick(stop);std::string flips(n,'0');int phase=0;
+        for(int i=0;i<n;++i){if(word[i]=='X'||word[i]=='Y')flips[i]='1';if(word[i]=='Y')++phase;}
+        phase%=4;amplitudes[{flips,phase%2}]+=(phase<2?c:-c);
+    }
+    for(const auto& [key,c]:amplitudes)if(c!=0)return false;
+    return true;
+}
+inline Partition product_gap_bound(Sum a,int n,Q gamma,Clock::time_point stop,int& attempts){
+    std::string id(n,'I');a[id]-=gamma*n/2;
+    for(int i=0;i<n;++i){std::string z=id;z[i]='Z';a[z]+=gamma/2;}
+    Q constant=a[id];a.erase(id);
+    std::vector<Term> terms;for(const auto& t:a)if(t.second!=0)terms.push_back(t);
+    if(terms.empty()){++attempts;return Partition{constant,"0\n"};}
+    int matches=0;++attempts;
+    Partition best=replay_rules(terms,constant,{"C3+","C3-"},stop,matches);
+    for(int policy=0;policy<6&&best.lower<0;++policy){
+        tick(stop);++attempts;auto p=explore(terms,constant,policy,stop);
+        if(p.lower>best.lower)best=std::move(p);
+    }
+    return best;
+}
+
 inline int run(const std::string& raw,const std::filesystem::path& out,double seconds){
     auto stop=Clock::now()+std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(seconds));
     if(raw.size()>2000000)throw std::runtime_error("symbolic input limit");
     std::istringstream in(raw);std::string p,s,task,extra;int n,m,k=0;
     if(!(in>>p>>s>>task>>n>>m)||p!="p"||s!="sop"||n<1||n>256)throw std::runtime_error("symbolic header");
-    Q target=0;if(task=="lower"||task=="lower-fixed"||task=="projector-gap")target=core_operator::rational(in);
+    Q target=0;if(task=="lower"||task=="lower-fixed"||task=="projector-gap"||task=="product-gap")target=core_operator::rational(in);
     else if(task=="commute"){if(!(in>>k))throw std::runtime_error("second term count");}
     else throw std::runtime_error("symbolic task");
     Sum a=read(in,n,m),b;if(task=="commute")b=read(in,n,k);if(in>>extra)throw std::runtime_error("trailing symbolic input");
@@ -294,6 +322,13 @@ inline int run(const std::string& raw,const std::filesystem::path& out,double se
     try{
         if(task=="commute"){ok=commutes(a,b,stop);method="sparse_commutator";}
         else if(task=="projector-gap"){int rank=0;Q lower=0;ok=commuting_projector_gap(a,n,target,stop,rank,lower);method="commuting_projector_gap";if(ok)proof<<rank<<" "<<lower<<"\n";}
+        else if(task=="product-gap"){
+            method="product_ground_comparison";
+            if(target>0&&product_zero(a,n,stop)){
+                auto p=product_gap_bound(a,n,target,stop,attempts);std::ostringstream value;value<<p.lower;best_bound=value.str();
+                ok=p.lower>=0;if(ok)proof<<p.lower<<"\n"<<p.body;
+            }
+        }
         else{
             std::string id(n,'I');Q constant=0;auto it=a.find(id);if(it!=a.end()){constant=it->second;a.erase(it);}
             std::vector<Term> terms(a.begin(),a.end());

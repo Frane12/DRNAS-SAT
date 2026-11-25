@@ -30,5 +30,7 @@ jobs:
         run: python3 core/recursive_rule_tests.py
       - name: Matrix-free commuting projector gaps (YM8)
         run: python3 core/symbolic_gap_tests.py
+      - name: Noncommuting product-ground comparison (YM9)
+        run: python3 core/noncommuting_gap_tests.py
       - name: Existing CNF regression
         run: python3 core/tests.py
