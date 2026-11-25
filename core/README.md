@@ -174,3 +174,7 @@ See [analytic equivalence and limitations](YM17_GAUGE_BLOCK.md). Actual pinned A
 ## YM23 — convergent log-vacuum series on a single SU(2) cycle (experimental)
 
 [Proof and generalization limits](YM23_VACUUM_SERIES.md). Exact automatic polynomial recurrence, independent coefficient audit, analytic convergence/tail majorant and positive gap of the actual infinite-representation single-cycle Hamiltonian. The general graph recurrence remains formal; no volume-uniform interacting-lattice convergence or continuum result. Python prototype plus native CORE physical-loop cross-check; no ATLAS run in this task. Run python3 core/vacuum_series_tests.py. CI pending.
+
+## YM24 — local Fourier norm vacuum contraction (experimental)
+
+[Analytic derivation and scope](YM24_LOCAL_VACUUM.md). A per-link representation trace norm gives a sufficient volume-independent contraction and curvature gap for the original fixed-spacing SU(2) Hamiltonian at very small magnetic/electric ratio. Native CORE and independent auditor check the rational constants and all-order tail majorant, not the analytic premises or explicit full-lattice coefficients. ATLAS forest control is separate. No continuum claim, novelty claim or peer-reviewed proof. Run python3 core/gauge_local_vacuum_tests.py PATH_TO_PINNED_ATLAS. CI pending.

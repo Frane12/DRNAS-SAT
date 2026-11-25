@@ -150,6 +150,7 @@ inline std::string hash(const std::string& raw){
 #include "gauge_parent_gap.hpp"
 #include "gauge_parent_volume.hpp"
 #include "gauge_vacuum2.hpp"
+#include "gauge_local_vacuum.hpp"
 // Physical one-cycle SU(2) Hamiltonian in the character basis chi_{j/2}.
 // Exact tridiagonal Sturm counts; the entire infinite tail is bounded.
 inline int ks_sturm(int n,const Q& e,const Q& k,const Q& cut,const Q& correction,Clock::time_point stop){
@@ -326,6 +327,7 @@ inline int run(const std::string& raw,const std::filesystem::path& out,double se
     if(kind=="gauge-parent-gap")return gauge_parent_run(raw,in,n,out,stop);
     if(kind=="gauge-parent-volume")return gauge_parent_volume_run(raw,in,n,out,stop);
     if(kind=="gauge-vacuum2")return gauge_vacuum2_run(raw,in,n,out,stop);
+    if(kind=="gauge-local-vacuum")return gauge_local_vacuum_run(raw,in,n,out,stop);
     if(kind=="decimation-gap")return decimation_run(raw,in,n,out,stop);
     if(kind=="multiscale-gap")return multiscale_run(raw,in,n,out,stop);
     Q e=0,g=0;

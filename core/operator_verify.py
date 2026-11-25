@@ -396,6 +396,35 @@ def gauge_vacuum2_verify(words,raw,cert):
         uniform_reference_gap=True,uniform_original_gap=False,
         all_representations=True,continuum=False,dimension=d,lambda_value=str(t))
 
+
+def gauge_local_vacuum_verify(words,raw,cert):
+    if len(words)!=8:raise ValueError('local vacuum header')
+    d=int(words[3]);alpha,k,target=map(q,words[4:7]);n=int(words[7])
+    if d not in (2,3,4) or min(alpha,target)<=0 or not 1<=n<=64:raise ValueError('local vacuum parameters')
+    qmax=2*(d-1);u=abs(k/alpha)
+    # Reconstruct constants from per-link SU2 spin and pair estimates.
+    drive=qmax*16*(1+4*Q(1,2))
+    bilinear=2*3*Q(2,3)**2
+    radius=Q(1,8)
+    threshold=1/Q(576*qmax)
+    gap=alpha/3
+    if u>threshold or target>gap:raise ValueError('outside certified range')
+    if drive*threshold+bilinear*radius**2>radius:raise ValueError('ball not invariant')
+    lip=2*bilinear*radius
+    rho=Q(1,2)-2*Q(2,3)*radius
+    if lip>=1 or rho<=0:raise ValueError('contraction or curvature')
+    ratio=4*bilinear*drive*u
+    tail=drive*u*ratio**n/(1-ratio)
+    z=Path(cert).read_text().split()
+    if len(z)!=10 or z[:3]!=['drnas-op-v1',hashlib.sha256(raw).hexdigest(),'gauge-local-vacuum']:raise ValueError('local vacuum binding')
+    if list(map(Q,z[3:]))!=[threshold,radius,lip,rho,gap,ratio,tail]:raise ValueError('local vacuum bound')
+    return dict(status='PROVED',certificate='ANALYTIC_BOUND',task='gauge-local-vacuum',
+        dimension=d,ratio=str(k/alpha),max_ratio=str(threshold),order=n,
+        gap_lower=str(gap),contraction_factor=str(lip),series_ratio=str(ratio),
+        local_norm_tail_upper=str(tail),original_KS_uniform_gap=True,
+        all_representations=True,fixed_spacing=True,continuum=False,
+        proof_assistant_formalized=False,coefficients_generated=False)
+
 def verify(source,cert):
     raw=Path(source).read_bytes()
     if len(raw)>65536: raise ValueError('size')
@@ -411,6 +440,7 @@ def verify(source,cert):
     if kind=='gauge-parent-gap':return gauge_parent_verify(words,raw,cert)
     if kind=='gauge-parent-volume':return gauge_parent_volume_verify(words,raw,cert)
     if kind=='gauge-vacuum2':return gauge_vacuum2_verify(words,raw,cert)
+    if kind=='gauge-local-vacuum':return gauge_local_vacuum_verify(words,raw,cert)
     if not 1<=n<=24: raise ValueError('dimension')
     if kind=='rotor-gap':return rotor_verify(words,raw,cert)
     if kind=='decimation-gap':return decimation_verify(words,raw,cert)
