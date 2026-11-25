@@ -1,0 +1,337 @@
+name: DRNAS CORE - certified boundary inference 100
+on:
+  push:
+    branches: [development/drnas-core]
+    paths: ['.github/workflows/drnas-core-boundary100.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 012315d0a62443667aad69fe0dd42c72dd375630
+      - name: Build unmodified baseline
+        run: |
+          bash core/build.sh
+          cp core/bin/drnas-core core/bin/drnas-core-baseline
+      - name: Build scheduler candidates and check soundness
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          p=pathlib.Path('core/core.cpp')
+          s=p.read_text()
+          patches=[["struct Core {","// Diagnostic-only scoped timers. Disabled unless DRNAS_PROFILE is set.\nstruct ProfileScope {\n    const char* name; Time started; bool enabled;\n    explicit ProfileScope(const char* n):name(n),started(Clock::now()),enabled(std::getenv(\"DRNAS_PROFILE\")!=nullptr){\n        if(enabled){std::fprintf(stderr,\"PROFILE_BEGIN %s\\n\",name);std::fflush(stderr);}\n    }\n    ~ProfileScope(){\n        if(enabled){std::fprintf(stderr,\"PROFILE_END %s %.9f\\n\",name,chrono::duration<double>(Clock::now()-started).count());std::fflush(stderr);}\n    }\n};\ntemplate<class Fn> static auto profiled(const char* name,Fn&& fn){\n    ProfileScope scope(name);return fn();\n}\nstruct Core {"],["int relations(){","int relations(){\n        ProfileScope scope(\"relations\");"],["int fusion(){","int fusion(){\n        ProfileScope scope(\"fusion\");"],["int discover(){","int discover(){\n        ProfileScope scope(\"discovery\");"],["int general(){","int general(){\n        ProfileScope scope(\"general\");"],["bool absorb(const F& additions,const F& messages,Time until){","bool absorb(const F& additions,const F& messages,Time until){\n        ProfileScope scope(\"rup_absorb\");"],["pcmax::math4::xor_unit(original.cs,original.n,hash.str(),min({left(),.25,seconds*.08}),&seed)","profiled(\"gf2\",[&](){return pcmax::math4::xor_unit(original.cs,original.n,hash.str(),min({left(),.25,seconds*.08}),&seed);})"],["pcmax::analyze_clause_hall(original.cs,original.n,hash.str(),opts)","profiled(\"hall\",[&](){return pcmax::analyze_clause_hall(original.cs,original.n,hash.str(),opts);})"],["toolbox::finite3_model(original,m,budget(.20,2.5),algebra)","profiled(\"gf3\",[&](){return toolbox::finite3_model(original,m,budget(.20,2.5),algebra);})"],["toolbox::circuit_affine_model(original,root,m,budget(.68),algebra)","profiled(\"affine_word\",[&](){return toolbox::circuit_affine_model(original,root,m,budget(.68),algebra);})"],["toolbox::cooperate(original.n,active,fixed,p,budget(.18,.7),cases,unified,4)","profiled(\"relation_cooperate\",[&](){return toolbox::cooperate(original.n,active,fixed,p,budget(.18,.7),cases,unified,4);})"],["toolbox::factor_stage(original,active,fixed,p,budget(.12,.35),factors,2)","profiled(\"relation_factor\",[&](){return toolbox::factor_stage(original,active,fixed,p,budget(.12,.35),factors,2);})"],["fusion_kernel::fusion_solve(f,budget(.52),true,0)","profiled(\"fusion_kernel\",[&](){return fusion_kernel::fusion_solve(f,budget(.52),true,0);})"]]
+          for old,new in patches:
+              assert s.count(old)==1,old
+              s=s.replace(old,new,1)
+          scheduler_patches=[["int fusion(){","int fusion(double fraction=.52,double maximum=1e30){"],["fusion_kernel::fusion_solve(f,budget(.52),true,0)","fusion_kernel::fusion_solve(f,budget(fraction,maximum),true,0)"],["        int rc=relations();if(rc)return rc;\n        rc=fusion();if(rc)return rc;\n        rc=discover();if(rc)return rc;\n        return general();","        int rc=relations();if(rc)return rc;\n        const char* raw_schedule=std::getenv(\"DRNAS_SCHEDULE\");\n        string schedule=raw_schedule?raw_schedule:\"legacy\";\n        bool eligible=!no_share&&original.n<=1500&&all.size()<=10000&&left()>.12;\n        if(eligible&&schedule==\"early\"){\n            rc=discover();if(rc)return rc;\n            rc=fusion(.62);if(rc)return rc;\n            return general();\n        }\n        if(eligible&&schedule==\"staged\"){\n            // First bounded structural attempt; do not persist incomplete search.\n            rc=fusion(.16,.40);if(rc)return rc;\n            rc=discover();if(rc)return rc;\n            // Use the checked ledger and remaining budget; restart FUSION.\n            // Reserve time for GENERAL even if the first methods fail.\n            if(left()>.08){rc=fusion(.62);if(rc)return rc;}\n            return general();\n        }\n        rc=fusion();if(rc)return rc;\n        rc=discover();if(rc)return rc;\n        return general();"]]
+          for old,new in scheduler_patches:
+              assert s.count(old)==1,old
+              s=s.replace(old,new,1)
+          selector_patches=[["int discover(){","int discover(double fraction=.50,double maximum=.6,bool responsive=false){"],["auto stop=budget(.50,.6);","auto stop=budget(fraction,maximum);"],["bool good=toolbox::satisfied(work,m)||toolbox::repair(f.n,work,m,part(.35),repair_flips);","double repair_fraction=.35;\n                if(responsive){\n                    int bad=0;double expected=0;\n                    for(const C& c:work){\n                        bool ok=false;for(int l:c)if(toolbox::value(m,l)==1){ok=true;break;}\n                        bad+=!ok;expected+=std::ldexp(1.0,-int(min<size_t>(c.size(),1024)));\n                    }\n                    double ratio=bad/max(1.0,expected);\n                    repair_fraction=ratio<.65?.55:ratio>1.10?.12:.35;\n                    std::fprintf(stderr,\"SELECTOR residual_bad=%d expected=%.6f repair_fraction=%.6f\\n\",bad,expected,repair_fraction);\n                }\n                bool good=toolbox::satisfied(work,m)||toolbox::repair(f.n,work,m,part(repair_fraction),repair_flips);"],["        if(eligible&&schedule==\"early\"){","        if(eligible&&schedule==\"selector\"){\n            // CNF-only opportunity estimate: resolution pair count, occurrence\n            // asymmetry and quality of a sign-balanced seed. No family labels.\n            vector<int> pos(original.n+1),neg(original.n+1);\n            for(const C& c:all)for(int l:c)(l>0?pos[l]:neg[-l])++;\n            int live=0,cheap=0;double skew=0;\n            for(int v=1;v<=original.n;++v)if(pos[v]+neg[v]){\n                ++live;cheap+=(1LL*pos[v]*neg[v]<=64);\n                skew+=double(abs(pos[v]-neg[v]))/(pos[v]+neg[v]);\n            }\n            double opportunity=double(cheap)/max(1,live);\n            double imbalance=skew/max(1,live);\n            double expected_bad=0;int bad=0;\n            toolbox::Model guess(original.n+1,0);\n            for(int v=1;v<=original.n;++v)guess[v]=pos[v]>neg[v];\n            for(const C& c:all){\n                bool ok=false;for(int l:c)if((guess[abs(l)]!=0)==(l>0)){ok=true;break;}\n                bad+=!ok;expected_bad+=std::ldexp(1.0,-int(min<size_t>(c.size(),1024)));\n            }\n            double seed_ratio=bad/max(1.0,expected_bad);\n            // Heuristic, frozen before the new panel. Favor constructive\n            // projection when a seed or cheap pivots offer evidence of progress.\n            bool projection_first=seed_ratio<.80 || (opportunity>.35 && imbalance>.12);\n            std::fprintf(stderr,\"SELECTOR initial=%s cheap=%.6f imbalance=%.6f seed_ratio=%.6f\\n\",\n                         projection_first?\"projection\":\"fusion\",opportunity,imbalance,seed_ratio);\n            if(!projection_first){\n                auto before=fusion_kernel::stats.split_nodes;\n                rc=fusion(.16,.40);if(rc)return rc;\n                auto nodes=fusion_kernel::stats.split_nodes-before;\n                std::fprintf(stderr,\"SELECTOR fusion_probe_nodes=%lld\\n\",(long long)nodes);\n            }\n            if(left()>.08){\n                auto prev_shared=shared;auto prev_proof=ledger.size();\n                rc=discover(.50,projection_first?.6:.35,true);if(rc)return rc;\n                double projected=double(projected_variables)/max(1,live);\n                double yield=double(shared-prev_shared)/max<size_t>(1,ledger.size()-prev_proof);\n                // Spend more of the remaining budget on FUSION when discovery\n                // produced little reduction or little reusable evidence.\n                double allocation=(projected>.15||yield>.12)?.52:.68;\n                std::fprintf(stderr,\"SELECTOR projected=%.6f yield=%.6f fusion_fraction=%.6f\\n\",projected,yield,allocation);\n                if(left()>.08){rc=fusion(allocation);if(rc)return rc;}\n            }\n            return general();\n        }\n        if(eligible&&schedule==\"early\"){"]]
+          for old,new in selector_patches:
+              assert s.count(old)==1,old
+              s=s.replace(old,new,1)
+          feedback_patches=[["int discover(double fraction=.50,double maximum=.6,bool responsive=false){","    // Repair on a private canonical residual. Keep exact clause membership\n    // and lock root-implied variables; no incremental swap/pop assumptions.\n    struct RepairProgress { int initial=0,best=0,windows=0,stalls=0; uint64_t moves=0; double elapsed=0; };\n    RepairProgress live_repair;\n    bool repair_feedback(int n,const F& input,toolbox::Model& m,const toolbox::Model& fixed,Time until){\n        live_repair=RepairProgress{};\n        const auto start=Clock::now();\n        F cs;cs.reserve(input.size());\n        for(C c:input){\n            if(!toolbox::normalize(c))continue;\n            if(c.empty())return false;\n            cs.push_back(std::move(c));\n        }\n        for(int v=1;v<=n;++v){\n            if(fixed.at(v)>=0)m.at(v)=fixed[v];\n            else if(m.at(v)<0)m[v]=0;\n        }\n        vector<vector<int>> occ(n+1);\n        for(int i=0;i<int(cs.size());++i)for(int l:cs[i])occ.at(abs(l)).push_back(i);\n        auto sat_count=[&](int i){\n            int count=0;\n            for(int l:cs.at(i))count+=toolbox::value(m,l)==1;\n            return count;\n        };\n        vector<int> counts(cs.size());\n        set<int> bad;\n        for(int i=0;i<int(cs.size());++i){\n            counts[i]=sat_count(i);\n            if(!counts[i])bad.insert(i);\n        }\n        live_repair.initial=live_repair.best=int(bad.size());\n        toolbox::Model best_model=m;\n        std::mt19937 rng(20310719);\n        auto pick=[&](size_t k){return std::uniform_int_distribution<size_t>(0,k-1)(rng);};\n        const uint64_t window=uint64_t(max(256,min(8192,24*n)));\n        const uint64_t max_moves=min<uint64_t>(1000000,max<uint64_t>(4096,3000ULL*uint64_t(n)));\n        int previous=live_repair.best;\n        for(uint64_t step=0;step<max_moves&&!bad.empty();++step){\n            if((step&63)==0&&Clock::now()>=until)break;\n            auto it=bad.begin();std::advance(it,pick(bad.size()));\n            const C& c=cs.at(*it);\n            C choices;\n            for(int l:c)if(fixed.at(abs(l))<0&&toolbox::value(m,l)==0)choices.push_back(l);\n            if(choices.empty())break; // cannot repair under this fixed assignment\n            int chosen=choices.front(),loss_best=INT_MAX;size_t ties=0;\n            if(rng()%100<12)chosen=choices.at(pick(choices.size()));\n            else for(int l:choices){\n                int loss=0;\n                for(int i:occ.at(abs(l))){\n                    if(counts.at(i)==1 && std::find(cs[i].begin(),cs[i].end(),-l)!=cs[i].end())++loss;\n                    if(loss>loss_best)break;\n                }\n                if(loss<loss_best){loss_best=loss;chosen=l;ties=1;}\n                else if(loss==loss_best&&pick(++ties)==0)chosen=l;\n            }\n            int v=abs(chosen);m.at(v)=chosen>0;\n            for(int i:occ.at(v)){\n                counts.at(i)=sat_count(i);\n                if(counts[i])bad.erase(i);else bad.insert(i);\n            }\n            ++live_repair.moves;++repair_flips;\n            if(int(bad.size())<live_repair.best){live_repair.best=int(bad.size());best_model=m;}\n            if((step+1)%window==0){\n                ++live_repair.windows;\n                if(live_repair.best<previous){previous=live_repair.best;live_repair.stalls=0;}\n                else ++live_repair.stalls;\n                if(live_repair.stalls>=(live_repair.best<=2?6:3))break;\n            }\n        }\n        m=std::move(best_model);\n        live_repair.elapsed=chrono::duration<double>(Clock::now()-start).count();\n        std::fprintf(stderr,\"SELECTOR feedback_repair initial=%d best=%d windows=%d stalls=%d moves=%llu elapsed=%.9f\\n\",\n            live_repair.initial,live_repair.best,live_repair.windows,live_repair.stalls,\n            (unsigned long long)live_repair.moves,live_repair.elapsed);\n        return live_repair.best==0&&toolbox::satisfied(input,m);\n    }\n    int discover(double fraction=.50,double maximum=.6,int responsive=0){"],["if(responsive){","if(responsive==1){"],["bool good=toolbox::satisfied(work,m)||toolbox::repair(f.n,work,m,part(repair_fraction),repair_flips);","bool good=toolbox::satisfied(work,m);\n                if(!good){\n                    if(responsive==2){\n                        good=repair_feedback(f.n,work,m,fixed,part(.60));\n                        // If the measured local attempt did not finish but is\n                        // close to a model, allow the original repair path too.\n                        if(!good&&live_repair.best<=2&&Clock::now()<stop)\n                            good=toolbox::repair(f.n,work,m,part(.25),repair_flips);\n                    }else good=toolbox::repair(f.n,work,m,part(repair_fraction),repair_flips);\n                }"],["        if(eligible&&schedule==\"selector\"){","        if(eligible&&schedule==\"feedback\"){\n            // Use the twice-validated staged schedule as the safety baseline.\n            rc=fusion(.16,.40);if(rc)return rc;\n            auto shared_before=shared;auto proof_before=ledger.size();\n            rc=discover(.50,.6,2);if(rc)return rc;\n            // Real progress, not the formula family: residual improvement,\n            // projected fraction and checked-message yield inform the remainder.\n            double gain=double(live_repair.initial-live_repair.best)/max(1,live_repair.initial);\n            double projected=double(projected_variables)/max(1,original.n);\n            double reuse=double(shared-shared_before)/max<size_t>(1,ledger.size()-proof_before);\n            // Give GENERAL a meaningful share when repair plateaus and little\n            // certified information was extracted; otherwise favor FUSION.\n            double fraction=(live_repair.stalls>=3&&gain<.20&&projected<.10&&reuse<.10)?.48:.62;\n            std::fprintf(stderr,\"SELECTOR feedback gain=%.6f projected=%.6f reuse=%.6f fusion_fraction=%.6f\\n\",gain,projected,reuse,fraction);\n            if(left()>.08){rc=fusion(fraction);if(rc)return rc;}\n            return general();\n        }\n        if(eligible&&schedule==\"selector\"){"],["                if(good){\n                    for(int v=1;v<=f.n;++v)if(fixed[v]>=0)m[v]=fixed[v];\n                    projection.reconstruct(m);\n                    for(int v=1;v<=f.n;++v)if(fixed[v]>=0)m[v]=fixed[v];\n                    if(model(m,\"unified_projection_model\"))return 10;\n                }","                if(good){\n                    for(int v=1;v<=f.n;++v)if(fixed[v]>=0)m[v]=fixed[v];\n                    if(responsive==2){\n                        // A residual witness is only a candidate, not a proof.\n                        // Discard failed lifts and continue other checked methods.\n                        bool lifted=toolbox::satisfied(work,m);\n                        if(lifted)try{projection.reconstruct(m);}\n                        catch(const std::logic_error& e){\n                            lifted=false;\n                            std::fprintf(stderr,\"SELECTOR rejected_lift %s\\n\",e.what());\n                        }\n                        if(lifted){\n                            for(int v=1;v<=f.n;++v)if(fixed[v]>=0)m[v]=fixed[v];\n                            if(model(m,\"unified_projection_model\"))return 10;\n                        }\n                        std::fprintf(stderr,\"SELECTOR rejected_candidate continuing\\n\");\n                    }else{\n                        projection.reconstruct(m);\n                        for(int v=1;v<=f.n;++v)if(fixed[v]>=0)m[v]=fixed[v];\n                        if(model(m,\"unified_projection_model\"))return 10;\n                    }\n                }"]]
+          for old,new in feedback_patches:
+              assert s.count(old)==1,old
+              s=s.replace(old,new,1)
+          local_patches=[["    int discover(double fraction=.50,double maximum=.6,int responsive=0){","    // Exact conditional truth table on a bounded set of repair variables.\n    // All other variables are frozen to a candidate model, not asserted facts.\n    // Empty table means only that this particular conditional repair failed.\n    bool local_exact(int n,const F& input,toolbox::Model& m,const toolbox::Model& fixed,Time until){\n        F cs;cs.reserve(input.size());\n        for(C c:input){if(toolbox::normalize(c))cs.push_back(std::move(c));}\n        toolbox::Model seed=m;\n        for(int v=1;v<=n;++v)if(fixed.at(v)>=0)seed.at(v)=fixed[v];\n        vector<int> vars;vector<int> loc(n+1,-1);\n        auto add=[&](int v){if(fixed.at(v)<0&&loc.at(v)<0){loc[v]=int(vars.size());vars.push_back(v);}};\n        int initial_bad=0;\n        for(const C& c:cs){\n            bool ok=false;for(int l:c)if(toolbox::value(seed,l)==1){ok=true;break;}\n            if(!ok){++initial_bad;for(int l:c)add(abs(l));}\n        }\n        if(initial_bad==0){m=seed;return true;}\n        if(initial_bad>8||vars.empty()||vars.size()>20)return false;\n        // Grow the region through constraints that can lose their only\n        // satisfying boundary literals. Prefer variables that can repair\n        // such constraints, without modifying any root-implied assignment.\n        auto grow=[&](int target){\n            while(int(vars.size())<target&&Clock::now()<until){\n                vector<int> score(n+1,0);\n                for(const C& c:cs){\n                    int inside_true=0,outside_true=0,inside=0;\n                    for(int l:c){\n                        bool in=loc[abs(l)]>=0;inside+=in;\n                        if(toolbox::value(seed,l)==1){if(in)++inside_true;else ++outside_true;}\n                    }\n                    if(!inside||outside_true)continue;\n                    int w=inside_true==1?16:inside_true==0?8:3;\n                    for(int l:c)if(loc[abs(l)]<0&&fixed[abs(l)]<0)score[abs(l)]+=w;\n                }\n                int best=0;for(int v=1;v<=n;++v)if(score[v]>0&&(!best||score[v]>score[best]))best=v;\n                if(!best)break;add(best);\n            }\n        };\n        uint64_t pattern[6]={};\n        for(unsigned j=0;j<6;++j)for(unsigned bit=0;bit<64;++bit)if((bit>>j)&1u)pattern[j]|=uint64_t(1)<<bit;\n        int attempts=0,previous=-1;\n        for(int width:{8,12,16,20}){\n            if(Clock::now()>=until)break;\n            if(width<int(vars.size()))continue;\n            grow(width);\n            int k=int(vars.size());if(k==previous)continue;previous=k;\n            if(k<=0||k>20)break;\n            vector<pair<uint32_t,uint32_t>> clauses;\n            bool blocked=false;\n            for(const C& c:cs){\n                if(Clock::now()>=until)return false;\n                bool outside=false;uint32_t positive=0,negative=0;\n                for(int l:c){\n                    int j=loc[abs(l)];bool val=toolbox::value(seed,l)==1;\n                    if(j<0){if(val){outside=true;break;}}\n                    else if(val)negative|=uint32_t(1)<<j;\n                    else positive|=uint32_t(1)<<j;\n                }\n                if(outside)continue;\n                if(!(positive|negative)){blocked=true;break;}\n                clauses.emplace_back(positive,negative);\n            }\n            if(blocked)continue;\n            stable_sort(clauses.begin(),clauses.end(),[](const auto& a,const auto& b){\n                return __builtin_popcount(a.first|a.second)<__builtin_popcount(b.first|b.second);\n            });\n            ++attempts;\n            uint32_t total=uint32_t(1)<<k;uint64_t scanned=0;\n            for(uint32_t base=0;base<total;base+=64){\n                if(Clock::now()>=until)break;\n                uint64_t allowed=total<64?(uint64_t(1)<<total)-1:~uint64_t(0);\n                uint64_t bits[20];\n                for(int j=0;j<k;++j)bits[j]=j<6?pattern[j]:((base>>j)&1u?~uint64_t(0):0);\n                for(auto [p,q]:clauses){\n                    uint64_t sat=0;\n                    while(p){unsigned j=__builtin_ctz(p);p&=p-1;sat|=bits[j];}\n                    while(q){unsigned j=__builtin_ctz(q);q&=q-1;sat|=~bits[j];}\n                    allowed&=sat;if(!allowed)break;\n                }\n                scanned+=min<uint32_t>(64,total-base);\n                if(allowed){\n                    uint32_t flip=base+unsigned(__builtin_ctzll(allowed));\n                    toolbox::Model candidate=seed;\n                    for(int j=0;j<k;++j)if((flip>>j)&1u)candidate[vars[j]]^=1;\n                    if(!toolbox::satisfied(input,candidate))throw std::logic_error(\"local truth-table invariant\");\n                    m=std::move(candidate);\n                    std::fprintf(stderr,\"SELECTOR local_exact SAT bad=%d width=%d clauses=%zu scanned=%llu attempts=%d\\n\",\n                        initial_bad,k,clauses.size(),(unsigned long long)scanned,attempts);\n                    return true;\n                }\n            }\n            std::fprintf(stderr,\"SELECTOR local_exact %s bad=%d width=%d clauses=%zu scanned=%llu attempts=%d\\n\",\n                scanned==total?\"CONDITIONAL_EMPTY\":\"LIMIT\",initial_bad,k,clauses.size(),(unsigned long long)scanned,attempts);\n        }\n        return false;\n    }\n    int discover(double fraction=.50,double maximum=.6,int responsive=0){"],["                    if(responsive==2){\n                        good=repair_feedback(f.n,work,m,fixed,part(.60));","                    if(responsive>=2){\n                        good=repair_feedback(f.n,work,m,fixed,part(responsive==3?.45:.60));\n                        if(responsive==3&&!good&&live_repair.best>0&&live_repair.best<=8&&Clock::now()<stop)\n                            good=local_exact(f.n,work,m,fixed,min(part(.45),toolbox::after(.15)));"],["                    if(responsive==2){\n                        // A residual witness","                    if(responsive>=2){\n                        // A residual witness"],["        if(eligible&&schedule==\"feedback\"){","        if(eligible&&(schedule==\"feedback\"||schedule==\"local\")){"],["rc=discover(.50,.6,2);if(rc)return rc;","rc=discover(.50,.6,schedule==\"local\"?3:2);if(rc)return rc;"]]
+          for old,new in local_patches:
+              assert s.count(old)==1,old
+              s=s.replace(old,new,1)
+          boundary_patches=[["    bool local_exact(int n,const F& input,toolbox::Model& m,const toolbox::Model& fixed,Time until){","    // Lift a conditional contradiction to a globally entailed boundary\n    // clause. All proof steps are ordinary resolution, then optional RUP\n    // strengthening. The seed only selects premises; it is never asserted.\n    struct BoundaryResult { bool found=false; C clause; F trace; };\n    BoundaryResult derive_boundary(int n,const F& input,const toolbox::Model& seed,\n                                   const vector<int>& vars,Time until){\n        struct Node { C full; uint32_t pos=0,neg=0; int a=-1,b=-1; };\n        if(vars.empty()||vars.size()>20||Clock::now()>=until)return {};\n        vector<int> loc(n+1,-1);\n        for(int j=0;j<int(vars.size());++j)loc.at(vars[j])=j;\n        vector<Node> db;\n        vector<int> active;\n        auto body=[&](Node& q){\n            for(int l:q.full){int j=loc.at(abs(l));if(j>=0)(l>0?q.pos:q.neg)|=uint32_t(1)<<j;}\n        };\n        auto dedup=[&](vector<int> ids){\n            map<pair<uint32_t,uint32_t>,int> best;\n            for(int id:ids){\n                const auto& q=db[id];auto key=make_pair(q.pos,q.neg);\n                auto it=best.find(key);\n                if(it==best.end()||q.full.size()<db[it->second].full.size())best[key]=id;\n            }\n            vector<int> out;for(auto& e:best)out.push_back(e.second);return out;\n        };\n        for(C c:input){\n            if(Clock::now()>=until)return {};\n            if(!toolbox::normalize(c))continue;\n            bool keep=true;for(int l:c)if(loc[abs(l)]<0&&toolbox::value(seed,l)!=0){keep=false;break;}\n            if(!keep)continue;\n            Node q;q.full=move(c);body(q);active.push_back(int(db.size()));db.push_back(move(q));\n        }\n        active=dedup(move(active));\n        auto finish=[&](int id)->BoundaryResult{\n            BoundaryResult out;\n            C guard=db[id].full;\n            if(guard.size()>96)return out;\n            vector<uint8_t> needed(db.size(),0);vector<int> stack{id};\n            while(!stack.empty()){\n                int i=stack.back();stack.pop_back();if(needed[i])continue;needed[i]=1;\n                if(db[i].a>=0){stack.push_back(db[i].a);stack.push_back(db[i].b);}\n            }\n            for(int i=0;i<int(db.size());++i)if(needed[i]&&db[i].a>=0)out.trace.push_back(db[i].full);\n            // A source premise could already be the blocker. Include it\n            // explicitly so the independent prefix audit can check export.\n            if(out.trace.empty()||out.trace.back()!=guard)out.trace.push_back(guard);\n            // Greedy RUP deletion: a bounded strengthening, not a proof of\n            // globally minimum cardinality. All assumptions are negated\n            // literals of the trial clause.\n            F check=input;check.insert(check.end(),out.trace.begin(),out.trace.end());\n            fusion_kernel::AssumptionPropagator rup(check,n);\n            int trials=0;\n            for(size_t i=0;i<guard.size()&&trials<64&&Clock::now()<until;){\n                C trial=guard;trial.erase(trial.begin()+i);\n                C assumptions;for(int l:trial)assumptions.push_back(-l);\n                ++trials;\n                if(!rup.run(assumptions)){\n                    guard=move(trial);out.trace.push_back(guard);check.push_back(guard);rup.index_next();i=0;\n                }else ++i;\n            }\n            if(guard.size()>48||Clock::now()>=until)return {};\n            out.clause=move(guard);out.found=true;return out;\n        };\n        for(size_t step=0;step<=vars.size();++step){\n            if(Clock::now()>=until)return {};\n            for(int id:active)if(!(db[id].pos|db[id].neg))return finish(id);\n            int pivot=-1;uint64_t cost=UINT64_MAX;\n            for(int j=0;j<int(vars.size());++j){\n                uint32_t bit=uint32_t(1)<<j;uint64_t p=0,q=0;\n                for(int id:active){p+=bool(db[id].pos&bit);q+=bool(db[id].neg&bit);}\n                if(p+q&&p*q<cost){pivot=j;cost=p*q;}\n            }\n            if(pivot<0||cost>12000)return {};\n            uint32_t bit=uint32_t(1)<<pivot;int v=vars[pivot];\n            vector<int> pos,neg,next;\n            for(int id:active){\n                if(db[id].pos&bit)pos.push_back(id);\n                else if(db[id].neg&bit)neg.push_back(id);\n                else next.push_back(id);\n            }\n            // Pure occurrences may disappear in existential projection.\n            for(int a:pos)for(int b:neg){\n                if(Clock::now()>=until||db.size()>input.size()+6000)return {};\n                if(((db[a].pos&db[b].neg)|(db[a].neg&db[b].pos))&~bit)continue;\n                Node q;q.a=a;q.b=b;\n                for(int l:db[a].full)if(l!=v)q.full.push_back(l);\n                for(int l:db[b].full)if(l!=-v)q.full.push_back(l);\n                if(!toolbox::normalize(q.full)||q.full.size()>128)continue;\n                body(q);int id=int(db.size());db.push_back(move(q));\n                if(!(db[id].pos|db[id].neg))return finish(id);\n                next.push_back(id);\n            }\n            active=dedup(move(next));if(active.size()>3000)return {};\n        }\n        return {};\n    }\n    // Separate source-bound proof self-test, exercised before benchmark input\n    // generation. Also checks that satisfiable conditions emit no blocker.\n    void boundary_selftest(const fs::path& out){\n        F cnf{{1,3},{-1,4},{-4}};\n        toolbox::Model seed(5,0);\n        auto r=derive_boundary(4,cnf,seed,{1},toolbox::after(1));\n        if(!r.found||r.clause!=C{3})throw runtime_error(\"boundary selftest: expected unit 3\");\n        auto sat=derive_boundary(4,F{{1,3},{1,4}},seed,{1},toolbox::after(1));\n        if(sat.found)throw runtime_error(\"boundary selftest: false conditional contradiction\");\n        auto unsat=derive_boundary(4,F{{1},{-1}},seed,{1},toolbox::after(1));\n        if(!unsat.found||!unsat.clause.empty())throw runtime_error(\"boundary selftest: missing empty resolvent\");\n        fs::create_directories(out);\n        write_file(out/\"source.cnf\",\"p cnf 4 3\\n\"+clauses_text(cnf));\n        write_file(out/\"proof.rup\",clauses_text(r.trace));\n        write_file(out/\"messages.txt\",clauses_text(F{r.clause}));\n        std::fprintf(stderr,\"BOUNDARY_SELFTEST passed\\n\");\n    }\n    bool local_exact(int n,const F& input,toolbox::Model& m,const toolbox::Model& fixed,Time until,toolbox::Proof* proof=nullptr,F* exports=nullptr){"],["            std::fprintf(stderr,\"SELECTOR local_exact %s bad=%d width=%d clauses=%zu scanned=%llu attempts=%d\\n\",","            if(scanned==total&&proof&&exports&&Clock::now()<until){\n                auto r=derive_boundary(n,input,seed,vars,min(until,toolbox::after(.035)));\n                if(r.found){\n                    C canonical=fusion_kernel::norm(r.clause);\n                    if(!known.count(canonical)&&std::find(exports->begin(),exports->end(),canonical)==exports->end()){\n                        for(const C& c:r.trace)proof->add(c);\n                        exports->push_back(canonical);\n                        std::fprintf(stderr,\"SELECTOR boundary_derived width=%zu guard=%zu rup_lines=%zu\\n\",vars.size(),canonical.size(),r.trace.size());\n                    }\n                }else std::fprintf(stderr,\"SELECTOR boundary_unproved width=%zu\\n\",vars.size());\n            }\n            std::fprintf(stderr,\"SELECTOR local_exact %s bad=%d width=%d clauses=%zu scanned=%llu attempts=%d\\n\","],["        auto work=f.cs;toolbox::Model fixed(original.n+1,-1);","        F boundary_exports;\n        auto work=f.cs;toolbox::Model fixed(original.n+1,-1);"],["part(responsive==3?.45:.60)","part(responsive>=3?.45:.60)"],["if(responsive==3&&!good&&live_repair.best>0&&live_repair.best<=8&&Clock::now()<stop)\n                            good=local_exact(f.n,work,m,fixed,min(part(.45),toolbox::after(.15)));","if(responsive>=3&&!good&&live_repair.best>0&&live_repair.best<=8&&Clock::now()<stop)\n                            good=local_exact(f.n,work,m,fixed,min(part(responsive==4?.65:.45),toolbox::after(responsive==4?.25:.15)),responsive==4?&p:nullptr,responsive==4?&boundary_exports:nullptr);"],["F proof=parse_proof(read_file(path),original.n),messages;\n        for(const C& c:proof)if(c.size()<=3&&messages.size()<1024)messages.push_back(c);\n        if(absorb(proof,messages,budget(.1,.1)))return 20;","F proof=parse_proof(read_file(path),original.n),messages=boundary_exports;\n        for(const C& c:proof)if(c.size()<=3&&messages.size()<1024)messages.push_back(c);\n        int terminal=absorb(proof,messages,budget(responsive==4?.16:.1,responsive==4?.16:.1));\n        if(responsive==4&&!boundary_exports.empty()){\n            F accepted;\n            for(const C& c:boundary_exports)if(active_known.count(c))accepted.push_back(c);\n            std::fprintf(stderr,\"SELECTOR boundary_installed count=%zu proposed=%zu\\n\",accepted.size(),boundary_exports.size());\n            const char* side=std::getenv(\"DRNAS_BOUNDARY_EVIDENCE\");\n            if(side&&!accepted.empty()){\n                write_file(string(side)+\".boundary.rup\",clauses_text(ledger));\n                write_file(string(side)+\".boundary.messages\",clauses_text(accepted));\n            }\n        }\n        if(terminal)return 20;"],["if(eligible&&(schedule==\"feedback\"||schedule==\"local\")){","if(eligible&&(schedule==\"feedback\"||schedule==\"local\"||schedule==\"boundary\")){"],["schedule==\"local\"?3:2","schedule==\"boundary\"?4:schedule==\"local\"?3:2"],["    try{\n        if(argc<3||argc>5)throw runtime_error","    try{\n        if(argc==3&&string(argv[1])==\"--boundary-selftest\"){\n            Core c(5);c.boundary_selftest(argv[2]);return 0;\n        }\n        if(argc<3||argc>5)throw runtime_error"]]
+          for old,new in boundary_patches:
+              assert s.count(old)==1,old
+              s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+          bash core/build.sh
+          DRNAS_PROFILE=1 DRNAS_SCHEDULE=early python3 core/tests.py
+          DRNAS_PROFILE=1 DRNAS_SCHEDULE=staged python3 core/tests.py
+          DRNAS_PROFILE=1 DRNAS_SCHEDULE=selector python3 core/tests.py
+          DRNAS_PROFILE=1 DRNAS_SCHEDULE=feedback python3 core/tests.py
+          DRNAS_PROFILE=1 DRNAS_SCHEDULE=local python3 core/tests.py
+          DRNAS_PROFILE=1 DRNAS_SCHEDULE=boundary python3 core/tests.py
+          core/bin/drnas-core --boundary-selftest core/results/boundary-selftest
+          core/bin/check-rup core/results/boundary-selftest/source.cnf core/results/boundary-selftest/proof.rup --prefix core/results/boundary-selftest/messages.txt
+          mkdir -p core/results
+          git diff -- core/core.cpp > core/results/boundary-scheduler.patch
+      - uses: actions/download-artifact@v4
+        with:
+          name: drnas-core-feedback100-fixed
+          run-id: 45609574757
+          github-token: ${{ github.token }}
+          path: core/results/failed-feedback-input
+      - uses: actions/download-artifact@v4
+        with:
+          name: drnas-core-local100
+          run-id: 45611152559
+          github-token: ${{ github.token }}
+          path: core/results/previous-local-input
+      - name: Replay nine previous unresolved and seven latest unresolved CNFs
+        run: |
+          cd core
+          python3 -u - <<'PY'
+          import hashlib,json,os,pathlib,subprocess,sys,time
+          src=pathlib.Path('results/failed-feedback-input/feedback100').resolve()
+          out=pathlib.Path('results/boundary-replay16').resolve()
+          out.mkdir(parents=True,exist_ok=False)
+          cases={r['id']:(r,src) for r in json.loads((src/'manifest.json').read_text())}
+          latest=pathlib.Path('results/previous-local-input/local100').resolve()
+          cases.update({r['id']:(r,latest) for r in json.loads((latest/'manifest.json').read_text())})
+          ids=['F000','F019','F048','F053','F054','F065','F076','F082','F094','L012','L020','L048','L062','L091','L093','L098']
+          cpus=sorted(os.sched_getaffinity(0));os.sched_setaffinity(0,{cpus[0]})
+          rows=[]
+          for cid in ids:
+              case,root=cases[cid];cnf=root/case['path']
+              assert hashlib.sha256(cnf.read_bytes()).hexdigest()==case['sha256']
+              for mode in ['staged','local','boundary']:
+                  cert=out/f'{cid}.{mode}.cert'
+                  env=dict(os.environ,DRNAS_SCHEDULE=mode,DRNAS_PROFILE='1',DRNAS_BOUNDARY_EVIDENCE=str(cert))
+                  row={'id':cid,'mode':mode,'status':'UNKNOWN','sha256':case['sha256']}
+                  t=time.monotonic()
+                  try:
+                      p=subprocess.run(['bin/drnas-core',cnf,cert,'5','default'],capture_output=True,text=True,timeout=5.1,env=env)
+                      row['returncode']=p.returncode
+                      (out/f'{cid}.{mode}.log').write_text(p.stdout+'\n'+p.stderr)
+                      if time.monotonic()-t>5.05:row['status']='TIMEOUT'
+                      elif p.returncode not in (0,10,20):row['status']='ERROR'
+                      elif p.returncode:
+                          try:
+                              q=subprocess.run([sys.executable,'verify.py',cnf,cert,str(p.returncode),'--seconds','5'],capture_output=True,text=True,timeout=5.1)
+                              row['status']=json.loads(q.stdout)['status']
+                          except subprocess.TimeoutExpired:row['status']='AUDIT_LIMIT'
+                          except Exception as e:row.update(status='REJECTED',error=str(e))
+                  except subprocess.TimeoutExpired:row['status']='TIMEOUT'
+                  bp=pathlib.Path(str(cert)+'.boundary.rup');bm=pathlib.Path(str(cert)+'.boundary.messages')
+                  if bp.exists() or bm.exists():
+                      try:
+                          q=subprocess.run(['bin/check-rup',cnf,bp,'--prefix',bm],capture_output=True,text=True,timeout=5.1)
+                          row['boundary_audit']='VERIFIED' if q.returncode==0 else 'AUDIT_LIMIT' if q.returncode==3 else 'REJECTED'
+                      except subprocess.TimeoutExpired:row['boundary_audit']='AUDIT_LIMIT'
+                      if row['boundary_audit']=='REJECTED':row['status']='REJECTED'
+                  rows.append(row)
+                  print('CORE_BOUNDARY_REPLAY '+json.dumps(row),flush=True)
+          (out/'replay.json').write_text(json.dumps(rows,indent=2))
+          assert not any(r['status'] in ('ERROR','REJECTED') for r in rows),'regression failure'
+          for cid in ids:
+              assert len({r['status'] for r in rows if r['id']==cid and r['status'] in ('SAT','UNSAT')})<=1
+          PY
+      - name: Fresh paired scheduling validation
+        run: |
+          cd core
+          python3 -u - <<'PY'
+          import benchmark as b
+          import collections, csv, json, os, pathlib, random, secrets, subprocess, sys, time
+          out=pathlib.Path('results/boundary100').resolve()
+          for d in ('cnf','evidence','logs'):
+              (out/d).mkdir(parents=True,exist_ok=False)
+          cap=5.0
+          arms=['baseline','staged','local','boundary']
+          seed=secrets.randbits(128)
+          rng=random.Random(seed)
+          frozen=b.source_hashes()
+          freeze={'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'instrumented_sources':frozen,'seed':str(seed),'arms':arms,'cap_s':cap,'audit_s':5,'design':'100 fresh synthetic CNFs from ten fixed families; paired serial; certified conditional boundary inference vs local, staged and baseline; one repetition; no family labels supplied','binary_hashes':{a:b.digest((b.ROOT/'bin'/('drnas-core-baseline' if a=='baseline' else 'drnas-core')).read_bytes()) for a in arms}}
+          (out/'freeze.json').write_text(json.dumps(freeze,indent=2))
+          def generate(f,i):
+              n=[48,64,80,96,120,144,168,192,240,300][i]
+              if f=='random3':
+                  return n,b.random3(rng,list(range(1,n+1)),round(n*4.26))
+              if f=='random4':
+                  return n,[tuple(v*rng.choice([-1,1]) for v in rng.sample(range(1,n+1),4)) for _ in range(round(n*9.75))]
+              if f=='mixed-planted':
+                  bits={v:bool(rng.getrandbits(1)) for v in range(1,n+1)}
+                  cs=[]
+                  while len(cs)<5*n:
+                      k=rng.choice([2,3,3,4,5])
+                      c=tuple(v*rng.choice([-1,1]) for v in rng.sample(range(1,n+1),k))
+                      if any(bits[abs(l)]==(l>0) for l in c):cs.append(c)
+                  return n,cs
+              if f=='nae3':
+                  cs=[]
+                  for _ in range(round(n*2.1)):
+                      c=tuple(v*rng.choice([-1,1]) for v in rng.sample(range(1,n+1),3))
+                      cs.extend([c,tuple(-l for l in c)])
+                  return n,cs
+              if f=='tseitin':
+                  # Cubic graph: cycle plus random nonadjacent perfect matching.
+                  vcount=max(12,n//3*2)
+                  edges=[(j,(j+1)%vcount) for j in range(vcount)]
+                  while True:
+                      perm=list(range(vcount));rng.shuffle(perm)
+                      pairs=list(zip(perm[::2],perm[1::2]))
+                      if all((a-b)%vcount not in (1,vcount-1) for a,b in pairs):break
+                  edges+=pairs
+                  inc=[[] for _ in range(vcount)]
+                  for k,(a,c) in enumerate(edges,1):inc[a].append(k);inc[c].append(k)
+                  rhs=[rng.randrange(2) for _ in range(vcount)]
+                  rhs[-1]=(sum(rhs[:-1])+i%2)%2
+                  cs=[]
+                  for vs,r in zip(inc,rhs):
+                      cs+=b.gate(vs,lambda *bits,r=r:sum(bits)%2==r)
+                  return len(edges),cs
+              if f=='guarded-blocks':
+                  # Two random formula blocks selected by a hidden Boolean gate.
+                  k=n//2; cs=[]
+                  for sign,vs in [(1,list(range(2,k+2))),(-1,list(range(k+2,2*k+2)))]:
+                      for c in b.random3(rng,vs,round(4.26*k)):
+                          cs.append((sign,)+c)
+                  return 2*k+1,cs
+              if f=='mixed-unplanted':
+                  cs=[]
+                  for _ in range(round(n*5.2)):
+                      k=rng.choice([2,3,4,4,5])
+                      cs.append(tuple(v*rng.choice([-1,1]) for v in rng.sample(range(1,n+1),k)))
+                  return n,cs
+              if f=='overlap-blocks':
+                  k=n//2;overlap=max(3,k//4)
+                  left=list(range(1,k+1));right=list(range(k-overlap+1,n+1))
+                  cs=b.random3(rng,left,round(4.26*len(left)))+b.random3(rng,right,round(4.26*len(right)))
+                  return n,cs
+              if f=='xor-mixed':
+                  cs=[]
+                  bits={v:bool(rng.getrandbits(1)) for v in range(1,n+1)}
+                  for _ in range(n//2):
+                      vs=rng.sample(range(1,n+1),3)
+                      parity=sum(bits[v] for v in vs)%2
+                      cs+=b.gate(vs,lambda *x,r=parity:sum(x)%2==r)
+                  cs+=b.random3(rng,list(range(1,n+1)),2*n,bits if i%2==0 else None)
+                  return n,cs
+              if f=='modular-bridge':
+                  cs=[];k=n//4
+                  for j in range(4):
+                      vs=list(range(j*k+1,(j+1)*k+1))
+                      cs+=b.random3(rng,vs,round(3.8*k))
+                  for _ in range(n//2):
+                      vs=[rng.randrange(j*k+1,(j+1)*k+1) for j in rng.sample(range(4),3)]
+                      cs.append(tuple(v*rng.choice([-1,1]) for v in vs))
+                  return 4*k,cs
+              raise ValueError(f)
+          families=['random3','random4','mixed-planted','nae3','tseitin','guarded-blocks','mixed-unplanted','overlap-blocks','xor-mixed','modular-bridge']
+          specs=[(f,i) for f in families for i in range(10)]
+          rng.shuffle(specs)
+          cases=[];seen=set()
+          for index,(f,i) in enumerate(specs):
+              n,cs=generate(f,i)
+              n,cs=b.hide(rng,n,cs)
+              h=b.norm_digest(n,cs)
+              if h in seen:raise RuntimeError('duplicate input')
+              seen.add(h)
+              cid=f'Q{index:03}'
+              p=out/'cnf'/f'{cid}.cnf'
+              b.write(p,n,cs)
+              cases.append(dict(id=cid,cohort='fresh',family=f,path='cnf/'+p.name,sha256=b.digest(p.read_bytes()),normalized_sha256=h))
+          (out/'manifest.json').write_text(json.dumps(cases,indent=2))
+          assert b.source_hashes()==frozen
+          cpus=sorted(os.sched_getaffinity(0))
+          os.sched_setaffinity(0,{cpus[0]})
+          (out/'environment.json').write_text(json.dumps({'logical_cpu':cpus[0],'serial':True,'platform':list(os.uname())}))
+          def attempt(case,arm):
+              src=out/case['path']
+              cert=out/'evidence'/f"{case['id']}.{arm}.cert"
+              binary=b.ROOT/'bin'/('drnas-core-baseline' if arm=='baseline' else 'drnas-core')
+              mode='default'
+              env=os.environ.copy();env.pop('DRNAS_PROFILE',None);env.pop('DRNAS_SCHEDULE',None)
+              if arm!='baseline':
+                  env['DRNAS_PROFILE']='1';env['DRNAS_SCHEDULE']=arm
+              env['DRNAS_BOUNDARY_EVIDENCE']=str(cert)
+              row=dict(id=case['id'],family=case['family'],arm=arm,status='UNKNOWN',certificate='NONE',audit_s=0,telemetry={},stage_s={},unfinished_stages=[],error='')
+              start=time.monotonic()
+              rc=None
+              try:
+                  p=subprocess.run([binary,src,cert,str(cap),mode],capture_output=True,text=True,timeout=cap+.1,env=env)
+                  stdout,stderr,rc=p.stdout,p.stderr,p.returncode
+              except subprocess.TimeoutExpired as e:
+                  stdout,stderr=e.stdout or b'',e.stderr or b''
+                  if isinstance(stdout,bytes):stdout=stdout.decode(errors='replace')
+                  if isinstance(stderr,bytes):stderr=stderr.decode(errors='replace')
+              row['solve_s']=time.monotonic()-start
+              (out/'logs'/f"{case['id']}.{arm}.txt").write_text(stdout+'\n'+stderr)
+              stages=collections.Counter();pending=collections.Counter()
+              for line in stderr.splitlines():
+                  bits=line.split()
+                  if len(bits)==2 and bits[0]=='PROFILE_BEGIN':pending[bits[1]]+=1
+                  if len(bits)==3 and bits[0]=='PROFILE_END':
+                      pending[bits[1]]-=1;stages[bits[1]]+=float(bits[2])
+              row['selector_trace']=[line for line in stderr.splitlines() if line.startswith('SELECTOR ')]
+              row['stage_s']=dict(stages)
+              row['unfinished_stages']=[k for k,v in pending.items() if v>0]
+              for line in stdout.splitlines():
+                  if line.startswith('c {'):row['telemetry']=json.loads(line[2:])
+              bp=pathlib.Path(str(cert)+'.boundary.rup');bm=pathlib.Path(str(cert)+'.boundary.messages')
+              if bp.exists() or bm.exists():
+                  audit_start=time.monotonic()
+                  try:
+                      q=subprocess.run([b.ROOT/'bin/check-rup',src,bp,'--prefix',bm],capture_output=True,text=True,timeout=5.1)
+                      row['boundary_audit']='VERIFIED' if q.returncode==0 else 'AUDIT_LIMIT' if q.returncode==3 else 'REJECTED'
+                      row['boundary_audit_log']=q.stdout+q.stderr
+                      if row['boundary_audit']=='VERIFIED':row['boundary_certified_messages']=len(bm.read_text().splitlines())
+                  except subprocess.TimeoutExpired:row['boundary_audit']='AUDIT_LIMIT'
+                  row['boundary_audit_s']=time.monotonic()-audit_start
+                  if row['boundary_audit']=='REJECTED':row['status']='REJECTED';return row
+              if rc is None or row['solve_s']>cap+.05:row['status']='TIMEOUT';return row
+              row['returncode']=rc
+              if rc not in (0,10,20):row.update(status='ERROR',error=stderr[-2000:]);return row
+              if rc==0:return row
+              start=time.monotonic()
+              try:
+                  p=subprocess.run([sys.executable,b.ROOT/'verify.py',src,cert,str(rc),'--seconds','5'],capture_output=True,text=True,timeout=5.1)
+                  a=json.loads(p.stdout);row.update(status=a['status'],certificate=a.get('certificate','NONE'),error=a.get('error',''))
+                  if row['status'] in ('SAT','UNSAT'):row['evidence_sha256']=b.digest(cert.read_bytes())
+              except subprocess.TimeoutExpired:row['status']='AUDIT_LIMIT'
+              except Exception as e:row.update(status='REJECTED',error=str(e))
+              row['audit_s']=time.monotonic()-start
+              return row
+          rows=[];disagreements=[]
+          with (out/'runs.jsonl').open('w') as stream:
+              for i,case in enumerate(cases):
+                  assert b.digest((out/case['path']).read_bytes())==case['sha256']
+                  group=[]
+                  for arm in arms[i%len(arms):]+arms[:i%len(arms)]:
+                      row=attempt(case,arm);rows.append(row);group.append(row)
+                      stream.write(json.dumps(row)+'\n');stream.flush()
+                      print('CORE_BOUNDARY_ROW '+json.dumps(row),flush=True)
+                  if len({r['status'] for r in group if r['status'] in ('SAT','UNSAT')})>1:disagreements.append(case['id'])
+          def stats(rr):
+              good=[r for r in rr if r['status'] in ('SAT','UNSAT')]
+              stage=collections.Counter()
+              for r in rr:stage.update(r['stage_s'])
+              return {'n':len(rr),'solved':len(good),'statuses':dict(collections.Counter(r['status'] for r in rr)),'par2_s':sum(r['solve_s'] if r in good else 2*cap for r in rr)/max(1,len(rr)),'stage_completed_total_s':dict(stage),'unfinished_stage_counts':dict(collections.Counter(k for r in rr for k in r['unfinished_stages']))}
+          summary={'all':{a:stats([r for r in rows if r['arm']==a]) for a in arms},'families':{f:{a:stats([r for r in rows if r['arm']==a and r['family']==f]) for a in arms} for f in families},'paired':{},'disagreements':disagreements,'timing_note':'Nested stage totals overlap; incomplete spans excluded from totals and counted separately. early tries DISCOVERY before FUSION; staged tries a short FUSION then DISCOVERY then restarts FUSION if necessary. Selector chooses from CNF opportunity and seed signals, adapts repair effort and subsequent FUSION allocation from observed projection and checked-message yield. Feedback starts from staged scheduling, tracks actual repair violations and plateaus, then adapts FUSION allocation. Local mode adds an exact conditional bit-parallel truth table with at most 20 mutable variables. A conditional contradiction never proves global UNSAT. Boundary mode lifts completed conditional contradictions using bounded resolution and greedy RUP strengthening, exports only internally checked consequences, and independently audits exported proof prefixes. All retain GENERAL; no CDCL.'}
+          for a in arms[1:]:
+              base={r['id']:r for r in rows if r['arm']=='baseline' and r['status'] in ('SAT','UNSAT')}
+              comp={r['id']:r for r in rows if r['arm']==a and r['status'] in ('SAT','UNSAT')}
+              both=sorted(base.keys() & comp.keys())
+              summary['paired'][a]={'baseline_only':sorted(base.keys()-comp.keys()),'variant_only':sorted(comp.keys()-base.keys()),'common_solved':len(both),'baseline_common_total_s':sum(base[k]['solve_s'] for k in both),'variant_common_total_s':sum(comp[k]['solve_s'] for k in both)}
+          for control in ['staged','local']:
+              ref={r['id']:r for r in rows if r['arm']==control and r['status'] in ('SAT','UNSAT')}
+              cand={r['id']:r for r in rows if r['arm']=='boundary' and r['status'] in ('SAT','UNSAT')}
+              both=sorted(ref.keys() & cand.keys())
+              summary['boundary_vs_'+control]={'control_only':sorted(ref.keys()-cand.keys()),'boundary_only':sorted(cand.keys()-ref.keys()),'common_solved':len(both),'control_common_total_s':sum(ref[k]['solve_s'] for k in both),'boundary_common_total_s':sum(cand[k]['solve_s'] for k in both)}
+          summary['boundary_events']=dict(collections.Counter(line.split()[1] for r in rows if r['arm']=='boundary' for line in r['selector_trace'] if line.startswith('SELECTOR boundary_')))
+          summary['boundary_audits']=dict(collections.Counter(r['boundary_audit'] for r in rows if 'boundary_audit' in r))
+          summary['boundary_certified_messages']=sum(r.get('boundary_certified_messages',0) for r in rows)
+          (out/'summary.json').write_text(json.dumps(summary,indent=2))
+          with (out/'runs.csv').open('w') as stream:
+              w=csv.DictWriter(stream,fieldnames=sorted(set().union(*(r.keys() for r in rows))))
+              w.writeheader();w.writerows(rows)
+          print('CORE_BOUNDARY_SUMMARY '+json.dumps(summary),flush=True)
+          assert b.source_hashes()==frozen
+          if disagreements or any(r['status'] in ('ERROR','REJECTED') for r in rows):raise RuntimeError('verification failure')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: drnas-core-boundary100
+          path: |
+            core/results/boundary100/
+            core/results/boundary-replay16/
+            core/results/boundary-scheduler.patch
+            core/results/boundary-selftest/
+          if-no-files-found: warn
