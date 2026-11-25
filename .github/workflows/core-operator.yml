@@ -18,5 +18,7 @@ jobs:
         run: bash core/build.sh
       - name: Operator exact proofs and negative controls
         run: python3 core/operator_tests.py
+      - name: Sparse symbolic operator proofs and controls
+        run: python3 core/symbolic_tests.py
       - name: Existing CNF regression
         run: python3 core/tests.py
