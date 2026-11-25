@@ -356,12 +356,54 @@ inline Partition stabilizer_gap_bound(Sum a,const Sum& s,int n,Q gamma,Clock::ti
     return best;
 }
 
+// Candidate discovery from the source alone. Ordering is a heuristic;
+// the signed code-space and residual positivity checks are authoritative.
+inline bool discover_stabilizer_gap(const Sum& a,int n,Q gamma,Clock::time_point stop,
+                                    int& attempts,std::ostringstream& proof,std::string& best_bound){
+    if(gamma<=0)return false;
+    std::string id(n,'I');
+    std::vector<Term> pool;
+    for(const auto& [word,c]:a)if(word!=id&&2*absq(c)>=gamma)pool.emplace_back(word,c);
+    if(pool.empty())return false;
+    std::set<Sum> tried;
+    auto now=Clock::now();auto safe=now+(stop-now)*9/10;
+    for(int policy=0;policy<4;++policy){
+        tick(safe);auto current=Clock::now();auto until=current+(safe-current)/(4-policy);
+        try{
+            auto order=pool;
+            std::stable_sort(order.begin(),order.end(),[&](const Term& x,const Term& y){
+                if(policy>=2&&support_size(x.first)!=support_size(y.first))
+                    return support_size(x.first)<support_size(y.first);
+                if(absq(x.second)!=absq(y.second))return absq(x.second)>absq(y.second);
+                return policy%2?x.first>y.first:x.first<y.first;
+            });
+            Sum s;
+            for(const auto& [word,c]:order){
+                tick(until);if(s.size()>=256)break;
+                bool good=true;for(const auto& [other,sign]:s)if(anti(word,other)){good=false;break;}
+                if(good)s[word]=c<0?1:-1;
+            }
+            if(s.empty()||!tried.insert(s).second)continue;
+            int rank=0;
+            if(!stabilizer_zero(a,s,n,int(s.size()),until,rank))continue;
+            auto p=stabilizer_gap_bound(a,s,n,gamma,until,attempts);
+            std::ostringstream val;val<<p.lower;best_bound=val.str();
+            if(p.lower<0)continue;
+            proof<<s.size()<<"\n";
+            for(const auto& [word,sign]:s)proof<<sign<<" "<<word<<"\n";
+            proof<<rank<<"\n"<<p.lower<<"\n"<<p.body;
+            return true;
+        }catch(const core_operator::Limit&){}
+    }
+    return false;
+}
+
 inline int run(const std::string& raw,const std::filesystem::path& out,double seconds){
     auto stop=Clock::now()+std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(seconds));
     if(raw.size()>2000000)throw std::runtime_error("symbolic input limit");
     std::istringstream in(raw);std::string p,s,task,extra;int n,m,k=0;
     if(!(in>>p>>s>>task>>n>>m)||p!="p"||s!="sop"||n<1||n>256)throw std::runtime_error("symbolic header");
-    Q target=0;if(task=="lower"||task=="lower-fixed"||task=="projector-gap"||task=="product-gap")target=core_operator::rational(in);
+    Q target=0;if(task=="lower"||task=="lower-fixed"||task=="projector-gap"||task=="product-gap"||task=="auto-stabilizer-gap")target=core_operator::rational(in);
     else if(task=="stabilizer-gap"){target=core_operator::rational(in);if(!(in>>k)||k<1||k>256)throw std::runtime_error("stabilizer count");}
     else if(task=="commute"){if(!(in>>k))throw std::runtime_error("second term count");}
     else throw std::runtime_error("symbolic task");
@@ -370,6 +412,9 @@ inline int run(const std::string& raw,const std::filesystem::path& out,double se
     try{
         if(task=="commute"){ok=commutes(a,b,stop);method="sparse_commutator";}
         else if(task=="projector-gap"){int rank=0;Q lower=0;ok=commuting_projector_gap(a,n,target,stop,rank,lower);method="commuting_projector_gap";if(ok)proof<<rank<<" "<<lower<<"\n";}
+        else if(task=="auto-stabilizer-gap"){
+            method="discovered_stabilizer_comparison";ok=discover_stabilizer_gap(a,n,target,stop,attempts,proof,best_bound);
+        }
         else if(task=="stabilizer-gap"){
             method="stabilizer_ground_comparison";int rank=0;
             if(target>0&&stabilizer_zero(a,b,n,k,stop,rank)){

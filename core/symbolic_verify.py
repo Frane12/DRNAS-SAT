@@ -14,7 +14,7 @@ def check(source,cert):
     if (next(w),next(w))!=('p','sop'): raise ValueError('header')
     task=next(w); n=int(next(w)); m=int(next(w))
     if not 1<=n<=256: raise ValueError('dimension')
-    if task in ('lower','lower-fixed','projector-gap','product-gap'): target=Q(next(w)); k=0
+    if task in ('lower','lower-fixed','projector-gap','product-gap','auto-stabilizer-gap'): target=Q(next(w)); k=0
     elif task=='stabilizer-gap':
         target=Q(next(w)); k=int(next(w))
         if not 1<=k<=256: raise ValueError('stabilizer count')
@@ -82,7 +82,16 @@ def check(source,cert):
         result={}
     else:
         gamma=None
-        if task=='stabilizer-gap':
+        if task=='auto-stabilizer-gap':
+            k=int(next(z))
+            if not 1<=k<=256: raise ValueError('discovered count')
+            b={}
+            for _ in range(k):
+                c=Q(next(z));word=next(z)
+                if abs(c)!=1 or len(word)!=n or set(word)-set('IXYZ') or word in b or word=='I'*n:
+                    raise ValueError('discovered stabilizer')
+                b[word]=c
+        if task in ('stabilizer-gap','auto-stabilizer-gap'):
             gamma=target; claimed_rank=int(next(z))
             if gamma<=0 or len(b)!=k or 'I'*n in b or any(abs(c)!=1 for c in b.values()):
                 raise ValueError('stabilizer source')
@@ -226,7 +235,8 @@ def check(source,cert):
                 rules.update(composed)
         if len(seen)!=len(terms) or lower!=claimed or lower<target: raise ValueError('lower bound')
         result=dict(lower=str(lower),target=str(target),groups=count,learned_rules=sorted(rules),composed_rules=sorted(composed),closure_depth=max_depth,closure_steps=closure_steps,rule_derivations=derivations)
-    if task=='stabilizer-gap': result.update(ground='0',gap_lower=str(gamma),rank=rank,ground_dimension=str(1<<(n-rank)))
+    if task in ('stabilizer-gap','auto-stabilizer-gap'): result.update(ground='0',gap_lower=str(gamma),rank=rank,ground_dimension=str(1<<(n-rank)))
+    if task=='auto-stabilizer-gap': result.update(discovered_stabilizers=k)
     if task=='product-gap': result.update(ground='0',gap_lower=str(gamma),ground_dimension='1')
     if next(z,None) is not None: raise ValueError('trailing certificate')
     return dict(status='PROVED',certificate='SYMBOLIC_OPERATOR_EXACT',task=task,**result)
