@@ -1,0 +1,191 @@
+name: DRNAS CORE - profile 36
+on:
+  push:
+    branches: [development/drnas-core]
+    paths: ['.github/workflows/drnas-core-profile36.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  profile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 012315d0a62443667aad69fe0dd42c72dd375630
+      - name: Build unmodified baseline
+        run: |
+          bash core/build.sh
+          cp core/bin/drnas-core core/bin/drnas-core-baseline
+      - name: Instrument diagnostic copy and check soundness
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          p=pathlib.Path('core/core.cpp')
+          s=p.read_text()
+          patches=[["struct Core {","// Diagnostic-only scoped timers. Disabled unless DRNAS_PROFILE is set.\nstruct ProfileScope {\n    const char* name; Time started; bool enabled;\n    explicit ProfileScope(const char* n):name(n),started(Clock::now()),enabled(std::getenv(\"DRNAS_PROFILE\")!=nullptr){\n        if(enabled){std::fprintf(stderr,\"PROFILE_BEGIN %s\\n\",name);std::fflush(stderr);}\n    }\n    ~ProfileScope(){\n        if(enabled){std::fprintf(stderr,\"PROFILE_END %s %.9f\\n\",name,chrono::duration<double>(Clock::now()-started).count());std::fflush(stderr);}\n    }\n};\ntemplate<class Fn> static auto profiled(const char* name,Fn&& fn){\n    ProfileScope scope(name);return fn();\n}\nstruct Core {"],["int relations(){","int relations(){\n        ProfileScope scope(\"relations\");"],["int fusion(){","int fusion(){\n        ProfileScope scope(\"fusion\");"],["int discover(){","int discover(){\n        ProfileScope scope(\"discovery\");"],["int general(){","int general(){\n        ProfileScope scope(\"general\");"],["bool absorb(const F& additions,const F& messages,Time until){","bool absorb(const F& additions,const F& messages,Time until){\n        ProfileScope scope(\"rup_absorb\");"],["pcmax::math4::xor_unit(original.cs,original.n,hash.str(),min({left(),.25,seconds*.08}),&seed)","profiled(\"gf2\",[&](){return pcmax::math4::xor_unit(original.cs,original.n,hash.str(),min({left(),.25,seconds*.08}),&seed);})"],["pcmax::analyze_clause_hall(original.cs,original.n,hash.str(),opts)","profiled(\"hall\",[&](){return pcmax::analyze_clause_hall(original.cs,original.n,hash.str(),opts);})"],["toolbox::finite3_model(original,m,budget(.20,2.5),algebra)","profiled(\"gf3\",[&](){return toolbox::finite3_model(original,m,budget(.20,2.5),algebra);})"],["toolbox::circuit_affine_model(original,root,m,budget(.68),algebra)","profiled(\"affine_word\",[&](){return toolbox::circuit_affine_model(original,root,m,budget(.68),algebra);})"],["toolbox::cooperate(original.n,active,fixed,p,budget(.18,.7),cases,unified,4)","profiled(\"relation_cooperate\",[&](){return toolbox::cooperate(original.n,active,fixed,p,budget(.18,.7),cases,unified,4);})"],["toolbox::factor_stage(original,active,fixed,p,budget(.12,.35),factors,2)","profiled(\"relation_factor\",[&](){return toolbox::factor_stage(original,active,fixed,p,budget(.12,.35),factors,2);})"],["fusion_kernel::fusion_solve(f,budget(.52),true,0)","profiled(\"fusion_kernel\",[&](){return fusion_kernel::fusion_solve(f,budget(.52),true,0);})"]]
+          for old,new in patches:
+              assert s.count(old)==1,old
+              s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+          bash core/build.sh
+          DRNAS_PROFILE=1 python3 core/tests.py
+          mkdir -p core/results
+          git diff -- core/core.cpp > core/results/profile-instrumentation.patch
+      - name: Fresh paired timing and ablation
+        run: |
+          cd core
+          python3 -u - <<'PY'
+          import benchmark as b
+          import collections, csv, json, os, pathlib, random, secrets, subprocess, sys, time
+          out=pathlib.Path('results/profile36').resolve()
+          for d in ('cnf','evidence','logs'):
+              (out/d).mkdir(parents=True,exist_ok=False)
+          cap=5.0
+          arms=['baseline','profile-default','profile-no-share']
+          seed=secrets.randbits(128)
+          rng=random.Random(seed)
+          frozen=b.source_hashes()
+          freeze={'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'instrumented_sources':frozen,'seed':str(seed),'arms':arms,'cap_s':cap,'audit_s':5,'design':'36 fresh synthetic CNFs from six fixed families; paired serial; diagnostic only','binary_hashes':{a:b.digest((b.ROOT/'bin'/('drnas-core-baseline' if a=='baseline' else 'drnas-core')).read_bytes()) for a in arms}}
+          (out/'freeze.json').write_text(json.dumps(freeze,indent=2))
+          def generate(f,i):
+              n=[48,64,80,96,120,144,168,192,240,300][i]
+              if f=='random3':
+                  return n,b.random3(rng,list(range(1,n+1)),round(n*4.26))
+              if f=='random4':
+                  return n,[tuple(v*rng.choice([-1,1]) for v in rng.sample(range(1,n+1),4)) for _ in range(round(n*9.75))]
+              if f=='mixed-planted':
+                  bits={v:bool(rng.getrandbits(1)) for v in range(1,n+1)}
+                  cs=[]
+                  while len(cs)<5*n:
+                      k=rng.choice([2,3,3,4,5])
+                      c=tuple(v*rng.choice([-1,1]) for v in rng.sample(range(1,n+1),k))
+                      if any(bits[abs(l)]==(l>0) for l in c):cs.append(c)
+                  return n,cs
+              if f=='nae3':
+                  cs=[]
+                  for _ in range(round(n*2.1)):
+                      c=tuple(v*rng.choice([-1,1]) for v in rng.sample(range(1,n+1),3))
+                      cs.extend([c,tuple(-l for l in c)])
+                  return n,cs
+              if f=='tseitin':
+                  # Cubic graph: cycle plus random nonadjacent perfect matching.
+                  vcount=max(12,n//3*2)
+                  edges=[(j,(j+1)%vcount) for j in range(vcount)]
+                  while True:
+                      perm=list(range(vcount));rng.shuffle(perm)
+                      pairs=list(zip(perm[::2],perm[1::2]))
+                      if all((a-b)%vcount not in (1,vcount-1) for a,b in pairs):break
+                  edges+=pairs
+                  inc=[[] for _ in range(vcount)]
+                  for k,(a,c) in enumerate(edges,1):inc[a].append(k);inc[c].append(k)
+                  rhs=[rng.randrange(2) for _ in range(vcount)]
+                  rhs[-1]=(sum(rhs[:-1])+i%2)%2
+                  cs=[]
+                  for vs,r in zip(inc,rhs):
+                      cs+=b.gate(vs,lambda *bits,r=r:sum(bits)%2==r)
+                  return len(edges),cs
+              if f=='guarded-blocks':
+                  # Two random formula blocks selected by a hidden Boolean gate.
+                  k=n//2; cs=[]
+                  for sign,vs in [(1,list(range(2,k+2))),(-1,list(range(k+2,2*k+2)))]:
+                      for c in b.random3(rng,vs,round(4.26*k)):
+                          cs.append((sign,)+c)
+                  return 2*k+1,cs
+              raise ValueError(f)
+          families=['random3','random4','mixed-planted','nae3','tseitin','guarded-blocks']
+          specs=[(f,i) for f in families for i in [0,1,4,5,8,9]]
+          rng.shuffle(specs)
+          cases=[];seen=set()
+          for index,(f,i) in enumerate(specs):
+              n,cs=generate(f,i)
+              n,cs=b.hide(rng,n,cs)
+              h=b.norm_digest(n,cs)
+              if h in seen:raise RuntimeError('duplicate input')
+              seen.add(h)
+              cid=f'P{index:03}'
+              p=out/'cnf'/f'{cid}.cnf'
+              b.write(p,n,cs)
+              cases.append(dict(id=cid,cohort='fresh',family=f,path='cnf/'+p.name,sha256=b.digest(p.read_bytes()),normalized_sha256=h))
+          (out/'manifest.json').write_text(json.dumps(cases,indent=2))
+          assert b.source_hashes()==frozen
+          cpus=sorted(os.sched_getaffinity(0))
+          os.sched_setaffinity(0,{cpus[0]})
+          (out/'environment.json').write_text(json.dumps({'logical_cpu':cpus[0],'serial':True,'platform':list(os.uname())}))
+          def attempt(case,arm):
+              src=out/case['path']
+              cert=out/'evidence'/f"{case['id']}.{arm}.cert"
+              binary=b.ROOT/'bin'/('drnas-core-baseline' if arm=='baseline' else 'drnas-core')
+              mode='no-share' if arm=='profile-no-share' else 'default'
+              env=os.environ.copy();env.pop('DRNAS_PROFILE',None)
+              if arm!='baseline':env['DRNAS_PROFILE']='1'
+              row=dict(id=case['id'],family=case['family'],arm=arm,status='UNKNOWN',certificate='NONE',audit_s=0,telemetry={},stage_s={},unfinished_stages=[],error='')
+              start=time.monotonic()
+              rc=None
+              try:
+                  p=subprocess.run([binary,src,cert,str(cap),mode],capture_output=True,text=True,timeout=cap+.1,env=env)
+                  stdout,stderr,rc=p.stdout,p.stderr,p.returncode
+              except subprocess.TimeoutExpired as e:
+                  stdout,stderr=e.stdout or b'',e.stderr or b''
+                  if isinstance(stdout,bytes):stdout=stdout.decode(errors='replace')
+                  if isinstance(stderr,bytes):stderr=stderr.decode(errors='replace')
+              row['solve_s']=time.monotonic()-start
+              (out/'logs'/f"{case['id']}.{arm}.txt").write_text(stdout+'\n'+stderr)
+              stages=collections.Counter();pending=collections.Counter()
+              for line in stderr.splitlines():
+                  bits=line.split()
+                  if len(bits)==2 and bits[0]=='PROFILE_BEGIN':pending[bits[1]]+=1
+                  if len(bits)==3 and bits[0]=='PROFILE_END':
+                      pending[bits[1]]-=1;stages[bits[1]]+=float(bits[2])
+              row['stage_s']=dict(stages)
+              row['unfinished_stages']=[k for k,v in pending.items() if v>0]
+              for line in stdout.splitlines():
+                  if line.startswith('c {'):row['telemetry']=json.loads(line[2:])
+              if rc is None or row['solve_s']>cap+.05:row['status']='TIMEOUT';return row
+              if rc not in (0,10,20):row.update(status='ERROR',error=stderr[-2000:]);return row
+              if rc==0:return row
+              start=time.monotonic()
+              try:
+                  p=subprocess.run([sys.executable,b.ROOT/'verify.py',src,cert,str(rc),'--seconds','5'],capture_output=True,text=True,timeout=5.1)
+                  a=json.loads(p.stdout);row.update(status=a['status'],certificate=a.get('certificate','NONE'),error=a.get('error',''))
+                  if row['status'] in ('SAT','UNSAT'):row['evidence_sha256']=b.digest(cert.read_bytes())
+              except subprocess.TimeoutExpired:row['status']='AUDIT_LIMIT'
+              except Exception as e:row.update(status='REJECTED',error=str(e))
+              row['audit_s']=time.monotonic()-start
+              return row
+          rows=[];disagreements=[]
+          with (out/'runs.jsonl').open('w') as stream:
+              for i,case in enumerate(cases):
+                  assert b.digest((out/case['path']).read_bytes())==case['sha256']
+                  group=[]
+                  for arm in arms[i%3:]+arms[:i%3]:
+                      row=attempt(case,arm);rows.append(row);group.append(row)
+                      stream.write(json.dumps(row)+'\n');stream.flush()
+                      print('CORE_PROFILE_ROW '+json.dumps(row),flush=True)
+                  if len({r['status'] for r in group if r['status'] in ('SAT','UNSAT')})>1:disagreements.append(case['id'])
+          def stats(rr):
+              good=[r for r in rr if r['status'] in ('SAT','UNSAT')]
+              stage=collections.Counter()
+              for r in rr:stage.update(r['stage_s'])
+              return {'n':len(rr),'solved':len(good),'statuses':dict(collections.Counter(r['status'] for r in rr)),'par2_s':sum(r['solve_s'] if r in good else 2*cap for r in rr)/max(1,len(rr)),'stage_completed_total_s':dict(stage),'unfinished_stage_counts':dict(collections.Counter(k for r in rr for k in r['unfinished_stages']))}
+          summary={'all':{a:stats([r for r in rows if r['arm']==a]) for a in arms},'families':{f:{a:stats([r for r in rows if r['arm']==a and r['family']==f]) for a in arms} for f in families},'paired':{},'disagreements':disagreements,'timing_note':'Nested stage totals overlap; incomplete spans excluded from totals and counted separately. no-share disables both relations and discovery, not a single-feature ablation.'}
+          for a in arms[1:]:
+              base={r['id']:r for r in rows if r['arm']=='baseline' and r['status'] in ('SAT','UNSAT')}
+              comp={r['id']:r for r in rows if r['arm']==a and r['status'] in ('SAT','UNSAT')}
+              both=sorted(base.keys() & comp.keys())
+              summary['paired'][a]={'baseline_only':sorted(base.keys()-comp.keys()),'variant_only':sorted(comp.keys()-base.keys()),'common_solved':len(both),'baseline_common_total_s':sum(base[k]['solve_s'] for k in both),'variant_common_total_s':sum(comp[k]['solve_s'] for k in both)}
+          (out/'summary.json').write_text(json.dumps(summary,indent=2))
+          print('CORE_PROFILE_SUMMARY '+json.dumps(summary),flush=True)
+          assert b.source_hashes()==frozen
+          if disagreements or any(r['status'] in ('ERROR','REJECTED') for r in rows):raise RuntimeError('verification failure')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: drnas-core-profile36
+          path: |
+            core/results/profile36/
+            core/results/profile-instrumentation.patch
+          if-no-files-found: warn
