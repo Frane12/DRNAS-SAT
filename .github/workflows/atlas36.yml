@@ -1,0 +1,88 @@
+name: ATLAS36 autonomous mathematical handoff
+on:
+  push:
+    branches: [experiment/atlas36-autonomous-handoff]
+    paths: ['.github/workflows/atlas36.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  paired:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        n: [16,24,48,80,120]
+        rho: ['3.5','4.26','5.0']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45360211946
+          github-token: ${{ github.token }}
+          name: DRNAS-ATLAS22-ORIGINAL-CHACHA32-CNF-CERTIFIED-PAIRED
+          path: baseline
+      - name: Pinned checker and reference binaries
+        run: |
+          set -euo pipefail
+          git clone https://github.com/marijnheule/drat-trim.git /tmp/drat-trim
+          git -C /tmp/drat-trim checkout 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+          gcc -O2 -D_GNU_SOURCE /tmp/drat-trim/drat-trim.c -o /tmp/drat-check
+          chmod +x baseline/atlas22_artifacts/solvers/{kissat,cadical}
+          sha256sum baseline/atlas22_artifacts/solvers/{kissat,cadical}
+          python3 -m py_compile research/atlas36/*.py
+      - name: Single CPU unseen CNF diagnostic
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os;print(min(os.sched_getaffinity(0)))')
+          ulimit -v 6000000
+          taskset -c "$cpu" python3 research/atlas36/bench.py selftest controls
+          mkdir -p results
+          taskset -c "$cpu" python3 -u research/atlas36/bench.py '${{ matrix.n }}' '${{ matrix.rho }}' results baseline/atlas22_artifacts/solvers | tee results/log.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: A36-case-${{ matrix.n }}-${{ matrix.rho }}
+          path: results/
+  aggregate:
+    needs: paired
+    if: always()
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: A36-case-*
+          path: shards
+      - name: Verified coverage, separate audits and paired time
+        run: |
+          python3 - <<'PY'
+          import pathlib,json,collections
+          rows=[r for p in pathlib.Path('shards').rglob('rows.json') for r in json.loads(p.read_text())]
+          standard={'MODEL_VERIFIED','STANDARD_DRAT'}
+          accepted=standard|{'CUSTOM_BDD'}
+          for a in ('SPARSE','RESTART','HANDOFF','kissat','cadical'):
+              rr=[r for r in rows if r['arm']==a]
+              good=[r for r in rr if r['audit'] in accepted and r['status'] in ('SAT','UNSAT')]
+              strict=[r for r in good if r['audit'] in standard]
+              print('A36_SUMMARY',a,json.dumps(dict(verified=len(good),standard=len(strict),custom=len(good)-len(strict),missing=45-len(rr),statuses=dict(collections.Counter(r['status'] for r in rr)),methods=dict(collections.Counter(r.get('method','none') for r in good)),decision_par2=(sum(r.get('process_s',10) for r in good)+20*(45-len(good)))/45)))
+          by=collections.defaultdict(set)
+          for r in rows:
+              if r['audit'] in accepted and r['status'] in ('SAT','UNSAT'):by[r['sha']].add(r['status'])
+          conflicts=[k for k,v in by.items() if len(v)>1]
+          print('A36_CONTRADICTIONS',conflicts)
+          for a in ('SPARSE','RESTART','kissat','cadical'):
+              x={r['sha']:r for r in rows if r['arm']=='HANDOFF' and r['audit'] in accepted}
+              y={r['sha']:r for r in rows if r['arm']==a and r['audit'] in accepted}
+              ks=x.keys()&y.keys()
+              print('A36_PAIRED',a,len(ks),sum(x[k]['process_s'] for k in ks),sum(y[k]['process_s'] for k in ks))
+          pathlib.Path('summary.json').write_text(json.dumps(rows,indent=2))
+          assert not conflicts
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: A36-summary
+          path: summary.json
