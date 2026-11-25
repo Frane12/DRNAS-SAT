@@ -1,0 +1,143 @@
+name: TOOLBOX20 AFFINE23 - GF3 and circuit SAT attack
+on:
+  push:
+    branches: [experiment/toolbox20-affine23-gf3-circuit-20261125]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build frozen candidate and references
+        run: |
+          set -eux
+          mkdir -p bin
+          c++ -std=c++20 -O3 -DNDEBUG research/toolbox20_native/solver.cpp -lcrypto -o bin/drnas
+          git clone https://github.com/arminbiere/kissat.git /tmp/kissat
+          git -C /tmp/kissat checkout 77bc7ea68afe80751a67df8561357f193e160fb1
+          (cd /tmp/kissat && ./configure && make -j2)
+          cp /tmp/kissat/build/kissat bin/
+          git clone https://github.com/arminbiere/cadical.git /tmp/cadical
+          git -C /tmp/cadical checkout 14593f819cb242082b127396218bd60889409737
+          (cd /tmp/cadical && ./configure && make -j2)
+          cp /tmp/cadical/build/cadical bin/
+          git clone https://github.com/marijnheule/drat-trim.git /tmp/drat
+          git -C /tmp/drat checkout 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+          cc -O2 -std=gnu99 /tmp/drat/drat-trim.c -o bin/drat-trim
+      - name: Native algebra self-tests before public inputs
+        run: |
+          set -eux
+          cat > /tmp/affine_selftest.cpp <<'CPP'
+          #include "affine_domains.hpp"
+          #include <cassert>
+          #include <iostream>
+          #include <random>
+          using namespace toolbox;
+          int main(){
+            std::mt19937 rng(231125);
+            for(int t=0;t<32;++t){
+              Input f{15,{}};
+              auto v=[](int g,int d){return 3*g+d+1;};
+              for(int g=0;g<5;++g){
+                f.cs.push_back({v(g,0),v(g,1),v(g,2)});
+                for(int a=0;a<3;++a)for(int b=a+1;b<3;++b)f.cs.push_back({-v(g,a),-v(g,b)});
+              }
+              std::vector<int> planted(5);for(auto& x:planted)x=rng()%3;
+              for(int g=0;g<4;++g){
+                int h=(g+1)%5,j=(g+3)%5,c=1+rng()%2;
+                int rhs=(planted[g]+c*planted[h]+planted[j])%3;
+                for(int a=0;a<3;++a)for(int b=0;b<3;++b)for(int d=0;d<3;++d)
+                  if((a+c*b+d)%3!=rhs)f.cs.push_back({-v(g,a),-v(h,b),-v(j,d)});
+              }
+              std::vector<int> perm(15);std::iota(perm.begin(),perm.end(),1);
+              std::shuffle(perm.begin(),perm.end(),rng);
+              for(auto& z:perm)if(rng()%2)z=-z;
+              for(auto& c:f.cs){for(auto& l:c)l=(l>0?1:-1)*perm[std::abs(l)-1];assert(normalize(c));}
+              std::shuffle(f.cs.begin(),f.cs.end(),rng);
+              Model m;AlgebraStats s;
+              assert(finite3_model(f,m,after(3),s));
+              assert(s.domains==5 && s.relations>=4 && satisfied(f.cs,m));
+            }
+            Input f{4,{}};
+            for(int a=0;a<2;++a)for(int b=0;b<2;++b)for(int z=0;z<2;++z)
+              if((a^b)!=z)f.cs.push_back({a?-1:1,b?-2:2,z?-3:3});
+            f.cs.push_back({-1,-3,4});f.cs.push_back({1,-4});f.cs.push_back({3,-4});
+            f.cs.push_back({3});f.cs.push_back({4});
+            for(auto& c:f.cs)assert(normalize(c));
+            Model fixed(5,-1),m;fixed[3]=fixed[4]=1;
+            AlgebraStats s;
+            assert(circuit_affine_model(f,fixed,m,after(3),s));
+            assert(s.free==0 && s.affine_rounds>=2 && satisfied(f.cs,m));
+            std::cout<<"AFFINE_SELFTEST PASS GF3 signed permutations=32 circuit affine closure=1"<<std::endl;
+          }
+          CPP
+          c++ -std=c++20 -O2 -I research/toolbox20_native /tmp/affine_selftest.cpp -o /tmp/affine_selftest
+          /tmp/affine_selftest
+      - name: Freeze exact 23 catalog sources and download original bytes
+        run: |
+          set -eu
+          mkdir -p corpus metadata
+          curl --fail --location --retry 2 --max-time 60 https://satcompetition.github.io/2026/downloads/track_main_2026.uri -o metadata/official.uri
+          python3 - <<'PY'
+          import hashlib, json, pathlib, urllib.request, gzip, lzma, bz2, os
+          from urllib.parse import urlsplit
+          P=pathlib.Path
+          seed=os.environ['GITHUB_SHA']
+          sha=lambda b:hashlib.sha256(b).hexdigest()
+          urls=sorted(set(x.strip() for x in P('metadata/official.uri').read_text().splitlines() if x.strip().startswith(('https://','http://'))))
+          assert len(urls)==400, 'official URI list differs from frozen 400'
+          catalog=P('research/hall3/catalog2026.csv').read_text()
+          rows={p[0]:p for line in catalog.splitlines()[1:] if (p:=line.split()) and len(p)==6}
+          draw=[u for u in urls if (h:=urlsplit(u).path.rsplit('/',1)[-1]) in rows and rows[h][3]=='unknown' and rows[h][2] in ('linear-equations','xor-shifting')]
+          draw.sort(key=lambda u:(rows[urlsplit(u).path.rsplit('/',1)[-1]][2] not in ('linear-equations','xor-shifting'), rows[urlsplit(u).path.rsplit('/',1)[-1]][2],u))
+          assert len(draw)==23, f'catalog intersection differs: {len(draw)}'
+          P('metadata/catalog2026.csv').write_text(catalog)
+          print('AFFINE23 manifest',sha(catalog.encode()),flush=True)
+          P('metadata/draw.json').write_text(json.dumps(dict(freeze=seed,official_list_sha256=sha(P('metadata/official.uri').read_bytes()),population=len(urls),urls=draw),indent=2))
+          cases=[]; failed=[]; total_raw=0
+          import io
+          for i,url in enumerate(draw):
+              cid=f'sat26-{i:02d}'
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'DRNAS reproducibility pilot'}),timeout=45) as f:
+                      packed=f.read(128*1024*1024+1)
+                  if len(packed)>128*1024*1024: raise ValueError('compressed input exceeds pilot memory policy')
+                  stream=io.BytesIO(packed)
+                  if packed.startswith(b'\xfd7zXZ\x00'): stream=lzma.LZMAFile(stream)
+                  elif packed.startswith(b'\x1f\x8b'): stream=gzip.GzipFile(fileobj=stream)
+                  elif packed.startswith(b'BZh'): stream=bz2.BZ2File(stream)
+                  raw=stream.read(256*1024*1024+1)
+                  if len(raw)>256*1024*1024: raise ValueError('uncompressed input exceeds stress memory policy')
+                  if total_raw+len(raw)>6*1024**3: raise ValueError('corpus disk policy')
+                  header=next((l.split() for l in io.BytesIO(raw) if l.lstrip().startswith(b'p cnf ')),None)
+                  if header is None or len(header)!=4: raise ValueError('not a DIMACS CNF')
+                  h=urlsplit(url).path.rsplit('/',1)[-1]; family=rows[h][2]
+                  total_raw+=len(raw)
+                  P('corpus',cid+'.cnf').write_bytes(raw)
+                  cases.append(dict(id=cid,group='public',family=family,catalog_label='unknown',gbd_hash=h,variables=int(header[2]),clauses=int(header[3]),url=url,cnf_sha256=sha(raw),download_sha256=sha(packed),bytes=len(raw)))
+                  print('SAT26_INPUT',cid,h,family,int(header[2]),int(header[3]),len(raw),sha(raw),flush=True)
+              except Exception as e:
+                  failed.append(dict(id=cid,url=url,error=str(e)))
+                  print('SAT26_SOURCE_FAILED',cid,str(e),flush=True)
+          P('metadata/manifest.json').write_text(json.dumps(dict(freeze=seed,cases=cases,failed=failed,requested=23),indent=2))
+          assert len(cases)==23 and not failed,'exact source set incomplete'
+          PY
+      - name: Serial one-CPU paired benchmark, no CDCL in DRNAS
+        run: |
+          python3 research/toolbox20_native/bench.py --manifest metadata/manifest.json --corpus corpus --out results --drnas bin/drnas --kissat bin/kissat --cadical bin/cadical --checker bin/drat-trim --cap 15 --reps 1
+      - name: Print results
+        if: always()
+        run: |
+          if test -f results/runs.csv; then cat results/runs.csv; fi
+          if test -f results/summary.json; then cat results/summary.json; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: toolbox20-affine23-paired
+          path: |
+            metadata/
+            results/
+          if-no-files-found: warn
