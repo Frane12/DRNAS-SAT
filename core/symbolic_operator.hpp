@@ -138,6 +138,9 @@ inline std::set<std::string> load_rules(){
     for(int i=0;i<32&&std::getline(in,s);++i){
         if((s.size()==3&&s[0]=='C'&&s[1]>='3'&&s[1]<='8'&&(s[2]=='+'||s[2]=='-'))||(s.size()==2&&s[0]=='A'&&s[1]>='2'&&s[1]<='9')||s=="A10")result.insert(s);
     }
+    if(const char* selected=std::getenv("DRNAS_CORE_RULE_SELECT")){
+        std::string key(selected);if(!result.count(key))result.clear();else result={key};
+    }
     return result;
 }
 inline Partition replay_rules(const std::vector<Term>& terms,Q constant,const std::set<std::string>& rules,
@@ -287,7 +290,7 @@ inline int run(const std::string& raw,const std::filesystem::path& out,double se
     else if(task=="commute"){if(!(in>>k))throw std::runtime_error("second term count");}
     else throw std::runtime_error("symbolic task");
     Sum a=read(in,n,m),b;if(task=="commute")b=read(in,n,k);if(in>>extra)throw std::runtime_error("trailing symbolic input");
-    bool ok=false;std::string method="symbolic_limits";std::ostringstream proof;int attempts=0,memory_matches=0;bool memory_won=false;std::string best_bound="none";
+    bool ok=false;std::string method="symbolic_limits";std::ostringstream proof;int attempts=0,memory_matches=0;bool memory_won=false;double memory_s=0;int memory_attempts=0;std::string best_bound="none";
     try{
         if(task=="commute"){ok=commutes(a,b,stop);method="sparse_commutator";}
         else if(task=="projector-gap"){int rank=0;Q lower=0;ok=commuting_projector_gap(a,n,target,stop,rank,lower);method="commuting_projector_gap";if(ok)proof<<rank<<" "<<lower<<"\n";}
@@ -325,7 +328,9 @@ inline int run(const std::string& raw,const std::filesystem::path& out,double se
             auto rules=task=="lower"?load_rules():std::set<std::string>{};
             if(!rules.empty()){
                 auto until=start_trials+(safe_stop-start_trials)/5;
+                auto replay_start=Clock::now();++memory_attempts;
                 trial([&](auto end){return replay_rules(terms,constant,rules,end,memory_matches);},until);
+                memory_s=std::chrono::duration<double>(Clock::now()-replay_start).count();
                 memory_won=have&&memory_matches>0&&best.lower>=target;
             }
             auto baseline_stop=task=="lower-fixed"?safe_stop:start_trials+(safe_stop-start_trials)*2/5;
@@ -347,7 +352,7 @@ inline int run(const std::string& raw,const std::filesystem::path& out,double se
         tick(stop);
     }catch(const core_operator::Limit&){ok=false;method="symbolic_limits";}
     if(ok){std::ofstream f(out,std::ios::binary);f<<"drnas-sop-v1\n"<<core_operator::hash(raw)<<"\n"<<task<<"\n"<<proof.str();f.close();if(!f)throw std::runtime_error("symbolic write");}
-    std::cout<<"c {\"domain\":\"symbolic_operator\",\"method\":\""<<method<<"\",\"certificate\":\""<<(ok?"SYMBOLIC_OPERATOR_EXACT":"none")<<"\",\"qubits\":"<<n<<",\"partitions_tried\":"<<attempts<<",\"memory_matches\":"<<memory_matches<<",\"memory_proved\":"<<(memory_won?"true":"false")<<",\"best_lower\":\""<<best_bound<<"\"}\n";
+    std::cout<<"c {\"domain\":\"symbolic_operator\",\"method\":\""<<method<<"\",\"certificate\":\""<<(ok?"SYMBOLIC_OPERATOR_EXACT":"none")<<"\",\"qubits\":"<<n<<",\"partitions_tried\":"<<attempts<<",\"memory_matches\":"<<memory_matches<<",\"memory_attempts\":"<<memory_attempts<<",\"memory_s\":"<<memory_s<<",\"memory_proved\":"<<(memory_won?"true":"false")<<",\"best_lower\":\""<<best_bound<<"\"}\n";
     return ok?31:0;
 }
 }
