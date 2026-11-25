@@ -17,7 +17,7 @@ def store_rules(path, rules):
     # Local opt-in memory; never trust it as evidence. Atomic update and lock
     # permit separate invocations to merge discoveries.
     path = pathlib.Path(path)
-    valid = lambda x: re.fullmatch(r'A(?:[2-9]|10)|C3[+-]', x) is not None
+    valid = lambda x: re.fullmatch(r'A(?:[2-9]|10)|C[34][+-]', x) is not None
     new = {r for r in rules if isinstance(r,str) and valid(r)}
     if not new: return 0
     with open(str(path)+'.lock','a') as lock:
