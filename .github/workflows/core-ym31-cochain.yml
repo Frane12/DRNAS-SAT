@@ -1,0 +1,16 @@
+name: DRNAS CORE - YM31 transverse collective soft modes
+on:
+  push:
+    branches: [development/drnas-core]
+    paths: ['core/cochain*','core/YM31_GAUGE_SOFT_MODES.md','.github/workflows/core-ym31-cochain.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Exact cochain witness and orientation controls
+        run: python3 core/cochain_tests.py
