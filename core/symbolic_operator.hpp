@@ -47,16 +47,95 @@ inline Q diagonal_min(const std::vector<Term>& a,const std::vector<int>& g,Clock
         if(v==0||val<best)best=val;}
     return best;
 }
+
+// Joint eigenspaces of commuting Pauli words. The product table carries the
+// sign of each dependency; independent generators admit every sign pattern.
+inline Q commuting_min(const std::vector<Term>& a,const std::vector<int>& g,Clock::time_point stop){
+    if(g.empty()||g.size()>10)throw std::runtime_error("commuting block limit");
+    std::string id(a[0].first.size(),'I');
+    std::map<std::string,std::pair<unsigned,int>> table{{id,{0,1}}};
+    unsigned dimension=1;
+    std::vector<std::pair<unsigned,Q>> coeff;
+    for(int j:g){
+        tick(stop);
+        auto& w=a[j].first;
+        auto it=table.find(w);
+        if(it==table.end()){
+            auto old=table;
+            for(const auto& [s,ms]:old){
+                auto [prod,phase]=multiply(s,w);
+                if(phase%2)throw std::runtime_error("commuting dependency phase");
+                if(!table.emplace(prod,std::make_pair(ms.first|dimension,ms.second*(phase==0?1:-1))).second)
+                    throw std::runtime_error("commuting dependency collision");
+            }
+            dimension*=2;it=table.find(w);
+        }
+        Q c=a[j].second*it->second.second;
+        coeff.push_back({it->second.first,c});
+    }
+    Q best=0;
+    for(unsigned x=0;x<dimension;++x){
+        if((x&63u)==0)tick(stop);Q val=0;
+        for(const auto& [mask,c]:coeff){if(std::popcount(x&mask)&1)val-=c;else val+=c;}
+        if(x==0||val<best)best=val;
+    }
+    return best;
+}
+struct Partition {Q lower=0;std::string body;};
+inline Partition evaluate(const std::vector<Term>& terms,const Groups& groups,const std::vector<char>& types,Q constant,Clock::time_point stop){
+    Partition result;result.lower=constant;
+    std::ostringstream o;o<<groups.size()<<"\n";
+    for(size_t i=0;i<groups.size();++i){
+        tick(stop);const auto& g=groups[i];char typ=types[i];o<<typ<<" "<<g.size();
+        for(int j:g)o<<" "<<j;
+        if(typ=='A'){Q b=norm_bound(terms,g);result.lower-=b;o<<" "<<b;}
+        else if(typ=='D')result.lower+=diagonal_min(terms,g,stop);
+        else result.lower+=commuting_min(terms,g,stop);
+        o<<"\n";
+    }
+    result.body=o.str();return result;
+}
+inline int support_size(const std::string& w){return int(std::count_if(w.begin(),w.end(),[](char c){return c!='I';}));}
+inline Partition explore(const std::vector<Term>& terms,Q constant,int policy,Clock::time_point stop){
+    std::vector<int> order(terms.size());std::iota(order.begin(),order.end(),0);
+    if(policy%3==1)std::reverse(order.begin(),order.end());
+    if(policy%3==2)std::stable_sort(order.begin(),order.end(),[&](int i,int j){return absq(terms[i].second)>absq(terms[j].second);});
+    Groups groups;std::vector<char> types;
+    for(int j:order){
+        tick(stop);const auto& w=terms[j].first;
+        int best=-1;char best_type='A';long score=-1;
+        for(int i=0;i<int(groups.size());++i){
+            if((i&63)==0)tick(stop);
+            auto& g=groups[i];bool a=true,c=g.size()<10;int overlap=0;
+            for(int k:g){
+                bool b=anti(w,terms[k].first);a=a&&b;c=c&&!b;
+                for(size_t l=0;l<w.size();++l)if(w[l]!='I'&&terms[k].first[l]!='I')++overlap;
+            }
+            for(char typ: {'A','C'}){
+                if((typ=='A'&&!a)||(typ=='C'&&!c)||(g.size()>1&&types[i]!=typ))continue;
+                // Avoid needlessly joining unrelated commuting terms.
+                if(typ=='C'&&overlap==0)continue;
+                long s=long(overlap)+long(g.size())*2;
+                if((policy<3&&typ=='A')||(policy>=3&&typ=='C'))s+=10000;
+                if(s>score){best=i;best_type=typ;score=s;}
+            }
+        }
+        if(best<0){groups.push_back({j});types.push_back('A');}
+        else{groups[best].push_back(j);types[best]=best_type;}
+    }
+    return evaluate(terms,groups,types,constant,stop);
+}
+
 inline int run(const std::string& raw,const std::filesystem::path& out,double seconds){
     auto stop=Clock::now()+std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(seconds));
     if(raw.size()>2000000)throw std::runtime_error("symbolic input limit");
     std::istringstream in(raw);std::string p,s,task,extra;int n,m,k=0;
     if(!(in>>p>>s>>task>>n>>m)||p!="p"||s!="sop"||n<1||n>256)throw std::runtime_error("symbolic header");
-    Q target=0;if(task=="lower")target=core_operator::rational(in);
+    Q target=0;if(task=="lower"||task=="lower-fixed")target=core_operator::rational(in);
     else if(task=="commute"){if(!(in>>k))throw std::runtime_error("second term count");}
     else throw std::runtime_error("symbolic task");
     Sum a=read(in,n,m),b;if(task=="commute")b=read(in,n,k);if(in>>extra)throw std::runtime_error("trailing symbolic input");
-    bool ok=false;std::string method="symbolic_limits";std::ostringstream proof;
+    bool ok=false;std::string method="symbolic_limits";std::ostringstream proof;int attempts=0;std::string best_bound="none";
     try{
         if(task=="commute"){ok=commutes(a,b,stop);method="sparse_commutator";}
         else{
@@ -78,15 +157,38 @@ inline int run(const std::string& raw,const std::filesystem::path& out,double se
                     if(!placed)anti_groups.push_back({j});
                 }
             }
-            Q lower=constant;std::ostringstream groups;groups<<diag.size()+anti_groups.size()<<"\n";
-            for(auto& g:diag){lower+=diagonal_min(terms,g,stop);groups<<"D "<<g.size();for(int j:g)groups<<" "<<j;groups<<"\n";}
-            for(auto& g:anti_groups){Q bound=norm_bound(terms,g);lower-=bound;groups<<"A "<<g.size();for(int j:g)groups<<" "<<j;groups<<" "<<bound<<"\n";}
-            ok=lower>=target;proof<<lower<<"\n"<<groups.str();method="local_operator_bounds";
+            Groups groups=diag;groups.insert(groups.end(),anti_groups.begin(),anti_groups.end());
+            std::vector<char> types(diag.size(),'D');types.insert(types.end(),anti_groups.size(),'A');
+            Partition best;bool have=false;
+            // Each candidate gets a bounded portion of remaining time. A failed
+            // candidate cannot erase a previously completed proof.
+            auto trial=[&](auto fn,Clock::time_point until){
+                ++attempts;
+                try{Partition p=fn(until);tick(until);if(!have||p.lower>best.lower){best=std::move(p);have=true;}}
+                catch(const core_operator::Limit&){}
+            };
+            auto start_trials=Clock::now();
+            auto safe_stop=start_trials+(stop-start_trials)*9/10;
+            auto baseline_stop=task=="lower-fixed"?safe_stop:start_trials+(safe_stop-start_trials)*2/5;
+            trial([&](auto until){return evaluate(terms,groups,types,constant,until);},baseline_stop);
+            bool improved=false;
+            if(task=="lower"&&(!have||best.lower<target)){
+                for(int policy=0;policy<6&&Clock::now()<safe_stop;++policy){
+                    auto now=Clock::now();auto until=now+(safe_stop-now)/(6-policy);
+                    bool had=have;Q before=best.lower;
+                    trial([&](auto end){return explore(terms,constant,policy,end);},until);
+                    if(have&&(!had||best.lower>before))improved=true;
+                    if(have&&best.lower>=target)break;
+                }
+            }
+            if(have){std::ostringstream b;b<<best.lower;best_bound=b.str();ok=best.lower>=target;
+                if(ok)proof<<best.lower<<"\n"<<best.body;}
+            method=improved?"adaptive_operator_bounds":"local_operator_bounds";
         }
         tick(stop);
     }catch(const core_operator::Limit&){ok=false;method="symbolic_limits";}
     if(ok){std::ofstream f(out,std::ios::binary);f<<"drnas-sop-v1\n"<<core_operator::hash(raw)<<"\n"<<task<<"\n"<<proof.str();f.close();if(!f)throw std::runtime_error("symbolic write");}
-    std::cout<<"c {\"domain\":\"symbolic_operator\",\"method\":\""<<method<<"\",\"certificate\":\""<<(ok?"SYMBOLIC_OPERATOR_EXACT":"none")<<"\",\"qubits\":"<<n<<"}\n";
+    std::cout<<"c {\"domain\":\"symbolic_operator\",\"method\":\""<<method<<"\",\"certificate\":\""<<(ok?"SYMBOLIC_OPERATOR_EXACT":"none")<<"\",\"qubits\":"<<n<<",\"partitions_tried\":"<<attempts<<",\"best_lower\":\""<<best_bound<<"\"}\n";
     return ok?31:0;
 }
 }
