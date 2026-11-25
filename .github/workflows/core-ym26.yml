@@ -1,0 +1,20 @@
+name: DRNAS CORE - YM26 plaquette inverse
+on:
+  push:
+    branches: [development/drnas-core]
+    paths: ['core/gauge_vacuum_inverse*', 'core/operator.hpp', 'core/operator_verify.py', '.github/workflows/core-ym26.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies
+        run: sudo apt-get update && sudo apt-get install -y libssl-dev libboost-dev
+      - name: Build CORE
+        run: bash core/build.sh
+      - name: Exact inverse and prior range controls
+        run: python3 core/gauge_vacuum_inverse_tests.py

@@ -182,3 +182,7 @@ See [analytic equivalence and limitations](YM17_GAUGE_BLOCK.md). Actual pinned A
 ## YM25 — recentered gauge-invariant vacuum contraction (experimental)
 
 [Analytic derivation and limitations](YM25_CONTINUATION.md). The stronger gauge-invariant norm and explicit second-order defect enlarge the sufficient strong-coupling interval by 12/5 on open cubic or periodic L>=4 grids. Native arithmetic and independent audit check the fixed-point constants and Picard tail, not a full coefficient computation or formal proof. No weak-coupling or continuum result. Run python3 core/gauge_vacuum_continue_tests.py. CI pending.
+
+## YM26 — plaquette-specific inverse (experimental)
+
+[Analytic derivation and limits](YM26_INVERSE.md). A specialized Neumann bound on the linearization at F1 and direct Hessian estimate give a 3/2 wider sufficient strong-coupling interval than YM25 and an explicit uniform lower gap of 5 alpha/12 at its boundary. Native arithmetic and independent audit check sufficient conditions, not a formal proof or full-lattice coefficient generation. No ATLAS execution, weak-coupling or continuum claim. Run python3 core/gauge_vacuum_inverse_tests.py. CI pending.

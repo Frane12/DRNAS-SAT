@@ -451,6 +451,36 @@ def gauge_vacuum_continue_verify(words,raw,cert):
         grid_scope='open or periodic L>=4',all_representations=True,fixed_spacing=True,
         proof_assistant_formalized=False,coefficients_generated=False,continuum=False)
 
+
+def gauge_vacuum_inverse_verify(words,raw,cert):
+    if len(words)!=8:raise ValueError('inverse header')
+    d=int(words[3]);alpha,k,target=map(q,words[4:7]);n=int(words[7])
+    if d not in (2,3,4) or min(alpha,target)<=0 or not 1<=n<=64:raise ValueError('inverse parameters')
+    degree=2*(d-1);u=abs(k/alpha);x=degree*u
+    limit=Q(1,160*degree)
+    # Two independent support charges: output edge in plaquette or G.
+    charge_p=3*2*16*4*Q(1,2)*Q(2,3)
+    charge_g=3*2*16*Q(1,2)*Q(2,3)
+    l=2*(charge_p+charge_g)*x/3
+    if u>limit or l>=1:raise ValueError('inverse range')
+    m=1/(1-l);r=9*x
+    eta=(degree*324+4*degree*(degree-1)*(144+512))*(u/3)**2
+    b=Q(8,3);image=m*(eta+b*r*r);lip=2*m*b*r
+    rho=Q(1,2)-2*(Q(2,3)*x+Q(2,3)*r)
+    gap=alpha*rho
+    if image>r or lip>=1 or gap<target:raise ValueError('inverse condition')
+    tail=m*eta*lip**n/(1-lip)
+    z=Path(cert).read_text().split()
+    if len(z)!=12 or z[:3]!=['drnas-op-v1',hashlib.sha256(raw).hexdigest(),'gauge-vacuum-inverse']:raise ValueError('inverse binding')
+    if list(map(Q,z[3:]))!=[limit,l,m,r,eta,image,lip,gap,tail]:raise ValueError('inverse certificate')
+    return dict(status='PROVED',certificate='ANALYTIC_BOUND',task='gauge-vacuum-inverse',dimension=d,
+        ratio=str(k/alpha),max_ratio=str(limit),previous_max_ratio=str(Q(1,240*degree)),
+        linearization_norm_upper=str(l),inverse_norm_upper=str(m),correction_radius=str(r),
+        defect_upper=str(eta),ball_image_upper=str(image),contraction_factor=str(lip),
+        gap_lower=str(gap),picard_steps=n,picard_tail_upper=str(tail),original_KS_uniform_gap=True,
+        all_representations=True,fixed_spacing=True,continuum=False,coefficients_generated=False,
+        proof_assistant_formalized=False,grid_scope='open or periodic L>=4')
+
 def verify(source,cert):
     raw=Path(source).read_bytes()
     if len(raw)>65536: raise ValueError('size')
@@ -468,6 +498,7 @@ def verify(source,cert):
     if kind=='gauge-vacuum2':return gauge_vacuum2_verify(words,raw,cert)
     if kind=='gauge-local-vacuum':return gauge_local_vacuum_verify(words,raw,cert)
     if kind=='gauge-vacuum-continue':return gauge_vacuum_continue_verify(words,raw,cert)
+    if kind=='gauge-vacuum-inverse':return gauge_vacuum_inverse_verify(words,raw,cert)
     if not 1<=n<=24: raise ValueError('dimension')
     if kind=='rotor-gap':return rotor_verify(words,raw,cert)
     if kind=='decimation-gap':return decimation_verify(words,raw,cert)
