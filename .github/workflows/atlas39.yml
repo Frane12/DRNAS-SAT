@@ -1,0 +1,97 @@
+name: ATLAS39 local mathematical deduction
+on:
+  push:
+    branches: [experiment/atlas39-local-deduction]
+    paths: ['.github/workflows/atlas39.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  paired:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        cohort: [replay, fresh]
+        n: [48,80,120]
+        rho: ['3.5','4.26','5.0']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          repository: Frane12/DRNAS-SAT
+          run-id: 45360211946
+          github-token: ${{ github.token }}
+          name: DRNAS-ATLAS22-ORIGINAL-CHACHA32-CNF-CERTIFIED-PAIRED
+          path: baseline
+      - name: Pinned checker and reference binaries
+        run: |
+          set -euo pipefail
+          git clone https://github.com/marijnheule/drat-trim.git /tmp/drat-trim
+          git -C /tmp/drat-trim checkout 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+          gcc -O2 -D_GNU_SOURCE /tmp/drat-trim/drat-trim.c -o /tmp/drat-check
+          chmod +x baseline/atlas22_artifacts/solvers/{kissat,cadical}
+          sha256sum baseline/atlas22_artifacts/solvers/{kissat,cadical}
+          python3 -m py_compile research/atlas39/*.py
+      - name: Single CPU unseen CNF diagnostic
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os;print(min(os.sched_getaffinity(0)))')
+          ulimit -v 6000000
+          taskset -c "$cpu" python3 research/atlas39/bench.py selftest controls
+          mkdir -p results
+          taskset -c "$cpu" python3 -u research/atlas39/bench.py '${{ matrix.n }}' '${{ matrix.rho }}' results baseline/atlas22_artifacts/solvers '${{ matrix.cohort }}' | tee results/log.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: A39-case-${{ matrix.cohort }}-${{ matrix.n }}-${{ matrix.rho }}
+          path: results/
+  aggregate:
+    needs: paired
+    if: always()
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: A39-case-*
+          path: shards
+      - name: Verified coverage, separate audits and paired time
+        run: |
+          python3 - <<'PY'
+          import pathlib,json,collections
+          rows=[r for p in pathlib.Path('shards').rglob('rows.json') for r in json.loads(p.read_text())]
+          standard={'MODEL_VERIFIED','STANDARD_DRAT'}
+          accepted=standard|{'CUSTOM_BDD'}
+          arms=('FUSED_WIDE','DEDUCT','REPAIR','AUTO','kissat','cadical')
+          for cohort in ('replay','fresh'):
+              group=[r for r in rows if r['case'].startswith(cohort+'/')]
+              good=lambda r:r.get('audit') in accepted and r.get('status') in ('SAT','UNSAT')
+              for arm in arms:
+                  rr=[r for r in group if r['arm']==arm]
+                  g=[r for r in rr if good(r)]
+                  strict=[r for r in g if r['audit'] in standard]
+                  print('A39_SUMMARY',cohort,arm,json.dumps(dict(verified=len(g),standard=len(strict),custom=len(g)-len(strict),missing=27-len(rr),statuses=dict(collections.Counter(r['status'] for r in rr)),reasons=dict(collections.Counter(r.get('method','none') for r in rr if not good(r))),decision_par2=(sum(r.get('process_s',30) for r in g)+60*(27-len(g)))/27,e2e_s=sum(r.get('e2e_s',0) for r in rr))))
+              old={r['sha']:r for r in group if r['arm']=='FUSED_WIDE'}
+              for arm in ('DEDUCT','REPAIR','AUTO'):
+                  new={r['sha']:r for r in group if r['arm']==arm}
+                  shared=old.keys()&new.keys()
+                  rescued=[old[k]['case'] for k in shared if not good(old[k]) and good(new[k])]
+                  lost=[old[k]['case'] for k in shared if good(old[k]) and not good(new[k])]
+                  both=[k for k in shared if good(old[k]) and good(new[k])]
+                  print('A39_DELTA',cohort,arm,json.dumps(dict(rescued=sorted(rescued),lost=sorted(lost),paired=len(both),old_s=sum(old[k]['process_s'] for k in both),new_s=sum(new[k]['process_s'] for k in both))))
+              assert len(group)==27*len(arms) and all(len({r['sha'] for r in group if r['arm']==a})==27 for a in arms), 'incomplete cohort'
+          by=collections.defaultdict(set)
+          for r in rows:
+              if r['audit'] in accepted and r['status'] in ('SAT','UNSAT'):by[r['sha']].add(r['status'])
+          conflicts=[k for k,v in by.items() if len(v)>1]
+          print('A39_CONTRADICTIONS',conflicts)
+          pathlib.Path('summary.json').write_text(json.dumps(rows,indent=2))
+          assert not conflicts
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: A39-summary
+          path: summary.json
