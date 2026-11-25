@@ -52,6 +52,13 @@ def main():
             s=['I']*n;s[u]=s[v]='Z';terms.append((1,''.join(s)))
     lower(n,terms,0,True)
     lower(n,terms,1,False)
+    # Paired controls: identical Hamiltonian, only decomposition policy differs.
+    for n,terms in [(1,[('3/2','I'),(1,'X'),(1,'Z')]),
+                    (2,[(1,'II'),(1,'XX'),(1,'YY'),(-1,'ZZ')])]:
+        raw=f'p sop lower {n} {len(terms)} 0\n'+''.join(f'{c} {s}\n' for c,s in terms)
+        cases.append((raw.replace('p sop lower ','p sop lower-fixed ',1),False))
+        cases.append((raw,True))
+    lower(2,[(1,'II'),(1,'XX'),(1,'YY'),(1,'ZZ')],0,False)
     with tempfile.TemporaryDirectory() as d:
         p=pathlib.Path(d); src=p/'input.sop'; cert=p/'output.cert'
         for i,(raw,expected) in enumerate(cases):
