@@ -11,7 +11,7 @@ inline Z integer(const std::string& s){
     if(s.empty()||s.size()>17)throw std::runtime_error("operator integer limit");
     bool neg=s[0]=='-';size_t i=neg?1:0;if(i==s.size())throw std::runtime_error("integer");
     Z z=0;for(;i<s.size();++i){if(s[i]<'0'||s[i]>'9')throw std::runtime_error("integer");z=z*10+(s[i]-'0');}
-    return neg?-z:z;
+    if(neg)z=-z;return z;
 }
 inline Q rational(std::istream& in){
     std::string s;if(!(in>>s))throw std::runtime_error("missing rational");
@@ -74,7 +74,7 @@ inline int run(const std::string& raw,const std::filesystem::path& out,double se
         else if(kind=="gap"){ok=gap(a,e,g,stop);method="spectral_polynomial";}
         else{
             std::set<Q> candidates{Q(0)};Q lower=a[0][0];
-            for(int i=0;i<n;++i){Q radius=0,sum=0;for(int j=0;j<n;++j){sum+=a[i][j];if(i!=j)radius+=a[i][j]<0?-a[i][j]:a[i][j];}
+            for(int i=0;i<n;++i){Q radius=0,sum=0;for(int j=0;j<n;++j){sum+=a[i][j];if(i!=j){Q v=a[i][j];if(v<0)v=-v;radius+=v;}}
                 Q lo=a[i][i]-radius;if(i==0||lo<lower)lower=lo;candidates.insert(a[i][i]);candidates.insert(sum);}
             candidates.insert(lower);for(int i=-16;i<=16;++i)candidates.insert(Q(i));
             for(const Q& q:candidates){tick(stop);if(gap(a,q,g,stop)){e=q;ok=true;break;}}
