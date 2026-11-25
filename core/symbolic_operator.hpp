@@ -113,8 +113,8 @@ inline Partition explore(const std::vector<Term>& terms,Q constant,int policy,Cl
             }
             for(char typ: {'A','C'}){
                 if((typ=='A'&&!a)||(typ=='C'&&!c)||(g.size()>1&&types[i]!=typ))continue;
-                // Avoid needlessly joining unrelated commuting terms.
-                if(typ=='C'&&overlap==0)continue;
+                // Independent commuting terms can be joined: a later term
+                // may close a signed product relation. Block size remains capped.
                 long s=long(overlap)+long(g.size())*2;
                 if((policy<3&&typ=='A')||(policy>=3&&typ=='C'))s+=10000;
                 if(s>score){best=i;best_type=typ;score=s;}
