@@ -145,6 +145,7 @@ inline std::string hash(const std::string& raw){
 }
 #include "gauge_gap.hpp"
 #include "gauge_stability.hpp"
+#include "decimation_gap.hpp"
 inline int run(const std::string& raw,const std::filesystem::path& out,double seconds){
     auto stop=Clock::now()+std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(seconds));
     if(raw.size()>65536)throw std::runtime_error("operator input limit");
@@ -152,6 +153,7 @@ inline int run(const std::string& raw,const std::filesystem::path& out,double se
     if(!(in>>p>>op>>kind>>n)||p!="p"||op!="op"||n<1||(kind=="gauge-gap"?n>256:n>24))throw std::runtime_error("operator header");
     if(kind=="gauge-gap")return gauge_run(raw,in,n,out,stop);
     if(kind=="gauge-stability")return gauge_stability_run(raw,in,n,out,stop);
+    if(kind=="decimation-gap")return decimation_run(raw,in,n,out,stop);
     Q e=0,g=0;
     if(kind=="rotor-gap"){
         // Here n is the rotor count, not the matrix dimension.
