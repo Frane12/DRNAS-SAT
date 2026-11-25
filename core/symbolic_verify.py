@@ -105,9 +105,9 @@ def check(source,cert):
                 # Extract signed triple identities from the actual checked group.
                 bs={bits(s):s for s,c in group}
                 for u,v in itertools.combinations(bs,2):
-                    x,y=u; X,Y=v; z=(x^X,y^Y)
-                    if z not in bs or anti(u,v): continue
-                    phase=((x&y).bit_count()+(X&Y).bit_count()+2*(y&X).bit_count()-(z[0]&z[1]).bit_count())%4
+                    x,y=u; X,Y=v; prod=(x^X,y^Y)
+                    if prod not in bs or anti(u,v): continue
+                    phase=((x&y).bit_count()+(X&Y).bit_count()+2*(y&X).bit_count()-(prod[0]&prod[1]).bit_count())%4
                     if phase in (0,2): rules.add('C3+' if phase==0 else 'C3-')
         if len(seen)!=len(terms) or lower!=claimed or lower<target: raise ValueError('lower bound')
         result=dict(lower=str(lower),target=str(target),groups=count,learned_rules=sorted(rules))
