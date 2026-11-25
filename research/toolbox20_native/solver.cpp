@@ -1,6 +1,7 @@
 #include "cases.hpp"
 #include "projection.hpp"
 #include "repair.hpp"
+#include "affine_domains.hpp"
 #include "../../src/pcmax_capacity.hpp"
 #include "../../src/pcmax_clause_hall.hpp"
 #include "../../src/hall3_guard.hpp"
@@ -22,13 +23,18 @@ std::string sha256(const std::string& raw) {
 }
 struct Stats {
     CaseStats cases;
+    AlgebraStats algebra;
     int eliminated=0, resolvents=0, residual=0;
     uint64_t flips=0;
     void print(const char* phase) const {
         std::cout<<"c phase "<<phase<<" single "<<cases.single<<" joint "<<cases.joint
                  <<" covers "<<cases.covers<<" facts "<<cases.facts<<" composed "<<cases.composed
                  <<" implications "<<cases.implications<<" eliminated "<<eliminated
-                 <<" resolvents "<<resolvents<<" residual "<<residual<<" flips "<<flips<<"\n";
+                 <<" resolvents "<<resolvents<<" residual "<<residual<<" flips "<<flips
+                 <<" gf3_domains "<<algebra.domains<<" gf3_relations "<<algebra.relations
+                 <<" gf3_rank "<<algebra.rank3<<" circuit_gates "<<algebra.gates
+                 <<" circuit_inputs "<<algebra.inputs<<" circuit_free "<<algebra.free
+                 <<" affine_rounds "<<algebra.affine_rounds<<" circuit_blocks "<<algebra.blocks<<"\n";
     }
 };
 int emit_sat(const Input& input,const Model& m,const char* phase,const Stats& stats) {
@@ -63,6 +69,9 @@ int solve(const std::string& path,const std::string& artifact,double seconds,boo
         if (satisfied(cs,m)) return emit_sat(f,m,"root-model",stats);
     }
     auto left=[&](){return std::max(0.0,std::chrono::duration<double>(deadline-Clock::now()).count());};
+    Model algebra_model;
+    if (finite3_model(f,algebra_model,std::min(deadline,after(std::min(2.5,seconds*.20))),stats.algebra))
+        return emit_sat(f,algebra_model,"finite3-model",stats);
     auto affine=pcmax::math4::xor_unit(f.cs,f.n,digest,std::min({left(),.25,seconds*.10}),&seed);
     if (affine.verified) {
         proof.structural(affine.certificate_json); return emit_unsat(proof,"gf2-certificate",stats);
@@ -76,6 +85,8 @@ int solve(const std::string& path,const std::string& artifact,double seconds,boo
             proof.structural(hall.certificate_json); return emit_unsat(proof,"hall-certificate",stats);
         }
     }
+    if (construct && circuit_affine_model(f,fixed,algebra_model,std::min(deadline,after(std::min(left(),seconds*.68))),stats.algebra))
+        return emit_sat(f,algebra_model,"affine-circuit-model",stats);
     const bool compact=f.n<=192 && cs.size()<=2200;
     auto case_end=std::min(deadline,after(std::min(.60,seconds*.30)));
     for (int round=0;round<(compact?10:2) && Clock::now()<case_end;++round) {
