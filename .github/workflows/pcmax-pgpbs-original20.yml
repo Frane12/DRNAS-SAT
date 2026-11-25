@@ -1,0 +1,63 @@
+name: PCMAX vs PGPBS — original20 certified comparison
+on:
+  push:
+    branches: [experiment/pcmax-pgpbs-original20-20261125]
+    paths: ['.github/workflows/pcmax-pgpbs-original20.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      PYTHONHASHSEED: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Freeze sources and build published implementations
+        run: |
+          set -euo pipefail
+          mkdir -p metadata
+          git fetch --depth=1 origin 8040855b2a3073122f6f852c69498f71af6b41ce
+          git diff --exit-code 8040855b2a3073122f6f852c69498f71af6b41ce HEAD -- src CMakeLists.txt research/pcmax_capacity/sources20.json research/pcmax_capacity/benchmark.py research/pcmax_capacity/emit_veripb_capacity_weighted2.py
+          git rev-parse HEAD > metadata/drnas-experiment.sha
+          lscpu > metadata/cpu.txt
+          python3 --version > metadata/python.txt
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --target drnas-pcmax -j2
+          sha256sum build/drnas-pcmax > metadata/drnas-binary.sha
+          git clone --no-checkout https://github.com/rebryant/pgpbs-artifact.git pgpbs
+          git -C pgpbs checkout --detach 15e66b90873061e80cbb1c908a38b511c49f71e8
+          git -C pgpbs rev-parse HEAD > metadata/pgpbs.sha
+          make -C pgpbs install
+          cargo install veripb --version 3.0.2 --locked --root "$PWD/veripb-tool" --quiet
+          veripb-tool/bin/veripb --version > metadata/veripb.txt
+      - name: Validate upstream automatic extraction and LRAT proof on a tiny contradiction
+        run: |
+          set -euo pipefail
+          printf 'p cnf 6 9\n1 2 0\n3 4 0\n5 6 0\n-1 -3 0\n-1 -5 0\n-3 -5 0\n-2 -4 0\n-2 -6 0\n-4 -6 0\n' > metadata/smoke.cnf
+          cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
+          taskset -c "$cpu" timeout 30s python3 pgpbs/src/constraint_extractor.py -v 2 -i metadata/smoke.cnf -o metadata/smoke.schedule | tee metadata/smoke-extract.log
+          taskset -c "$cpu" timeout 30s python3 pgpbs/src/pgpbs.py -i metadata/smoke.cnf -s metadata/smoke.schedule -o metadata/smoke.lrat | tee metadata/smoke-solve.log
+          taskset -c "$cpu" timeout 60s pgpbs/lrat/lrat-check metadata/smoke.cnf metadata/smoke.lrat | tee metadata/smoke-check.log
+          grep -Fx 'c VERIFIED' metadata/smoke-check.log
+      - name: Paired original20 — raw CNF, no oracle, proof production and checking
+        run: |
+          set -euo pipefail
+          python3 -u research/pcmax_capacity/benchmark_pgpbs_original20.py --pgpbs pgpbs --veripb veripb-tool/bin/veripb --out pgpbs-results
+      - name: Archive evidence and limits
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pcmax-pgpbs-original20
+          path: |
+            pgpbs-results/
+            metadata/
+            research/pcmax_capacity/sources20.json
+            research/pcmax_capacity/benchmark_pgpbs_original20.py
+          retention-days: 90
