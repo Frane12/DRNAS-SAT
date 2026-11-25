@@ -136,7 +136,7 @@ inline std::set<std::string> load_rules(){
     std::ifstream in(name);std::string s;
     if(!std::getline(in,s)||s!="drnas-rule-memory-v1")return result;
     for(int i=0;i<32&&std::getline(in,s);++i){
-        if(s=="C3+"||s=="C3-"||(s.size()==2&&s[0]=='A'&&s[1]>='2'&&s[1]<='9')||s=="A10")result.insert(s);
+        if(s=="C4+"||s=="C4-"||s=="C3+"||s=="C3-"||(s.size()==2&&s[0]=='A'&&s[1]>='2'&&s[1]<='9')||s=="A10")result.insert(s);
     }
     return result;
 }
@@ -145,6 +145,32 @@ inline Partition replay_rules(const std::vector<Term>& terms,Q constant,const st
     Groups groups;std::vector<char> types;std::vector<bool> used(terms.size());
     std::map<std::string,int> index;
     for(int i=0;i<int(terms.size());++i)index.emplace(terms[i].first,i);
+    // Composed relation: two signed commuting triples sharing a factor
+    // imply a signed four-word identity. The shared factor need not be
+    // present in a new input. Match equal pair products and check ALL pairs.
+    if(rules.count("C4+")||rules.count("C4-")){
+        struct Pair {int i,j,p;};
+        std::map<std::string,std::vector<Pair>> products;
+        unsigned pairs=0;
+        for(int i=0;i<int(terms.size())&&pairs<50000;++i){
+            tick(stop);
+            for(int j=i+1;j<int(terms.size())&&pairs<50000;++j){
+                if((j&63)==0)tick(stop);++pairs;
+                if(used[i]||used[j]||anti(terms[i].first,terms[j].first))continue;
+                auto [word,p]=multiply(terms[i].first,terms[j].first);
+                auto& v=products[word];bool found=false;
+                for(auto q:v){
+                    if(used[q.i]||used[q.j]||q.i==i||q.i==j||q.j==i||q.j==j)continue;
+                    if(!rules.count((p==q.p)?"C4+":"C4-"))continue;
+                    if(anti(terms[i].first,terms[q.i].first)||anti(terms[i].first,terms[q.j].first)||
+                       anti(terms[j].first,terms[q.i].first)||anti(terms[j].first,terms[q.j].first))continue;
+                    groups.push_back({q.i,q.j,i,j});types.push_back('C');
+                    used[q.i]=used[q.j]=used[i]=used[j]=true;++matches;found=true;break;
+                }
+                if(!found&&v.size()<16)v.push_back({i,j,p});
+            }
+        }
+    }
     // Signed product relation P_i P_j = +/- P_k, independent of labels.
     if(rules.count("C3+")||rules.count("C3-")){
         for(int i=0;i<int(terms.size());++i){
