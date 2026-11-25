@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <unistd.h>
 #include <openssl/evp.h>
+#include "operator.hpp"
 #include "vendor/unified/discovery_reason.hpp"
 #include "vendor/unified/affine_domains.hpp"
 #include "vendor/unified/factor_reason.hpp"
@@ -238,7 +239,7 @@ struct Core {
 };
 int main(int argc,char** argv){
     try{
-        if(argc<3||argc>5)throw runtime_error("usage: drnas-core INPUT.cnf EVIDENCE [seconds [default|memory|no-share]]");
+        if(argc<3||argc>5)throw runtime_error("usage: drnas-core INPUT.cnf|INPUT.op EVIDENCE [seconds [default|memory|no-share]]");
         double seconds=5;if(argc>=4){size_t used;seconds=stod(argv[3],&used);if(used!=strlen(argv[3]))throw runtime_error("invalid budget");}
         if(!isfinite(seconds)||seconds<=0||seconds>86400)throw runtime_error("invalid budget");
         string mode=argc==5?argv[4]:"default";
@@ -246,6 +247,7 @@ int main(int argc,char** argv){
         fs::path out=argv[2];
         if(fs::exists(out)&&fs::equivalent(argv[1],out))throw runtime_error("evidence must differ from input");
         if(fs::exists(out))throw runtime_error("evidence already exists; choose a new path");
+        { std::ifstream probe(argv[1],std::ios::binary);std::string p,kind; if(probe>>p>>kind && p=="p" && kind=="op"){if(mode!="default")throw runtime_error("operator requires default mode");return core_operator::run(read_file(argv[1]),out,seconds);} }
         Core core(seconds);core.memory=mode=="memory";core.no_share=mode=="no-share";
         int rc=core.solve(argv[1]);
         if(core.left()==0){rc=0;core.artifact.clear();core.format="none";core.method="solve_budget";}
