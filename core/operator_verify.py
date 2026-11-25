@@ -481,6 +481,40 @@ def gauge_vacuum_inverse_verify(words,raw,cert):
         all_representations=True,fixed_spacing=True,continuum=False,coefficients_generated=False,
         proof_assistant_formalized=False,grid_scope='open or periodic L>=4')
 
+
+def gauge_vacuum_path_verify(words,raw,cert):
+    if len(words)!=8:raise ValueError('path header')
+    d=int(words[3]);alpha,k,target=map(q,words[4:7]);cap=int(words[7])
+    if d not in (2,3,4) or min(alpha,target)<=0 or not 1<=cap<=64:raise ValueError('parameters')
+    degree=2*(d-1);goal=degree*abs(k/alpha)
+    b=Q(8,3);ell=Q(320,3)
+    # Joint trace-norm budget for the shared-edge spin-zero/one blocks.
+    # Pair cost <= 2*256 + (9/2-2)*32 = 592.
+    c=(degree*324+4*degree*(degree-1)*(2*256+Q(5,2)*32))/(9*degree**2)
+    z=Path(cert).read_text().split()
+    if len(z)<8 or z[:3]!=['drnas-op-v1',hashlib.sha256(raw).hexdigest(),'gauge-vacuum-path']:raise ValueError('binding')
+    n=int(z[3]);gap,inv=map(Q,z[4:6])
+    if not 1<=n<=cap or len(z)!=6+2*n:raise ValueError('path size')
+    x,r=map(Q,z[6:8])
+    if x!=min(goal,Q(1,160)) or r<0 or not (1-ell*x-2*b*r>0) or (1-ell*x)*r-b*r*r<c*x*x:raise ValueError('anchor')
+    rows=[dict(x=str(x),radius=str(r),inverse=str(1/(1-ell*x-2*b*r)))]
+    for i in range(1,n):
+        y,s=map(Q,z[6+2*i:8+2*i])
+        if not x<y<=goal or s<0:raise ValueError('step order')
+        eta=c*(y*y-x*x)+ell*(y-x)*r
+        p=1-ell*y-2*b*r
+        if p<=2*b*s or p*s-b*s*s<eta:raise ValueError('step contraction')
+        x=y;r+=s
+        rows.append(dict(x=str(x),radius=str(r),inverse=str(1/(1-ell*x-2*b*r))))
+    if x!=goal:raise ValueError('endpoint')
+    p=1-ell*x-2*b*r
+    if p<=0 or inv!=1/p or gap!=alpha*(Q(1,2)-Q(4,3)*(x+r)) or gap<target:raise ValueError('gap or inverse')
+    return dict(status='PROVED',certificate='ANALYTIC_BOUND',task='gauge-vacuum-path',
+        dimension=d,ratio=str(k/alpha),path_nodes=n,continuation_steps=n-1,
+        correction_radius=str(r),inverse_norm_upper=str(inv),gap_lower=str(gap),
+        path=rows,original_KS_uniform_gap=True,fixed_spacing=True,all_representations=True,
+        continuum=False,coefficients_generated=False,proof_assistant_formalized=False)
+
 def verify(source,cert):
     raw=Path(source).read_bytes()
     if len(raw)>65536: raise ValueError('size')
@@ -499,6 +533,7 @@ def verify(source,cert):
     if kind=='gauge-local-vacuum':return gauge_local_vacuum_verify(words,raw,cert)
     if kind=='gauge-vacuum-continue':return gauge_vacuum_continue_verify(words,raw,cert)
     if kind=='gauge-vacuum-inverse':return gauge_vacuum_inverse_verify(words,raw,cert)
+    if kind=='gauge-vacuum-path':return gauge_vacuum_path_verify(words,raw,cert)
     if not 1<=n<=24: raise ValueError('dimension')
     if kind=='rotor-gap':return rotor_verify(words,raw,cert)
     if kind=='decimation-gap':return decimation_verify(words,raw,cert)

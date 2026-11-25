@@ -186,3 +186,7 @@ See [analytic equivalence and limitations](YM17_GAUGE_BLOCK.md). Actual pinned A
 ## YM26 — plaquette-specific inverse (experimental)
 
 [Analytic derivation and limits](YM26_INVERSE.md). A specialized Neumann bound on the linearization at F1 and direct Hessian estimate give a 3/2 wider sufficient strong-coupling interval than YM25 and an explicit uniform lower gap of 5 alpha/12 at its boundary. Native arithmetic and independent audit check sufficient conditions, not a formal proof or full-lattice coefficient generation. No ATLAS execution, weak-coupling or continuum claim. Run python3 core/gauge_vacuum_inverse_tests.py. CI pending.
+
+## YM27 — validated adaptive vacuum path (experimental)
+
+[Analytic derivation and scope](YM27_VACUUM_PATH.md). Improved joint spin-sector defect bound, adaptive rational radii and source-bound independent checks of each continuation step around the existentially certified previous vacuum. No actual full-lattice vacuum coefficients generated, no ATLAS execution, no weak-coupling or continuum claim. Run python3 core/gauge_vacuum_path_tests.py. CI pending.
