@@ -62,3 +62,23 @@ Rezultati početne integracije i sve regresije zapisani su u [VALIDATION.md](VAL
 Objedinjeni CORE zasebno je ponovio i **23/23 javne izvorne WORDLIFT formule**, s neovisno provjerenim modelima. To je poznat, odabran skup iz dvije obitelji. Ponoviti ga možeš naredbama `python3 core/public_replay.py download` i `python3 core/public_replay.py run`; podrijetlo ulaza i prihvaćeni modeli vezani su u izvještaju.
 
 Točno podrijetlo izvora: [provenance.json](provenance.json). Uvozi su sačuvani bez izmjena; integracija je u `core.cpp`. Datoteke iz drugih solvera služe samo kao razvojne reference i preuzimaju se u zanemareni direktorij `results/`.
+
+## Experimental operator domain (CORE-OP1)
+
+The same native CORE binary and public run.py accept rational real-symmetric matrices (dimension 1–24). Requires Boost headers (libboost-dev) in addition to the existing requirements. CNF mode and its certificate formats remain unchanged. Operator tasks use the default mode; output code 30 is only a proposed result until the independent verifier accepts it as PROVED.
+
+Format: p op psd N / p op pd N / p op commute N / p op gap N E gamma / p op auto-gap N gamma, followed by N rows of N rational entries, and a second matrix for commute. Integers or fractions with positive denominator; whitespace separated. Example:
+
+```
+p op auto-gap 2 2
+3 -1
+-1 3
+```
+
+```bash
+bash core/build.sh
+python3 core/run.py example.op proof.cert --seconds 5 --audit-seconds 15
+python3 core/operator_tests.py
+```
+
+Exact congruence checks PSD/PD; gap checks A=H-EI PSD with nonempty kernel and excited space, then A^2-gamma*A PSD. auto-gap proposes rational E from bounded candidates, never trusts the heuristic. Independent Python verification uses characteristic coefficients and source SHA256. Nonpositive, unsupported or unproven claims return UNKNOWN (no negative witness yet). This is a finite real-matrix pilot, not general symbolic operator algebra, not a proof of Yang–Mills, and not a CNF proof format. The small SAT projector test is explicitly exponential; scalable CNF transfer requires local symbolic operators and source-bound certificates. No CDCL. No new independent solver.
