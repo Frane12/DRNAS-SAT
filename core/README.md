@@ -198,3 +198,7 @@ See [analytic equivalence and limitations](YM17_GAUGE_BLOCK.md). Actual pinned A
 ## YM29 — direct Hessian in N0 (experimental)
 
 [Derivation and limits](YM29_DIRECT_HESSIAN.md). Direct Fourier Hessian estimate removes the stronger-norm bootstrap for curvature; a shared spin-sector compression improves the defect. Native rational inequalities and independent audit; no full coefficient generation, proof-assistant formalization, weak-coupling or continuum result. Run python3 core/gauge_direct_hessian_tests.py. CI pending.
+
+## YM30 — collective coercivity diagnostics (experimental)
+
+[Mathematical derivation and scope](YM30_COLLECTIVE_MODES.md). Operator-only exact path congestion lower certificates and collective Rayleigh upper witnesses distinguish distributed versus clustered anchoring in harmonic networks. Pinned ATLAS proposes paths; independent Python audit and native CORE PSD cross-check on small lower cases. No transfer to interacting SU(2) or continuum gap claimed. Run python3 core/collective_tests.py PATH_TO_PINNED_ATLAS. CI pending.
