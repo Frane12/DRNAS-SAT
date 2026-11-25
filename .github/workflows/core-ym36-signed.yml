@@ -1,0 +1,18 @@
+name: DRNAS CORE - YM36 signed neighboring plaquettes
+on:
+  push:
+    branches: [experiment/ym36-signed-pairs, development/drnas-core]
+    paths: ['core/ym36_*.py', 'core/YM36_SIGNED_PAIRS.md', '.github/workflows/core-ym36-signed.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  signed-pairs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 core/ym36_pair_tests.py
+      - run: python3 core/ym35_volume_tests.py
