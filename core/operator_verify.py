@@ -195,6 +195,43 @@ def ks_loop_verify(words,raw,cert):
         coupling_squared=str(g2),magnetic_electric_ratio=str(k/alpha),ym14_beta=str(beta),
         cutoff=cutoff,all_representations=True,physical_single_cycle=True,volume_uniform=False,continuum=False)
 
+def multiscale_verify(words,raw,cert):
+    n=int(words[3]);g=q(words[4]);s=int(words[5]);i=6
+    if not 2<=n<=24 or g<=0 or not 2<=s<n:raise ValueError('dimensions')
+    layers=[];drop=set()
+    for _ in range(s):
+        k=int(words[i]);i+=1
+        layer=list(map(int,words[i:i+k]));i+=k
+        if not 1<=k<n or len(layer)!=k or len(set(layer))!=k or any(j in drop or not 0<=j<n for j in layer):raise ValueError('layer')
+        drop.update(layer);layers.append(layer)
+    if len(drop)>=n or len(words)!=i+n*n:raise ValueError('matrix size')
+    vals=list(map(q,words[i:]));h=[vals[j*n:(j+1)*n] for j in range(n)]
+    if any(h[i][j]!=h[j][i] for i in range(n) for j in range(n)):raise ValueError('symmetry')
+    z=Path(cert).read_text().split()
+    if len(z)!=6 or z[:3]!=['drnas-op-v1',hashlib.sha256(raw).hexdigest(),'multiscale-gap']:raise ValueError('binding')
+    u,r,l=map(Q,z[3:])
+    if r!=g or l-u<g:raise ValueError('gap')
+    # Independent original-matrix spectrum, not a replay of native elimination.
+    def counts(a):
+        c=characteristic_plus(a);nz=[x for x in c if x]
+        return sum((x<0)!=(y<0) for x,y in zip(nz,nz[1:])),len(a)-max(i for i,x in enumerate(c) if x)
+    neg,zero=counts(shift(h,u))
+    if neg+zero<1 or counts(shift(h,l))[0]>1:raise ValueError('spectral count')
+    d=sorted(drop);block=[[h[i][j]-(l if i==j else 0) for j in d] for i in d]
+    if not all(x>0 for x in characteristic_plus(block)):raise ValueError('eliminated block not positive')
+    # Independently check the conservative symbolic fill graph.
+    adj={i:{j for j in range(n) if j!=i and h[i][j]} for i in range(n)}
+    dims=[n]
+    for layer in layers:
+        if any(j in adj[i] for i in layer for j in layer if i!=j):raise ValueError('layer conflict')
+        for i in layer:
+            neighbors=adj.pop(i)
+            for j in neighbors:adj[j].discard(i);adj[j].update(neighbors-{j})
+        dims.append(len(adj))
+    return dict(status='PROVED',certificate='OPERATOR_EXACT',task='multiscale-gap',
+                ground_upper=str(u),excited_lower=str(l),gap_lower=str(l-u),
+                layers=s,dimensions=dims,eliminated=len(drop),remaining=n-len(drop),finite_only=True)
+
 def verify(source,cert):
     raw=Path(source).read_bytes()
     if len(raw)>65536: raise ValueError('size')
@@ -207,6 +244,7 @@ def verify(source,cert):
     if not 1<=n<=24: raise ValueError('dimension')
     if kind=='rotor-gap':return rotor_verify(words,raw,cert)
     if kind=='decimation-gap':return decimation_verify(words,raw,cert)
+    if kind=='multiscale-gap':return multiscale_verify(words,raw,cert)
     i=4; e=Q(0); g=Q(0)
     if kind=='gap': e=q(words[i]); i+=1
     if kind in ('gap','auto-gap','interval-gap'):
