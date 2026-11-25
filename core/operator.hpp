@@ -155,11 +155,11 @@ inline int run(const std::string& raw,const std::filesystem::path& out,double se
     Q e=0,g=0;
     if(kind=="rotor-gap"){
         // Here n is the rotor count, not the matrix dimension.
-        int cutoff; if(n>2||!(in>>cutoff)||cutoff<2||cutoff>4)throw runtime_error("rotor dimensions");
+        int cutoff; if(n>2||!(in>>cutoff)||cutoff<2||cutoff>4)throw std::runtime_error("rotor dimensions");
         Q gamma=rational(in),k=rational(in),c=rational(in),upper=0,lower=0;
-        if(gamma<=0||(n==1&&c!=0)||(in>>extra))throw runtime_error("rotor parameters");
+        if(gamma<=0||(n==1&&c!=0)||(in>>extra))throw std::runtime_error("rotor parameters");
         bool ok=false;try{ok=rotor_gap(n,cutoff,k,c,gamma,stop,upper,lower);tick(stop);}catch(const Limit&){ok=false;}
-        if(ok){std::ofstream f(out,std::ios::binary);f<<"drnas-op-v1\n"<<hash(raw)<<"\nrotor-gap "<<upper<<" "<<gamma<<" "<<lower<<"\n";f.close();if(!f)throw runtime_error("rotor evidence write");}
+        if(ok){std::ofstream f(out,std::ios::binary);f<<"drnas-op-v1\n"<<hash(raw)<<"\nrotor-gap "<<upper<<" "<<gamma<<" "<<lower<<"\n";f.close();if(!f)throw std::runtime_error("rotor evidence write");}
         std::cout<<"c {\"domain\":\"operator\",\"method\":\"infinite_rotor_schur\",\"certificate\":\""<<(ok?"OPERATOR_EXACT":"none")<<"\"}\n";return ok?30:0;
     }
     if(kind=="gap")e=rational(in);
