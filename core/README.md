@@ -82,3 +82,19 @@ python3 core/operator_tests.py
 ```
 
 Exact congruence checks PSD/PD; gap checks A=H-EI PSD with nonempty kernel and excited space, then A^2-gamma*A PSD. auto-gap proposes rational E from bounded candidates, never trusts the heuristic. Independent Python verification uses characteristic coefficients and source SHA256. Nonpositive, unsupported or unproven claims return UNKNOWN (no negative witness yet). This is a finite real-matrix pilot, not general symbolic operator algebra, not a proof of Yang–Mills, and not a CNF proof format. The small SAT projector test is explicitly exponential; scalable CNF transfer requires local symbolic operators and source-bound certificates. No CDCL. No new independent solver.
+
+## CORE-OP2: sparse symbolic operators (experimental)
+
+Same executable and run.py; input p sop lower N M TARGET followed by M lines COEFF PAULI_WORD (N chars from IXYZ). Or p sop commute N M K followed by M and K terms for two operators. N <= 256, at most 4096 terms per sum, exact real rational coefficients. Terms are Hermitian Pauli tensor products, with complex phases handled algebraically. Example:
+
+```
+p sop lower 1 4 0
+2 I
+1 X
+1 Y
+1 Z
+```
+
+The native engine merges duplicate terms and discovers a partition into pairwise anticommuting groups and diagonal local factors (up to 16 active variables). It combines certified local lower bounds; anticommuting groups have square equal to sum of squared coefficients times identity. The separate Python verifier reconstructs the source by SHA256, checks all group indices, uses independent symplectic commutators, and exactly checks bounds. Return code 31 is accepted only as PROVED after audit. UNKNOWN is not a refutation. No dense matrix, no CDCL, but bounded local enumeration is used. Tests include Boolean clause-projector lifts and frustrated triangles. These are synthetic symbolic inputs, not direct DIMACS certificates; CNF solver behavior is unchanged. This is not a continuum or full SU(2) lattice solver. Next step: source-bound CNF projector rules, adaptive repartition and gauge-invariant symbolic operators.
+
+Run: python3 core/symbolic_tests.py
