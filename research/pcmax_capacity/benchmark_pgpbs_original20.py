@@ -69,7 +69,11 @@ def main():
                     r.update(solver_rc=rc2,solve_s=t2,produce_s=t+t2,status="TIMEOUT" if rc2==124 else "UNKNOWN" if rc2==0 else "SOLVER_ERROR")
                     if proof.is_file() and proof.stat().st_size and rc2==0 and t+t2<=CAP:
                         cr,ct,cm=run([pg/"lrat/lrat-check",src,proof],CHECK_CAP,d/"check.log")
-                        accepted=cr==0 and any(l.strip()=="c VERIFIED" for l in cm.splitlines())
+                        # Upstream checker returns fscanf header count (2) on success.
+                        # Require a completed check, empty-clause marker, and no rejection.
+                        accepted=(cr in (0,2) and any(l.strip()=="c VERIFIED" for l in cm.splitlines())
+                                  and any(l.startswith("c verification time = ") for l in cm.splitlines())
+                                  and not any("NOT VERIFIED" in l or "c ERROR" in l or "c failed" in l for l in cm.splitlines()))
                         r.update(check_rc=cr,check_s=ct,proof_bytes=proof.stat().st_size,proof_type="LRAT",certified=accepted)
                         if accepted:r["status"]="UNSAT_VERIFIED"
                         elif "proved formula UNSAT" in msg2 or any(l.strip()=="UNSAT" for l in msg2.splitlines()):r["status"]="UNSAT_UNVERIFIED"
