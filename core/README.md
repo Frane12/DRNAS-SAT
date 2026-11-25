@@ -202,3 +202,7 @@ See [analytic equivalence and limitations](YM17_GAUGE_BLOCK.md). Actual pinned A
 ## YM30 — collective coercivity diagnostics (experimental)
 
 [Mathematical derivation and scope](YM30_COLLECTIVE_MODES.md). Operator-only exact path congestion lower certificates and collective Rayleigh upper witnesses distinguish distributed versus clustered anchoring in harmonic networks. Pinned ATLAS proposes paths; independent Python audit and native CORE PSD cross-check on small lower cases. No transfer to interacting SU(2) or continuum gap claimed. Run python3 core/collective_tests.py PATH_TO_PINNED_ATLAS. CI pending.
+
+## YM31 — nonperturbative quantum valley closure (experimental)
+
+[Derivation and scope](YM31_MATRIX_VALLEYS.md). Exact SU(2) commutator identity and transverse oscillator lower forms in a bosonic matrix reduction. ATLAS selects coupling allocations; independent rational audit verifies no double counting and coverage. Compact resolvent/finite-model positive gap follow from analytic premises; no numerical or uniform gap, no transfer to full spatial Yang-Mills. Python research prototype, no native spectral cross-check. CI pending.

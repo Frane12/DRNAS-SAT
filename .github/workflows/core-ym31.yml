@@ -1,0 +1,23 @@
+name: ATLAS and CORE - YM31 matrix valley closure
+on:
+  push:
+    branches: [development/drnas-core]
+    paths: ['core/atlas_matrix_valley.py','core/matrix_valley*','core/YM31_MATRIX_VALLEYS.md','.github/workflows/core-ym31.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: 283af5a80491d31b08250c62e91a8118cc8c20bc
+          path: atlas-source
+          persist-credentials: false
+      - name: Quantum valley allocation and rational identity checks
+        run: python3 core/matrix_valley_tests.py atlas-source
