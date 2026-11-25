@@ -1,0 +1,23 @@
+name: ATLAS and CORE - YM32 flat holonomy elimination
+on:
+  push:
+    branches: [development/drnas-core]
+    paths: ['core/atlas_flat_words.py','core/flat_words*','core/YM32_FLAT_HOLONOMY.md','.github/workflows/core-ym32-flat.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: 283af5a80491d31b08250c62e91a8118cc8c20bc
+          path: atlas-source
+          persist-credentials: false
+      - name: Flat group-word and tangent-rank certificates
+        run: python3 core/flat_words_tests.py atlas-source
