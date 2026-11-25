@@ -15,6 +15,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: Native dependencies
+        run: sudo apt-get update && sudo apt-get install -y libssl-dev libboost-dev
       - name: Build canonical native automaton
         run: bash core/build.sh
       - name: Truth tables, factor equivalence, independent proofs and negative tests
