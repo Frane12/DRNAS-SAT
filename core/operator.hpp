@@ -50,6 +50,52 @@ inline bool gap(const M& h,const Q& e,const Q& g,Clock::time_point stop){
     M b=product(a,a,stop);for(size_t i=0;i<a.size();++i)for(size_t j=0;j<a.size();++j)b[i][j]-=g*a[i][j];
     return psd(std::move(b),stop)>=0;
 }
+
+// Exact inertia by rational congruence. A zero diagonal with a nonzero
+// off-diagonal is converted to a nonzero pivot by e_i <- e_i + e_j.
+inline std::pair<int,int> inertia(M a,Clock::time_point stop){
+    int n=int(a.size()),negative=0,zero=0;
+    for(int k=0;k<n;++k){
+        tick(stop);int p=-1;
+        for(int i=k;i<n;++i)if(a[i][i]!=0){p=i;break;}
+        if(p<0){
+            int u=-1,v=-1;
+            for(int i=k;i<n&&u<0;++i)for(int j=i+1;j<n;++j)if(a[i][j]!=0){u=i;v=j;break;}
+            if(u<0){zero=n-k;break;}
+            Q diagonal=a[u][u]+2*a[u][v]+a[v][v];
+            for(int j=k;j<n;++j)if(j!=u){Q x=a[u][j]+a[v][j];a[u][j]=a[j][u]=x;}
+            a[u][u]=diagonal;p=u;
+        }
+        if(p!=k){std::swap(a[p],a[k]);for(auto& row:a)std::swap(row[p],row[k]);}
+        Q pivot=a[k][k];if(pivot<0)++negative;
+        for(int i=k+1;i<n;++i)for(int j=i;j<n;++j){
+            a[i][j]-=a[i][k]*a[k][j]/pivot;a[j][i]=a[i][j];
+        }
+    }
+    return {negative,zero};
+}
+inline bool interval_gap(const M& a,const Q& gamma,Clock::time_point stop,Q& upper,Q& lower){
+    int n=int(a.size());if(n<2)return false;
+    Q lo=a[0][0],hi=lo;
+    for(int i=0;i<n;++i){Q radius=0;for(int j=0;j<n;++j)if(i!=j){Q x=a[i][j];if(x<0)x=-x;radius+=x;}
+        Q l=a[i][i]-radius,h=a[i][i]+radius;if(l<lo)lo=l;if(h>hi)hi=h;}
+    Q ground_lo=lo,excited_hi=hi;upper=hi;lower=lo;
+    // The second eigenvalue is counted with multiplicity: only a simple
+    // ground state is certified by this task. No floating-point guess.
+    for(int iter=0;iter<48;++iter){
+        tick(stop);
+        Q mid=(ground_lo+upper)/2;
+        auto [neg,z]=inertia(shift(a,mid),stop);
+        if(neg+z>=1)upper=mid;else ground_lo=mid;
+        mid=(lower+excited_hi)/2;
+        auto [neg2,z2]=inertia(shift(a,mid),stop);
+        if(neg2<=1)lower=mid;else excited_hi=mid;
+        if(lower-upper>=gamma)return true;
+        if(excited_hi-ground_lo<gamma)return false;
+    }
+    return false;
+}
+
 inline std::string hash(const std::string& raw){
     unsigned char bytes[EVP_MAX_MD_SIZE];unsigned count=0;
     if(!EVP_Digest(raw.data(),raw.size(),bytes,&count,EVP_sha256(),nullptr)||count!=32)throw std::runtime_error("SHA256");
@@ -62,16 +108,17 @@ inline int run(const std::string& raw,const std::filesystem::path& out,double se
     if(!(in>>p>>op>>kind>>n)||p!="p"||op!="op"||n<1||n>24)throw std::runtime_error("operator header");
     Q e=0,g=0;
     if(kind=="gap")e=rational(in);
-    if(kind=="gap"||kind=="auto-gap"){g=rational(in);if(g<=0)throw std::runtime_error("gap must be positive");}
+    if(kind=="gap"||kind=="auto-gap"||kind=="interval-gap"){g=rational(in);if(g<=0)throw std::runtime_error("gap must be positive");}
     else if(kind!="psd"&&kind!="pd"&&kind!="commute")throw std::runtime_error("operator task");
     M a=read_matrix(in,n),b;
     if(kind=="commute")b=read_matrix(in,n);
     if(in>>extra)throw std::runtime_error("operator trailing data");
-    bool ok=false;std::string method="operator_limits";
+    bool ok=false;Q excited_lower=0;std::string method="operator_limits";
     try{
         if(kind=="psd"||kind=="pd"){int r=psd(a,stop);ok=kind=="psd"?r>=0:r==n;method="exact_congruence";}
         else if(kind=="commute"){ok=product(a,b,stop)==product(b,a,stop);method="exact_commutator";}
         else if(kind=="gap"){ok=gap(a,e,g,stop);method="spectral_polynomial";}
+        else if(kind=="interval-gap"){ok=interval_gap(a,g,stop,e,excited_lower);method="rational_spectral_bracketing";}
         else{
             std::set<Q> candidates{Q(0)};Q lower=a[0][0];
             for(int i=0;i<n;++i){Q radius=0,sum=0;for(int j=0;j<n;++j){sum+=a[i][j];if(i!=j){Q v=a[i][j];if(v<0)v=-v;radius+=v;}}
@@ -83,7 +130,7 @@ inline int run(const std::string& raw,const std::filesystem::path& out,double se
         tick(stop);
     }catch(const Limit&){ok=false;method="operator_limits";}
     if(ok){
-        std::ofstream f(out,std::ios::binary);f<<"drnas-op-v1\n"<<hash(raw)<<"\n"<<kind<<" "<<e<<" "<<g<<"\n";f.close();
+        std::ofstream f(out,std::ios::binary);f<<"drnas-op-v1\n"<<hash(raw)<<"\n"<<kind<<" "<<e<<" "<<g;if(kind=="interval-gap")f<<" "<<excited_lower;f<<"\n";f.close();
         if(!f)throw std::runtime_error("operator evidence write");
     }
     std::cout<<"c {\"domain\":\"operator\",\"method\":\""<<method<<"\",\"certificate\":\""<<(ok?"OPERATOR_EXACT":"none")<<"\"}\n";
