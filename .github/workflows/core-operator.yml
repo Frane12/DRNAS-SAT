@@ -42,5 +42,7 @@ jobs:
         run: python3 core/interval_gap_tests.py
       - name: SU2 Lie bracket and finite Casimir recognition (YM12)
         run: python3 core/su2_tests.py
+      - name: Infinite rotor Schur tail bounds (YM12)
+        run: python3 core/rotor_gap_tests.py
       - name: Existing CNF regression
         run: python3 core/tests.py
