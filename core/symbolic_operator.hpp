@@ -126,6 +126,55 @@ inline Partition explore(const std::vector<Term>& terms,Q constant,int policy,Cl
     return evaluate(terms,groups,types,constant,stop);
 }
 
+
+// Learned templates are suggestions only. Every matched group is checked again
+// by evaluate() and the independent source-bound certificate auditor.
+inline std::set<std::string> load_rules(){
+    std::set<std::string> result;
+    const char* name=std::getenv("DRNAS_CORE_RULE_MEMORY");
+    if(!name||!*name)return result;
+    std::ifstream in(name);std::string s;
+    if(!std::getline(in,s)||s!="drnas-rule-memory-v1")return result;
+    for(int i=0;i<32&&std::getline(in,s);++i){
+        if(s=="C3+"||s=="C3-"||(s.size()==2&&s[0]=='A'&&s[1]>='2'&&s[1]<='9')||s=="A10")result.insert(s);
+    }
+    return result;
+}
+inline Partition replay_rules(const std::vector<Term>& terms,Q constant,const std::set<std::string>& rules,
+                              Clock::time_point stop,int& matches){
+    Groups groups;std::vector<char> types;std::vector<bool> used(terms.size());
+    std::map<std::string,int> index;
+    for(int i=0;i<int(terms.size());++i)index.emplace(terms[i].first,i);
+    // Signed product relation P_i P_j = +/- P_k, independent of labels.
+    if(rules.count("C3+")||rules.count("C3-")){
+        for(int i=0;i<int(terms.size());++i){
+            tick(stop);if(used[i])continue;
+            for(int j=i+1;j<int(terms.size());++j){
+                if((j&63)==0)tick(stop);if(used[j]||anti(terms[i].first,terms[j].first))continue;
+                auto [w,p]=multiply(terms[i].first,terms[j].first);
+                auto k=index.find(w);
+                if(k==index.end()||k->second<=j||used[k->second]||!rules.count(p==0?"C3+":"C3-"))continue;
+                groups.push_back({i,j,k->second});types.push_back('C');
+                used[i]=used[j]=used[k->second]=true;++matches;break;
+            }
+        }
+    }
+    for(int size=10;size>=2;--size){
+        if(!rules.count("A"+std::to_string(size)))continue;
+        for(int i=0;i<int(terms.size());++i){
+            tick(stop);if(used[i])continue;std::vector<int> g{i};
+            for(int j=i+1;j<int(terms.size())&&int(g.size())<size;++j){
+                if((j&63)==0)tick(stop);if(used[j])continue;
+                bool good=true;for(int k:g)if(!anti(terms[j].first,terms[k].first)){good=false;break;}
+                if(good)g.push_back(j);
+            }
+            if(int(g.size())==size){for(int j:g)used[j]=true;groups.push_back(g);types.push_back('A');++matches;}
+        }
+    }
+    for(int i=0;i<int(terms.size());++i)if(!used[i]){groups.push_back({i});types.push_back('A');}
+    return evaluate(terms,groups,types,constant,stop);
+}
+
 inline int run(const std::string& raw,const std::filesystem::path& out,double seconds){
     auto stop=Clock::now()+std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(seconds));
     if(raw.size()>2000000)throw std::runtime_error("symbolic input limit");
@@ -135,7 +184,7 @@ inline int run(const std::string& raw,const std::filesystem::path& out,double se
     else if(task=="commute"){if(!(in>>k))throw std::runtime_error("second term count");}
     else throw std::runtime_error("symbolic task");
     Sum a=read(in,n,m),b;if(task=="commute")b=read(in,n,k);if(in>>extra)throw std::runtime_error("trailing symbolic input");
-    bool ok=false;std::string method="symbolic_limits";std::ostringstream proof;int attempts=0;std::string best_bound="none";
+    bool ok=false;std::string method="symbolic_limits";std::ostringstream proof;int attempts=0,memory_matches=0;bool memory_won=false;std::string best_bound="none";
     try{
         if(task=="commute"){ok=commutes(a,b,stop);method="sparse_commutator";}
         else{
@@ -169,8 +218,14 @@ inline int run(const std::string& raw,const std::filesystem::path& out,double se
             };
             auto start_trials=Clock::now();
             auto safe_stop=start_trials+(stop-start_trials)*9/10;
+            auto rules=task=="lower"?load_rules():std::set<std::string>{};
+            if(!rules.empty()){
+                auto until=start_trials+(safe_stop-start_trials)/5;
+                trial([&](auto end){return replay_rules(terms,constant,rules,end,memory_matches);},until);
+                memory_won=have&&memory_matches>0&&best.lower>=target;
+            }
             auto baseline_stop=task=="lower-fixed"?safe_stop:start_trials+(safe_stop-start_trials)*2/5;
-            trial([&](auto until){return evaluate(terms,groups,types,constant,until);},baseline_stop);
+            if(!memory_won)trial([&](auto until){return evaluate(terms,groups,types,constant,until);},baseline_stop);
             bool improved=false;
             if(task=="lower"&&(!have||best.lower<target)){
                 for(int policy=0;policy<6&&Clock::now()<safe_stop;++policy){
@@ -183,12 +238,12 @@ inline int run(const std::string& raw,const std::filesystem::path& out,double se
             }
             if(have){std::ostringstream b;b<<best.lower;best_bound=b.str();ok=best.lower>=target;
                 if(ok)proof<<best.lower<<"\n"<<best.body;}
-            method=improved?"adaptive_operator_bounds":"local_operator_bounds";
+            method=memory_won?"learned_operator_rule":improved?"adaptive_operator_bounds":"local_operator_bounds";
         }
         tick(stop);
     }catch(const core_operator::Limit&){ok=false;method="symbolic_limits";}
     if(ok){std::ofstream f(out,std::ios::binary);f<<"drnas-sop-v1\n"<<core_operator::hash(raw)<<"\n"<<task<<"\n"<<proof.str();f.close();if(!f)throw std::runtime_error("symbolic write");}
-    std::cout<<"c {\"domain\":\"symbolic_operator\",\"method\":\""<<method<<"\",\"certificate\":\""<<(ok?"SYMBOLIC_OPERATOR_EXACT":"none")<<"\",\"qubits\":"<<n<<",\"partitions_tried\":"<<attempts<<",\"best_lower\":\""<<best_bound<<"\"}\n";
+    std::cout<<"c {\"domain\":\"symbolic_operator\",\"method\":\""<<method<<"\",\"certificate\":\""<<(ok?"SYMBOLIC_OPERATOR_EXACT":"none")<<"\",\"qubits\":"<<n<<",\"partitions_tried\":"<<attempts<<",\"memory_matches\":"<<memory_matches<<",\"memory_proved\":"<<(memory_won?"true":"false")<<",\"best_lower\":\""<<best_bound<<"\"}\n";
     return ok?31:0;
 }
 }
