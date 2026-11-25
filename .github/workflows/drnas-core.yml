@@ -1,0 +1,36 @@
+name: DRNAS CORE - canonical automaton
+on:
+  push:
+    branches: [main, development/drnas-core]
+    paths: ['core/**', '.github/workflows/drnas-core.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: drnas-core-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verified:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build canonical native automaton
+        run: bash core/build.sh
+      - name: Truth tables, factor equivalence, independent proofs and negative tests
+        run: python3 core/tests.py
+      - name: Build frozen comparison solvers
+        run: bash core/prepare_references.sh
+      - name: Freeze then generate and run paired capability pilot
+        run: |
+          python3 core/benchmark.py generate
+          python3 core/benchmark.py run
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: drnas-core-validation
+          path: |
+            core/results/pilot/
+            core/bin/drnas-core
+            core/bin/check-rup
+          if-no-files-found: warn

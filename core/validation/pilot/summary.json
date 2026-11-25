@@ -1,0 +1,331 @@
+{
+  "fresh": {
+    "core": {
+      "n": 50,
+      "solved": 49,
+      "statuses": {
+        "SAT": 30,
+        "UNSAT": 19,
+        "TIMEOUT": 1
+      },
+      "par2_s": 0.08345081409997875,
+      "certificates": {
+        "MODEL": 30,
+        "DRUP": 19
+      }
+    },
+    "fusion1": {
+      "n": 50,
+      "solved": 49,
+      "statuses": {
+        "SAT": 30,
+        "UNSAT": 19,
+        "UNKNOWN": 1
+      },
+      "par2_s": 0.05117452966000201,
+      "certificates": {
+        "MODEL": 30,
+        "DRUP": 19
+      }
+    },
+    "general14": {
+      "n": 50,
+      "solved": 40,
+      "statuses": {
+        "SAT": 24,
+        "UNSAT": 16,
+        "UNKNOWN": 8,
+        "TIMEOUT": 2
+      },
+      "par2_s": 0.4276654043399685,
+      "certificates": {
+        "MODEL": 24,
+        "RUP+SYMBOLIC": 10,
+        "DRUP": 6
+      }
+    },
+    "unified3": {
+      "n": 50,
+      "solved": 50,
+      "statuses": {
+        "SAT": 30,
+        "UNSAT": 20
+      },
+      "par2_s": 0.03971773382001629,
+      "certificates": {
+        "MODEL": 30,
+        "DRAT": 11,
+        "GF2": 2,
+        "HALL": 7
+      }
+    },
+    "kissat": {
+      "n": 50,
+      "solved": 50,
+      "statuses": {
+        "SAT": 30,
+        "UNSAT": 20
+      },
+      "par2_s": 0.009110812060025637,
+      "certificates": {
+        "MODEL": 30,
+        "DRAT": 20
+      }
+    },
+    "cadical": {
+      "n": 50,
+      "solved": 50,
+      "statuses": {
+        "SAT": 30,
+        "UNSAT": 20
+      },
+      "par2_s": 0.011314520099913352,
+      "certificates": {
+        "MODEL": 30,
+        "DRAT": 20
+      }
+    }
+  },
+  "replay": {
+    "core": {
+      "n": 38,
+      "solved": 26,
+      "statuses": {
+        "UNSAT": 19,
+        "TIMEOUT": 3,
+        "SAT": 7,
+        "UNKNOWN": 9
+      },
+      "par2_s": 0.6815657855000178,
+      "certificates": {
+        "DRUP": 19,
+        "MODEL": 7
+      }
+    },
+    "fusion1": {
+      "n": 38,
+      "solved": 28,
+      "statuses": {
+        "UNSAT": 21,
+        "SAT": 7,
+        "UNKNOWN": 10
+      },
+      "par2_s": 0.5867441871052602,
+      "certificates": {
+        "DRUP": 21,
+        "MODEL": 7
+      }
+    },
+    "general14": {
+      "n": 38,
+      "solved": 16,
+      "statuses": {
+        "UNKNOWN": 22,
+        "UNSAT": 15,
+        "SAT": 1
+      },
+      "par2_s": 1.1911353862894525,
+      "certificates": {
+        "DRUP": 4,
+        "MODEL": 1,
+        "RUP+SYMBOLIC": 11
+      }
+    },
+    "unified3": {
+      "n": 38,
+      "solved": 24,
+      "statuses": {
+        "UNKNOWN": 14,
+        "UNSAT": 16,
+        "SAT": 8
+      },
+      "par2_s": 0.7707814846053225,
+      "certificates": {
+        "DRAT": 14,
+        "GF2": 2,
+        "MODEL": 8
+      }
+    },
+    "kissat": {
+      "n": 38,
+      "solved": 30,
+      "statuses": {
+        "UNSAT": 22,
+        "SAT": 8,
+        "TIMEOUT": 8
+      },
+      "par2_s": 0.5036461543157106,
+      "certificates": {
+        "DRAT": 22,
+        "MODEL": 8
+      }
+    },
+    "cadical": {
+      "n": 38,
+      "solved": 28,
+      "statuses": {
+        "UNSAT": 21,
+        "SAT": 7,
+        "TIMEOUT": 10
+      },
+      "par2_s": 0.5611916158947535,
+      "certificates": {
+        "DRAT": 21,
+        "MODEL": 7
+      }
+    }
+  },
+  "all": {
+    "core": {
+      "n": 88,
+      "solved": 75,
+      "statuses": {
+        "UNSAT": 38,
+        "TIMEOUT": 4,
+        "SAT": 37,
+        "UNKNOWN": 9
+      },
+      "par2_s": 0.3417277335681774,
+      "certificates": {
+        "DRUP": 38,
+        "MODEL": 37
+      }
+    },
+    "fusion1": {
+      "n": 88,
+      "solved": 77,
+      "statuses": {
+        "UNSAT": 40,
+        "SAT": 37,
+        "UNKNOWN": 11
+      },
+      "par2_s": 0.2824432453749999,
+      "certificates": {
+        "DRUP": 40,
+        "MODEL": 37
+      }
+    },
+    "general14": {
+      "n": 88,
+      "solved": 56,
+      "statuses": {
+        "UNKNOWN": 30,
+        "UNSAT": 31,
+        "SAT": 25,
+        "TIMEOUT": 2
+      },
+      "par2_s": 0.7573456238181548,
+      "certificates": {
+        "DRUP": 10,
+        "MODEL": 25,
+        "RUP+SYMBOLIC": 21
+      }
+    },
+    "unified3": {
+      "n": 88,
+      "solved": 74,
+      "statuses": {
+        "UNKNOWN": 14,
+        "UNSAT": 36,
+        "SAT": 38
+      },
+      "par2_s": 0.3554043534773076,
+      "certificates": {
+        "DRAT": 25,
+        "GF2": 4,
+        "MODEL": 38,
+        "HALL": 7
+      }
+    },
+    "kissat": {
+      "n": 88,
+      "solved": 80,
+      "statuses": {
+        "UNSAT": 42,
+        "SAT": 38,
+        "TIMEOUT": 8
+      },
+      "par2_s": 0.22266016439770778,
+      "certificates": {
+        "DRAT": 42,
+        "MODEL": 38
+      }
+    },
+    "cadical": {
+      "n": 88,
+      "solved": 78,
+      "statuses": {
+        "UNSAT": 41,
+        "SAT": 37,
+        "TIMEOUT": 10
+      },
+      "par2_s": 0.24876144782950343,
+      "certificates": {
+        "DRAT": 41,
+        "MODEL": 37
+      }
+    }
+  },
+  "paired": {
+    "fusion1": {
+      "core_only": [],
+      "baseline_only": [
+        "F03",
+        "F21"
+      ]
+    },
+    "general14": {
+      "core_only": [
+        "F01",
+        "F07",
+        "F08",
+        "F09",
+        "F10",
+        "F11",
+        "F12",
+        "F16",
+        "F22",
+        "F25",
+        "N03",
+        "N04",
+        "N06",
+        "N07",
+        "N08",
+        "N09",
+        "N39",
+        "N48",
+        "N49"
+      ],
+      "baseline_only": []
+    },
+    "unified3": {
+      "core_only": [
+        "F01",
+        "F11",
+        "F22"
+      ],
+      "baseline_only": [
+        "F26",
+        "N24"
+      ]
+    },
+    "kissat": {
+      "core_only": [],
+      "baseline_only": [
+        "F03",
+        "F13",
+        "F21",
+        "F26",
+        "N24"
+      ]
+    },
+    "cadical": {
+      "core_only": [],
+      "baseline_only": [
+        "F03",
+        "F21",
+        "N24"
+      ]
+    }
+  }
+}

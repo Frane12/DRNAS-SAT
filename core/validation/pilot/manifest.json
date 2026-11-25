@@ -1,0 +1,782 @@
+[
+  {
+    "id": "F01",
+    "family": "archived-fusion",
+    "file": "regression/F01.cnf",
+    "sha256": "b8d4b184afdde3c4b98802be773c1cf7bd0f443ac60afcf98c8992191ac74a2b",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "8a5cc32acb2c66fb5946ab011e007fe4309ebd854d29bf83205e6ee83f951249",
+    "path": "regression/F01.cnf"
+  },
+  {
+    "id": "F02",
+    "family": "archived-fusion",
+    "file": "regression/F02.cnf",
+    "sha256": "ec8d0bf5171384c7ceed6e565246017764c12c8bc4f35e8270574c04863ae728",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "465019ac42df64f5eeed9a748a5934e6262f2e618e024506988668aa2120d610",
+    "path": "regression/F02.cnf"
+  },
+  {
+    "id": "F03",
+    "family": "archived-fusion",
+    "file": "regression/F03.cnf",
+    "sha256": "861043b63c7874433a88fb9e474d140e08cc5ff0e467c06f0ed5a745f998153f",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "dbbc3d9142666e4e6ceafffc8f6bb10059a88cc95e9cfbd623b1b74bcc06236b",
+    "path": "regression/F03.cnf"
+  },
+  {
+    "id": "F04",
+    "family": "archived-fusion",
+    "file": "regression/F04.cnf",
+    "sha256": "00029cc3466e1e95e990464257a800f36a3e907afbba5f45a9059dfec8cf66ff",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "c4f4b02979c8dc35448b517d1f9de53b46cd03c81b0aa695a20e772d4fc3a69b",
+    "path": "regression/F04.cnf"
+  },
+  {
+    "id": "F05",
+    "family": "archived-fusion",
+    "file": "regression/F05.cnf",
+    "sha256": "bf93e2ecd74bd0f3ae47d90ca472ea585e9ee8cb11af63555fb7a26f03b145ff",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "f0c8620c220f2b4cc68d228b48cda726d1cc96eff775229db3a98bd7768be1f0",
+    "path": "regression/F05.cnf"
+  },
+  {
+    "id": "F06",
+    "family": "archived-fusion",
+    "file": "regression/F06.cnf",
+    "sha256": "c933f4efbdd211c825ba7c10f1da00467d94dfd3a41eaf5c89922fb5c747e714",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "4fe5cb2bede7e197fef9930adfa4b263294f071b2048d79f26429b6e6865f1f7",
+    "path": "regression/F06.cnf"
+  },
+  {
+    "id": "F07",
+    "family": "archived-fusion",
+    "file": "regression/F07.cnf",
+    "sha256": "a74d91691169ceebb2b9be88f0051f503abf5dfb680c82fa6301df9a20011c02",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "c4b6651ea1e7ed72d7eab4eed8dff730527eee777d4a890d34074f35d0bbf0a0",
+    "path": "regression/F07.cnf"
+  },
+  {
+    "id": "F08",
+    "family": "archived-fusion",
+    "file": "regression/F08.cnf",
+    "sha256": "9f14a1db516f34b562f4ff3194984da05b94eeb8dc96e8c35d77c05ade80ef7f",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "504866dbd08d0edf08cb886631725e52dc1dad51e2b5c3d1651de986f69e4eac",
+    "path": "regression/F08.cnf"
+  },
+  {
+    "id": "F09",
+    "family": "archived-fusion",
+    "file": "regression/F09.cnf",
+    "sha256": "84930b6240fc46d06ee1861d09c858b16e60c98c2e587c19af2db8a046352ee1",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "600d467b45a34ea7f4e65b3b3f4db341ca97d0e9371b3389632052452e8c9a33",
+    "path": "regression/F09.cnf"
+  },
+  {
+    "id": "F10",
+    "family": "archived-fusion",
+    "file": "regression/F10.cnf",
+    "sha256": "387f666ad059ae4ec4c48d1782825b1ebb12e30c9365dfe1b924f10981f85ed6",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "88d91d5135e827dfb40b8cca084e90fb0326a3f47993f037c1b51902051fcbe9",
+    "path": "regression/F10.cnf"
+  },
+  {
+    "id": "F11",
+    "family": "archived-fusion",
+    "file": "regression/F11.cnf",
+    "sha256": "f2db6ae3afeabeb6a6967642fd46dd2f0f61cdd6a1b70d2008f58ebd27b7bb6d",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "d66077bd32616b8c65a97befb44fd0477cdd704998d67a3635dc9be8d9ff9f80",
+    "path": "regression/F11.cnf"
+  },
+  {
+    "id": "F12",
+    "family": "archived-fusion",
+    "file": "regression/F12.cnf",
+    "sha256": "b0d973ce0aa4db3eb5f7596e2f6534e0e069c679430ab5abf01f965cd799914d",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "a6aa33a40abdd77b32dc952fb3afc47fb1a6d03b0f61bcb5b0f1413ad97bdf9b",
+    "path": "regression/F12.cnf"
+  },
+  {
+    "id": "F13",
+    "family": "archived-fusion",
+    "file": "regression/F13.cnf",
+    "sha256": "618012496a8ac66a03ceb2a9e45fb04d03b384adf9b55c66d721905e496a2942",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "92669f1fdbacc380c19e041f30a8a9dff2dbc7b6b68da308411a767bb186b35d",
+    "path": "regression/F13.cnf"
+  },
+  {
+    "id": "F14",
+    "family": "archived-fusion",
+    "file": "regression/F14.cnf",
+    "sha256": "821f8e1c03fbafceb023cfdaa87e2057524197e788fe91f4414aca7e6be4ea94",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "f58b902cca3d0f7753f928074e456620498d13da5284b2c7f679fa15743836b3",
+    "path": "regression/F14.cnf"
+  },
+  {
+    "id": "F15",
+    "family": "archived-fusion",
+    "file": "regression/F15.cnf",
+    "sha256": "67e7590067a5f76b4da184d03542399222a033017e79e2848476d0e39cd4dc25",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "b48c8ad16a181a428d3c0a79f1760c9de88a07f97fa34346253299b894d40824",
+    "path": "regression/F15.cnf"
+  },
+  {
+    "id": "F16",
+    "family": "archived-fusion",
+    "file": "regression/F16.cnf",
+    "sha256": "91cd0084f1ea0938898011af52afd76879138bce1960f68e07a22c3e369e0f36",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "61c135f752af160c25c7d726fb25274e4b7f1ce72809bd30e1d086debce97cd4",
+    "path": "regression/F16.cnf"
+  },
+  {
+    "id": "F17",
+    "family": "archived-fusion",
+    "file": "regression/F17.cnf",
+    "sha256": "5c1480fd7cdecb6a07485cadfd2e095216a275696d42d441ae9f4db24d3b79df",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "e3206a55d1e819637ffb2b3335d8e3c2b388a428f026a58e36a1bfc3595c9243",
+    "path": "regression/F17.cnf"
+  },
+  {
+    "id": "F18",
+    "family": "archived-fusion",
+    "file": "regression/F18.cnf",
+    "sha256": "aef841acb4774387e7ddaf5c6357f50fe2e8bc3bb7e7b0a2c772909d919bac62",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "84537d3ebff55462e5465f2d00e737d07c5b622b4a52ee67db2955922afb7cc1",
+    "path": "regression/F18.cnf"
+  },
+  {
+    "id": "F19",
+    "family": "archived-fusion",
+    "file": "regression/F19.cnf",
+    "sha256": "062f6fcc341c1c0302f7cf6659edb3c45e245335454b457548d8ad87c9ca14a6",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "0f522cb22d24a920b32c98f1541b0fd4fa92acd282803694441ce3a5d30c236f",
+    "path": "regression/F19.cnf"
+  },
+  {
+    "id": "F20",
+    "family": "archived-fusion",
+    "file": "regression/F20.cnf",
+    "sha256": "5efc1cae05f13d6d9a323bf0b02594a335ca013dfc2347789018f9b30e60254c",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "6c4237b175ff965b1e7c80228850771c3331da19ad93592d7e34fc6ca673fe80",
+    "path": "regression/F20.cnf"
+  },
+  {
+    "id": "F21",
+    "family": "archived-fusion",
+    "file": "regression/F21.cnf",
+    "sha256": "6bfd1d7e07cc1e3575ccf26da5c18ae5b7579563f40a02beeec95e527322d7dc",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "9a586de518c3f19eccc3d10702a5a3978a1c32e7cc3caa4051ffa2832947c228",
+    "path": "regression/F21.cnf"
+  },
+  {
+    "id": "F22",
+    "family": "archived-fusion",
+    "file": "regression/F22.cnf",
+    "sha256": "1c9189adecf1687d3c6a8fdaae12b1df628e127da0a9f0866278757c1e3a3ff7",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "e80ebb76a491e3021ee2031b4596231551160b6032b6a5652b7a4daf91b50ce6",
+    "path": "regression/F22.cnf"
+  },
+  {
+    "id": "F23",
+    "family": "archived-fusion",
+    "file": "regression/F23.cnf",
+    "sha256": "c9fc1b4b264d8787c6952b6960e1a5b4e1d3e13aaf607599554fa4ae88cd2176",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "18ab5812900885d44908197c3c47b4c2c63c8236a9b69e9aa363bd429bffbbfc",
+    "path": "regression/F23.cnf"
+  },
+  {
+    "id": "F24",
+    "family": "archived-fusion",
+    "file": "regression/F24.cnf",
+    "sha256": "ffb647965a4e7e304f7d37e5d615d51c1b58554a5e35983f3cc97436e7f8aaa1",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "36e73f0edc855885a721c97b5bed3d25f73807ebc8cff203ab2b012941e23da2",
+    "path": "regression/F24.cnf"
+  },
+  {
+    "id": "F25",
+    "family": "archived-fusion",
+    "file": "regression/F25.cnf",
+    "sha256": "a3e388f0ccd164925a39eac30f68c4fc6c77ef8c8ab9e8090d71ffee03ddd427",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "6d09de9475b33651b6d1192cfefd7f263f987487ae464fd48d5d7018bdacbc5b",
+    "path": "regression/F25.cnf"
+  },
+  {
+    "id": "F26",
+    "family": "archived-fusion",
+    "file": "regression/F26.cnf",
+    "sha256": "1e43f223618aff2b07fe9676ff9ba8df1fcc54513384590b36678c862324e39d",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "499f8f560613912b0d687cd663645f5218e2385d30bc9d70c40c12f3ac0cc0cd",
+    "path": "regression/F26.cnf"
+  },
+  {
+    "id": "F27",
+    "family": "archived-fusion",
+    "file": "regression/F27.cnf",
+    "sha256": "44ac7fe05e8689c4c1b082fc1e84f6d21ef741ef0b01de64004a20dcbb9b5be5",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "6b8762d21ae78370ca7d7ca85e96bb97fb403b11bf9b02b952d7ab383c80308b",
+    "path": "regression/F27.cnf"
+  },
+  {
+    "id": "G016",
+    "family": "archived-general",
+    "file": "regression/G016.cnf",
+    "sha256": "1fc78f937d304ba04bd2461030f082629f80fa1d0f63230faa0be82390abf74e",
+    "cohort": "replay",
+    "origin": "GENERAL14 previously tested holdout",
+    "normalized_sha256": "e5fce4b03448c3014ceb3b537e8474e4b3c9dda255d1e2bb1f79415e9b944ade",
+    "path": "regression/G016.cnf"
+  },
+  {
+    "id": "G024",
+    "family": "archived-general",
+    "file": "regression/G024.cnf",
+    "sha256": "c21da878abd41d007fa7d7701b735923669a4ee7a4e5714d91d9bbfb6c5eea1c",
+    "cohort": "replay",
+    "origin": "GENERAL14 previously tested holdout",
+    "normalized_sha256": "fbb6abaffd0395a5f8ffb4b84dc7088ccc6a8a0843d2f3bf839ea56fb187a36b",
+    "path": "regression/G024.cnf"
+  },
+  {
+    "id": "G031",
+    "family": "archived-general",
+    "file": "regression/G031.cnf",
+    "sha256": "cd90371a4885a9416ea1d21eaf1fdc1f69806547395930277649cbc62fa4f3b1",
+    "cohort": "replay",
+    "origin": "GENERAL14 previously tested holdout",
+    "normalized_sha256": "2af2c8d2efef595ea4202a409e2416bf6b351efdaf2e6535033d79f2983cdbcd",
+    "path": "regression/G031.cnf"
+  },
+  {
+    "id": "G039",
+    "family": "archived-general",
+    "file": "regression/G039.cnf",
+    "sha256": "2c0270608e7bc3ce0c0addd8a1307a3a457288f73f2152bf10fb7134d6392f32",
+    "cohort": "replay",
+    "origin": "GENERAL14 previously tested holdout",
+    "normalized_sha256": "d05b0626796ac29651675c465eb55375819a697b7aa355eb67a426c5ed39dbb9",
+    "path": "regression/G039.cnf"
+  },
+  {
+    "id": "G046",
+    "family": "archived-general",
+    "file": "regression/G046.cnf",
+    "sha256": "179e681f8e4a024d3bf40ece7cb5a89f1385c54b78b6dc9c0674a9932cb70135",
+    "cohort": "replay",
+    "origin": "GENERAL14 previously tested holdout",
+    "normalized_sha256": "b2a6f701b0a95270d4ffc6f620398f48ff076d9a2610d61bf529a3b9f43cb187",
+    "path": "regression/G046.cnf"
+  },
+  {
+    "id": "G054",
+    "family": "archived-general",
+    "file": "regression/G054.cnf",
+    "sha256": "f6121813363254522ea9abb829d301bda6fa9afa3fea9750fb77b131a91129c7",
+    "cohort": "replay",
+    "origin": "GENERAL14 previously tested holdout",
+    "normalized_sha256": "662f2067a46ccfeee5338571da3622d8121ec9f3bfcd8c2c7e4e1db78e1a81d2",
+    "path": "regression/G054.cnf"
+  },
+  {
+    "id": "G064",
+    "family": "archived-general",
+    "file": "regression/G064.cnf",
+    "sha256": "372cbaec10428985bc2527742b44b74e285d48dc1b3257dadcc064ef9daafc90",
+    "cohort": "replay",
+    "origin": "GENERAL14 previously tested holdout",
+    "normalized_sha256": "f71e76c32f28a39471703757d414b77f80cf99fd7431b4d68fd330fe874cf5c4",
+    "path": "regression/G064.cnf"
+  },
+  {
+    "id": "G074",
+    "family": "archived-general",
+    "file": "regression/G074.cnf",
+    "sha256": "26e9898f8bcd77d167632bfd84d21b408b8d11585dc37433173ff86434c7c508",
+    "cohort": "replay",
+    "origin": "GENERAL14 previously tested holdout",
+    "normalized_sha256": "5f386603f0b03bec84e7e71f4fedec89a069345ca1a14a9c7a8770d4d5f6656c",
+    "path": "regression/G074.cnf"
+  },
+  {
+    "id": "G090",
+    "family": "archived-general",
+    "file": "regression/G090.cnf",
+    "sha256": "94a20251c58e033891d77f3fc050c03b84e2a7abc774bf5ffdb314508c11383e",
+    "cohort": "replay",
+    "origin": "GENERAL14 previously tested holdout",
+    "normalized_sha256": "91b5630e91f4f66378f67d022f00e9d08d23c5b7da3d27b05db70da08998c239",
+    "path": "regression/G090.cnf"
+  },
+  {
+    "id": "G099",
+    "family": "archived-general",
+    "file": "regression/G099.cnf",
+    "sha256": "81a3cbe29dea8004df939801c74ad1092235f49a512e3fd9d7df9f8122c8a9fb",
+    "cohort": "replay",
+    "origin": "GENERAL14 previously tested holdout",
+    "normalized_sha256": "668d257dbf0945575324b29f9e3c649d651dae781b59f97f95cdd8ad01a97c3d",
+    "path": "regression/G099.cnf"
+  },
+  {
+    "id": "R039",
+    "family": "selected-memory-target",
+    "file": "regression/R039.cnf",
+    "sha256": "c52c2b2d207389ea92da5cd9c188620439487757e28ca816afa7ff1ccdae9e77",
+    "cohort": "replay",
+    "origin": "GENERAL14 development target, not blind",
+    "normalized_sha256": "9edba97ef457ed9db8798c308e06171d02b4047c18b3b21cb0acb8c0b2cfdabd",
+    "path": "regression/R039.cnf"
+  },
+  {
+    "id": "N00",
+    "cohort": "fresh",
+    "family": "random3",
+    "path": "cnf/N00.cnf",
+    "sha256": "33efff7d1b001e400083e477df3761a065fdc43d5b4ca24b11b43622056ac95f",
+    "normalized_sha256": "93483907f80252bf8d809df752b87ad6da980d641d08a9ecab1f65ebce3684e2"
+  },
+  {
+    "id": "N01",
+    "cohort": "fresh",
+    "family": "random3",
+    "path": "cnf/N01.cnf",
+    "sha256": "e50a136e52ea54d4c9bd886ebec6590d4b3b256a29e1b591c605a5a41ad5dc33",
+    "normalized_sha256": "a08a425638eb59b89c4c0ef363dfb306862e2e08b163cb2ce7d4195eb4a6bf6f"
+  },
+  {
+    "id": "N02",
+    "cohort": "fresh",
+    "family": "random3",
+    "path": "cnf/N02.cnf",
+    "sha256": "df678b0f27287854993651d7178dcb0f57f7f1b8a8c8e4d8cfa1ae815a8b80a8",
+    "normalized_sha256": "2ae61fd3355402b8fcfb870f025145c1ea78942999122b53a5139eb26371bff2"
+  },
+  {
+    "id": "N03",
+    "cohort": "fresh",
+    "family": "random3",
+    "path": "cnf/N03.cnf",
+    "sha256": "392445c3954dc082c0dab7a6229d86fb7787389ca48a1549501e7e725cc00f5c",
+    "normalized_sha256": "cdf16404edb288f39f6f2a1d7e92598b2659ab80f55691cc323f83ee6664ae09"
+  },
+  {
+    "id": "N04",
+    "cohort": "fresh",
+    "family": "random3",
+    "path": "cnf/N04.cnf",
+    "sha256": "f91db1441bbd90816b57af2d9d36715403f66f871ab4a12d054439b22d473de8",
+    "normalized_sha256": "e7a53f3ece12b9e67032611c21503363efd7548632f4b20ec4eff3aa0c84b36f"
+  },
+  {
+    "id": "N05",
+    "cohort": "fresh",
+    "family": "planted3",
+    "path": "cnf/N05.cnf",
+    "sha256": "32852db0bed14c48f4edaf6e5819ce68ac0cc206ddf28c9942ace30bd85c48e2",
+    "normalized_sha256": "9f0cfe1eb81836b1cd89fff3a69d87b3a8f905b4e86dba5f8cc2f5b945c447dc"
+  },
+  {
+    "id": "N06",
+    "cohort": "fresh",
+    "family": "planted3",
+    "path": "cnf/N06.cnf",
+    "sha256": "18ff94b087045272645a9a3e6b8432a669d913fa545bcc6d69b370af9744e92b",
+    "normalized_sha256": "9091b71d1c0731b6f3fe30daa5af980101cbd6337dba699d551eb70880be9a9b"
+  },
+  {
+    "id": "N07",
+    "cohort": "fresh",
+    "family": "planted3",
+    "path": "cnf/N07.cnf",
+    "sha256": "4aec94b89a2be1f51869bc198a33547de9fa9e42d8cc6c1a26967b875bc9e186",
+    "normalized_sha256": "f366608f831cff08f1d3b8f80d8d9778c7e506230bca0251b4e6e59ceae2a254"
+  },
+  {
+    "id": "N08",
+    "cohort": "fresh",
+    "family": "planted3",
+    "path": "cnf/N08.cnf",
+    "sha256": "ef8f54675d88539c531b3560c89b868d56eaaefa95a934cf24d789040372b2d7",
+    "normalized_sha256": "a2dc85d837a25ea78add70819feccaa4b6588f488b35fcc151eb2943baa4a910"
+  },
+  {
+    "id": "N09",
+    "cohort": "fresh",
+    "family": "planted3",
+    "path": "cnf/N09.cnf",
+    "sha256": "c3a01036bcaca7b041759d3ba61b328284f656043907e271414640a8439b111e",
+    "normalized_sha256": "4b6a5063af54180df759700f16070d4f2a0d31d052276db7264fc15093be5b8f"
+  },
+  {
+    "id": "N10",
+    "cohort": "fresh",
+    "family": "gf3",
+    "path": "cnf/N10.cnf",
+    "sha256": "ba46f6e3fbb672f5762399602e4db978a9c4f00d932d03474fe397c86c900ce9",
+    "normalized_sha256": "3e092f770fd6c2366fc1226de90a95c761ed3f9e3940b69433279ba9d25b5d55"
+  },
+  {
+    "id": "N11",
+    "cohort": "fresh",
+    "family": "gf3",
+    "path": "cnf/N11.cnf",
+    "sha256": "3aadd615d05ac91578fe9d4190f4a25eefc9657581bcf003a310aed8ccb63501",
+    "normalized_sha256": "d069f771382403dabf06b018e2e21b25a9efcaefdfa6cd9f4d3113b666f4dd4b"
+  },
+  {
+    "id": "N12",
+    "cohort": "fresh",
+    "family": "gf3",
+    "path": "cnf/N12.cnf",
+    "sha256": "cd42e0040b31b60c5be66bdf5c3f3b82121b6b92dc70f9548d23b0f6bfb230e6",
+    "normalized_sha256": "4fc66d56ba62bd7dff98d10ef86f0bfbe90044973d020dbf2b3e4016d1d089a6"
+  },
+  {
+    "id": "N13",
+    "cohort": "fresh",
+    "family": "gf3",
+    "path": "cnf/N13.cnf",
+    "sha256": "139f7cb5ba6f3e6e7403ff40e216366dbf0d370f5414407918095a75e5178b96",
+    "normalized_sha256": "72da1381eb70012b8a61bf8f022dbb7a4a6b4b1a412a508a2090fae7f8849f55"
+  },
+  {
+    "id": "N14",
+    "cohort": "fresh",
+    "family": "gf3",
+    "path": "cnf/N14.cnf",
+    "sha256": "156036af1420e4705b1f4c73a9af4cf710fb1b11daec3f4b90df3d6897bf9638",
+    "normalized_sha256": "e01bfb7ab6c743fbace9c3cbb906786e56044ec215b2a5cdc8d7af7e101fd2e6"
+  },
+  {
+    "id": "N15",
+    "cohort": "fresh",
+    "family": "xor-cycle",
+    "path": "cnf/N15.cnf",
+    "sha256": "06744f5f8bbc35bd0a6ab6e2bae05b78356701b1a7bea6e46b8157bc6ec0dcbc",
+    "normalized_sha256": "a58dd2ff5127d266b36c1babde0eaa53fa2ac00522f9f2d30a94864addcc8a0d"
+  },
+  {
+    "id": "N16",
+    "cohort": "fresh",
+    "family": "xor-cycle",
+    "path": "cnf/N16.cnf",
+    "sha256": "1b7d23ecb034eed026363f9c1f30e789bf0ff454ee5321943501df6649df8a9c",
+    "normalized_sha256": "524bbba8e92aea155262f705be4be38262e7307e851bd7ca3b25f503ace78185"
+  },
+  {
+    "id": "N17",
+    "cohort": "fresh",
+    "family": "xor-cycle",
+    "path": "cnf/N17.cnf",
+    "sha256": "5dbdabd50192b9a5cf85d0066da15d7b7de8542a7796f06c140564d6e314c693",
+    "normalized_sha256": "a6fec5008bc2ff0cce6f186c3be2f4d5d107ce74bc931f438a4dc24495c75fc0"
+  },
+  {
+    "id": "N18",
+    "cohort": "fresh",
+    "family": "xor-cycle",
+    "path": "cnf/N18.cnf",
+    "sha256": "2bac639bd59cfdb03efde8dd03661473cd9a7f762365ca1fcbb7ed82c2a9147d",
+    "normalized_sha256": "6f978f2187bbbdb9788ace7465c0948483b96669517b4bc473ad327219ccc01c"
+  },
+  {
+    "id": "N19",
+    "cohort": "fresh",
+    "family": "xor-cycle",
+    "path": "cnf/N19.cnf",
+    "sha256": "098767624a13ae2a56c2e0ee69eea396f7d5e2337614256a433b09ff0a956c84",
+    "normalized_sha256": "16ca8d13f21f0dc1d0499d3817853c38320aa2123d038feff3d73202c98e2eaa"
+  },
+  {
+    "id": "N20",
+    "cohort": "fresh",
+    "family": "capacity",
+    "path": "cnf/N20.cnf",
+    "sha256": "639951a732af2612415ff8f561fbe2dcfb0c5564c35d1351076a1e3dcb3496b0",
+    "normalized_sha256": "874911b37ff5a1c1b2a7a8dec488fdd8c623bb9c6931d2600e73e285fffa5cde"
+  },
+  {
+    "id": "N21",
+    "cohort": "fresh",
+    "family": "capacity",
+    "path": "cnf/N21.cnf",
+    "sha256": "cf10eb325cfdd24c401f06839c620cf8e398d2175da2d0451893dab941378eb0",
+    "normalized_sha256": "f211d9f8c0e2817731421484b04461300d08bcf8f8afbda02d2dd5f67d94e744"
+  },
+  {
+    "id": "N22",
+    "cohort": "fresh",
+    "family": "capacity",
+    "path": "cnf/N22.cnf",
+    "sha256": "f2a0bdbf30f8e3f1d0c9371fb0a2cf3732c1cee6dea42587c5a479d22f87748b",
+    "normalized_sha256": "b0391f0a624171bcda60a4ea40d847cf8f74af8a965531f55349c5e61d31257d"
+  },
+  {
+    "id": "N23",
+    "cohort": "fresh",
+    "family": "capacity",
+    "path": "cnf/N23.cnf",
+    "sha256": "d7477117e190bb5718997befeaa4814d97b665059511ef90f15ccabf35f23663",
+    "normalized_sha256": "9830f28493664796c66ca12c06b8de0b39b895fc5239787bbf52963c86015abb"
+  },
+  {
+    "id": "N24",
+    "cohort": "fresh",
+    "family": "capacity",
+    "path": "cnf/N24.cnf",
+    "sha256": "a2e47b0c6fec6e1e86962347ff8149569d8b573fc5f8e7a03953f5e8d7184102",
+    "normalized_sha256": "6631f8103f0a02be4e9c825be76039c46cbe39144b884431a4f0545ee9ea6f81"
+  },
+  {
+    "id": "N25",
+    "cohort": "fresh",
+    "family": "colour",
+    "path": "cnf/N25.cnf",
+    "sha256": "8ed79e6cb52fef57794475b0fe5f9e01133f9e7743764979bfcb0ae48aa7a68b",
+    "normalized_sha256": "9e6dee82fdac1225a813a86e086c9ef13f8b3b7da5926c07859878caddd318a2"
+  },
+  {
+    "id": "N26",
+    "cohort": "fresh",
+    "family": "colour",
+    "path": "cnf/N26.cnf",
+    "sha256": "a79189c258f4bd8afe74f1f3db57707eaa0371902e87e77c7fa4fb9a960890e4",
+    "normalized_sha256": "807253127beae27c113faa0c1675512646d820d6a2dd1d19f55a77c9704dcbeb"
+  },
+  {
+    "id": "N27",
+    "cohort": "fresh",
+    "family": "colour",
+    "path": "cnf/N27.cnf",
+    "sha256": "f9ad33426398e3a225860ba98a10b6e97c1d2e89ddf4fc5c2df311a66db427fd",
+    "normalized_sha256": "11051c04d1a84e1766747964b3ce0a474581362d5254bd5e1251499a4a082929"
+  },
+  {
+    "id": "N28",
+    "cohort": "fresh",
+    "family": "colour",
+    "path": "cnf/N28.cnf",
+    "sha256": "a983f431c8b363f9c6a6d687e66c0c7b92086f9200ce9bde8a6e24c417474aa1",
+    "normalized_sha256": "0c9d4a4527d3a7e8d6a868fe994ef9e0cb29308a5ba9030b05f4b612100e7f86"
+  },
+  {
+    "id": "N29",
+    "cohort": "fresh",
+    "family": "colour",
+    "path": "cnf/N29.cnf",
+    "sha256": "e11875e34e525f6ca9617a4d873efe66db3524e9c4bc7db2e719905256c17270",
+    "normalized_sha256": "7fe2b415fdafc98a8816a70c7580c2e3e911402e24c4670c3c62600c566e64c4"
+  },
+  {
+    "id": "N30",
+    "cohort": "fresh",
+    "family": "circuit",
+    "path": "cnf/N30.cnf",
+    "sha256": "ba7396b0569dd7cbd5a8c1f111be3e09dbd7bf7776cda84b18f39f50eab01467",
+    "normalized_sha256": "f65ff06c9b4e73a3de84fe70415ff4c8a457c210b27076e579c26ea1b1ac74a6"
+  },
+  {
+    "id": "N31",
+    "cohort": "fresh",
+    "family": "circuit",
+    "path": "cnf/N31.cnf",
+    "sha256": "e12ee607c09555d66875f6fcd4ee39681490cc357c49ac09103fa0d0bb388c02",
+    "normalized_sha256": "1a485617383db988af5bfd4f455a76c03443bf74c268dcf1113497210633aa42"
+  },
+  {
+    "id": "N32",
+    "cohort": "fresh",
+    "family": "circuit",
+    "path": "cnf/N32.cnf",
+    "sha256": "098b99ab78fe93a0f81f7734084142410eed5bdfd3c6e83a29b1e271c0880e3e",
+    "normalized_sha256": "b681331e67cdd7bdc9d16ae4dc30e169167d9b89ed057e687147c0c3ed2ed739"
+  },
+  {
+    "id": "N33",
+    "cohort": "fresh",
+    "family": "circuit",
+    "path": "cnf/N33.cnf",
+    "sha256": "46643fd06edbd0e45183b566806b527c1259970d2fccf6c2f7529f6267b57287",
+    "normalized_sha256": "13f0fb2532c023b7c9cf64133c9eb00c3b6bf03ba5a5f08861192ea54b596518"
+  },
+  {
+    "id": "N34",
+    "cohort": "fresh",
+    "family": "circuit",
+    "path": "cnf/N34.cnf",
+    "sha256": "a0b2a401586d5976f106bf58f7f409db32e55c8858f904133b36fdcd02e8efd0",
+    "normalized_sha256": "f451951b0ad02139e1ead228d41b9abb4c3c4f9f2de766193877a387fa423818"
+  },
+  {
+    "id": "N35",
+    "cohort": "fresh",
+    "family": "components",
+    "path": "cnf/N35.cnf",
+    "sha256": "723dd07af62481fc0364442c7fda7aaa3216e26eb77bb4a3915a540c5e5b9ccd",
+    "normalized_sha256": "d222192cd3ce72b21d9be4ab2b39e69d0f6e183df73aee88ce6f2031a9569ff8"
+  },
+  {
+    "id": "N36",
+    "cohort": "fresh",
+    "family": "components",
+    "path": "cnf/N36.cnf",
+    "sha256": "85b75b489d395e7b964715050f0c81e911ffa121f4c4ad8fb772a3f080434936",
+    "normalized_sha256": "849b1a1f37be7aaa4633cadf34eef24b64c446f8d7bce8220e0e51fed22e6b4e"
+  },
+  {
+    "id": "N37",
+    "cohort": "fresh",
+    "family": "components",
+    "path": "cnf/N37.cnf",
+    "sha256": "ecacbd84d8ad1918e0382cc1b68c22a58e9536dd564a1a4e68864cd6c5db0a79",
+    "normalized_sha256": "1284ee31974fe900a8d3a959c2934d9a1c8d7aa77a91ef557e21c16ebe85dc5a"
+  },
+  {
+    "id": "N38",
+    "cohort": "fresh",
+    "family": "components",
+    "path": "cnf/N38.cnf",
+    "sha256": "1b900d2989c656aa6e1f754fbdd74f8376ec232e162e0ae10f976e2408b69e66",
+    "normalized_sha256": "e3a10ac37e39722809333b31328b71e5d4a2d997ed43e7e3e349c52aa9f71fab"
+  },
+  {
+    "id": "N39",
+    "cohort": "fresh",
+    "family": "components",
+    "path": "cnf/N39.cnf",
+    "sha256": "405896bd615af7eb955b27d2fec15e7b0623d12adfa91761d2ee9726f2e3df9b",
+    "normalized_sha256": "8c0574a35e1360ac782e8c72d4b8fe2755fb3af98a0e2516e1d2762ebaa82c67"
+  },
+  {
+    "id": "N40",
+    "cohort": "fresh",
+    "family": "separator",
+    "path": "cnf/N40.cnf",
+    "sha256": "8e55f4061b301f1d878241811d31a0a3b93480d699df51d6e224539f18f20281",
+    "normalized_sha256": "54206eddb9b38e8bc9bc87b0f677be41cd9dbc2443ddbce82c5f881ad10bde96"
+  },
+  {
+    "id": "N41",
+    "cohort": "fresh",
+    "family": "separator",
+    "path": "cnf/N41.cnf",
+    "sha256": "ca88a1d6037619ca9f6fa8fe3a14d535798097c868a4ab728f561f1301783888",
+    "normalized_sha256": "bf28ff251762977531d43af7d6e118e66572e9afae3f90e2ff542e298f21e54c"
+  },
+  {
+    "id": "N42",
+    "cohort": "fresh",
+    "family": "separator",
+    "path": "cnf/N42.cnf",
+    "sha256": "5bf4e1f74456744170656ccb753acd6328e98b491a0eeee0cdfca345be25bccb",
+    "normalized_sha256": "d854e9e5fa815f5a514a0387a50bceb2d7b55313a1b51a80321c8ef167ad08e3"
+  },
+  {
+    "id": "N43",
+    "cohort": "fresh",
+    "family": "separator",
+    "path": "cnf/N43.cnf",
+    "sha256": "7b004e800cae42ae8e092c253ea0b397298fbddc202d741e5adba700e4920366",
+    "normalized_sha256": "eb31abd1bdea43ea0a751da2d9290b27b4791f3afe0bdd6fc8f4fc8381142d9b"
+  },
+  {
+    "id": "N44",
+    "cohort": "fresh",
+    "family": "separator",
+    "path": "cnf/N44.cnf",
+    "sha256": "84b682c1d5d62993b8487e20a266b92e16c043afe89015b1670ffbcf8157be46",
+    "normalized_sha256": "7bd454cf2cf988b383f68ef3f4e8c50037c377b5152bc4fcb18c71c89346fd39"
+  },
+  {
+    "id": "N45",
+    "cohort": "fresh",
+    "family": "mixed",
+    "path": "cnf/N45.cnf",
+    "sha256": "d4089f71755bfc1e85fec3e2bd9fa6adf6ecdca5b400ea60a623aaf77709007b",
+    "normalized_sha256": "60f620a8b84a4e31a9f3ba31f67c9e7b361f2cd8d9c433b1e1918fdfa12674a3"
+  },
+  {
+    "id": "N46",
+    "cohort": "fresh",
+    "family": "mixed",
+    "path": "cnf/N46.cnf",
+    "sha256": "3609a5672a095419af3c6ad3b06b7644f2646ff0fe7d0165bb6970fdd774af17",
+    "normalized_sha256": "85755d8525e5aadce09a1b22ccc845c1aa08e178862a108f1ded22f1e215c5d3"
+  },
+  {
+    "id": "N47",
+    "cohort": "fresh",
+    "family": "mixed",
+    "path": "cnf/N47.cnf",
+    "sha256": "d351cf7993048618f60b13353d411c19f3b451765789cd90648800f9c86093e3",
+    "normalized_sha256": "c29c5557eb5edfdee5c28842379116e685f415b92c2078ba687daed082b1a447"
+  },
+  {
+    "id": "N48",
+    "cohort": "fresh",
+    "family": "mixed",
+    "path": "cnf/N48.cnf",
+    "sha256": "e9fbd3a712f34aaedece93ec6e7799926c2c08e7b6cd80ad24d395738f118aa3",
+    "normalized_sha256": "e898b411417093cfa27795162e948797dec4af336db2599950bed4d5c937e66d"
+  },
+  {
+    "id": "N49",
+    "cohort": "fresh",
+    "family": "mixed",
+    "path": "cnf/N49.cnf",
+    "sha256": "8d52e1aa7e2421605728860c1b940b7553769e1338500446de47061089a1f51d",
+    "normalized_sha256": "f9b459a403c54f298ccf5709fc0a4cd53bf614301879646676fad69a0acf8c01"
+  }
+]

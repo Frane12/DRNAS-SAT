@@ -1,0 +1,25 @@
+{
+  "version": "0.1.2",
+  "g++": "c++ (Debian 14.2.0-19) 14.2.0",
+  "python": "Python 3.12.14",
+  "binaries": {
+    "check-rup": "39e837152a8a1b7232f254ed61aff98035211eae4c3d675c7fc0f2959f96dd96",
+    "drnas-core": "c6619b763f44f3a02a5817d366e90b66c719084feaf23a892c4fb2bb5ae60ef9",
+    "kissat": "076d4b55c47153da9ec327444cad34563e3c6b2fcb7fad587e4f261a13edfba4",
+    "general14": "478df1c9d58b4e68b3c283942e2434690fff786b5fae5eb38df1fc0c10a8d33f",
+    "drat-trim": "aaaa422bc52a3ee77a75226504637184ac8cb2378c8b80fa3ccd67cc9f87f8d7",
+    "unified3": "dab6ebee03c1b042f3fe2685a1346201c30ad69e1f327f8a816f23ab72f2194a",
+    "fusion1": "b288b8222dbd4904fecf09ccdb019d5762c119ebf5470f8e982cc21a88186a45",
+    "cadical": "c54286c556831fcf4d840310000b02ff7e999c2d6f03c4019da6de6a4643780f",
+    "factor-test": "1e87700446fc3c70901ff7ebdeaf6a6fc8dacd117b27d8f39f8460e8b9b990ce"
+  },
+  "tests": {
+    "truth_table_formulas": 420,
+    "accepted_runs": 484,
+    "gf3_signed_permutations": 16,
+    "negative_tests": 12,
+    "factor_cases": 81,
+    "factor_rup_lines": 398,
+    "word_lift_forms": 2
+  }
+}

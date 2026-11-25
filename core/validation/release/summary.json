@@ -1,0 +1,335 @@
+{
+  "fresh": {
+    "core": {
+      "n": 50,
+      "solved": 50,
+      "statuses": {
+        "SAT": 35,
+        "UNSAT": 15
+      },
+      "par2_s": 0.04394347803996425,
+      "certificates": {
+        "MODEL": 35,
+        "GF2": 2,
+        "HALL": 7,
+        "DRUP": 6
+      }
+    },
+    "fusion1": {
+      "n": 50,
+      "solved": 49,
+      "statuses": {
+        "SAT": 35,
+        "UNSAT": 14,
+        "UNKNOWN": 1
+      },
+      "par2_s": 0.05067687348002437,
+      "certificates": {
+        "MODEL": 35,
+        "DRUP": 14
+      }
+    },
+    "general14": {
+      "n": 50,
+      "solved": 39,
+      "statuses": {
+        "SAT": 26,
+        "TIMEOUT": 2,
+        "UNKNOWN": 9,
+        "UNSAT": 13
+      },
+      "par2_s": 0.45955753602005645,
+      "certificates": {
+        "MODEL": 26,
+        "DRUP": 5,
+        "RUP+SYMBOLIC": 8
+      }
+    },
+    "unified3": {
+      "n": 50,
+      "solved": 50,
+      "statuses": {
+        "SAT": 35,
+        "UNSAT": 15
+      },
+      "par2_s": 0.03184293237998645,
+      "certificates": {
+        "MODEL": 35,
+        "GF2": 2,
+        "HALL": 7,
+        "DRAT": 6
+      }
+    },
+    "kissat": {
+      "n": 50,
+      "solved": 50,
+      "statuses": {
+        "SAT": 35,
+        "UNSAT": 15
+      },
+      "par2_s": 0.007372838140036038,
+      "certificates": {
+        "MODEL": 35,
+        "DRAT": 15
+      }
+    },
+    "cadical": {
+      "n": 50,
+      "solved": 50,
+      "statuses": {
+        "SAT": 35,
+        "UNSAT": 15
+      },
+      "par2_s": 0.009916720100045495,
+      "certificates": {
+        "MODEL": 35,
+        "DRAT": 15
+      }
+    }
+  },
+  "replay": {
+    "core": {
+      "n": 38,
+      "solved": 27,
+      "statuses": {
+        "UNSAT": 20,
+        "TIMEOUT": 1,
+        "SAT": 7,
+        "UNKNOWN": 10
+      },
+      "par2_s": 0.6471312633947922,
+      "certificates": {
+        "DRUP": 18,
+        "GF2": 2,
+        "MODEL": 7
+      }
+    },
+    "fusion1": {
+      "n": 38,
+      "solved": 28,
+      "statuses": {
+        "UNSAT": 21,
+        "SAT": 7,
+        "UNKNOWN": 10
+      },
+      "par2_s": 0.5855302227631144,
+      "certificates": {
+        "DRUP": 21,
+        "MODEL": 7
+      }
+    },
+    "general14": {
+      "n": 38,
+      "solved": 16,
+      "statuses": {
+        "UNKNOWN": 22,
+        "UNSAT": 15,
+        "SAT": 1
+      },
+      "par2_s": 1.1915629227368252,
+      "certificates": {
+        "DRUP": 4,
+        "MODEL": 1,
+        "RUP+SYMBOLIC": 11
+      }
+    },
+    "unified3": {
+      "n": 38,
+      "solved": 24,
+      "statuses": {
+        "UNKNOWN": 14,
+        "UNSAT": 16,
+        "SAT": 8
+      },
+      "par2_s": 0.7699219238684236,
+      "certificates": {
+        "DRAT": 14,
+        "GF2": 2,
+        "MODEL": 8
+      }
+    },
+    "kissat": {
+      "n": 38,
+      "solved": 30,
+      "statuses": {
+        "UNSAT": 22,
+        "SAT": 8,
+        "TIMEOUT": 8
+      },
+      "par2_s": 0.504713732184284,
+      "certificates": {
+        "DRAT": 22,
+        "MODEL": 8
+      }
+    },
+    "cadical": {
+      "n": 38,
+      "solved": 28,
+      "statuses": {
+        "UNSAT": 21,
+        "SAT": 7,
+        "TIMEOUT": 10
+      },
+      "par2_s": 0.560894995447406,
+      "certificates": {
+        "DRAT": 21,
+        "MODEL": 7
+      }
+    }
+  },
+  "all": {
+    "core": {
+      "n": 88,
+      "solved": 77,
+      "statuses": {
+        "UNSAT": 35,
+        "TIMEOUT": 1,
+        "SAT": 42,
+        "UNKNOWN": 10
+      },
+      "par2_s": 0.30441093080682174,
+      "certificates": {
+        "DRUP": 24,
+        "GF2": 4,
+        "MODEL": 42,
+        "HALL": 7
+      }
+    },
+    "fusion1": {
+      "n": 88,
+      "solved": 77,
+      "statuses": {
+        "UNSAT": 35,
+        "SAT": 42,
+        "UNKNOWN": 11
+      },
+      "par2_s": 0.28163627430681326,
+      "certificates": {
+        "DRUP": 35,
+        "MODEL": 42
+      }
+    },
+    "general14": {
+      "n": 88,
+      "solved": 55,
+      "statuses": {
+        "UNKNOWN": 31,
+        "UNSAT": 28,
+        "SAT": 27,
+        "TIMEOUT": 2
+      },
+      "par2_s": 0.7756507711932066,
+      "certificates": {
+        "DRUP": 9,
+        "MODEL": 27,
+        "RUP+SYMBOLIC": 19
+      }
+    },
+    "unified3": {
+      "n": 88,
+      "solved": 74,
+      "statuses": {
+        "UNKNOWN": 14,
+        "UNSAT": 31,
+        "SAT": 43
+      },
+      "par2_s": 0.35055886052272067,
+      "certificates": {
+        "DRAT": 20,
+        "GF2": 4,
+        "MODEL": 43,
+        "HALL": 7
+      }
+    },
+    "kissat": {
+      "n": 88,
+      "solved": 80,
+      "statuses": {
+        "UNSAT": 37,
+        "SAT": 43,
+        "TIMEOUT": 8
+      },
+      "par2_s": 0.22213367875005216,
+      "certificates": {
+        "DRAT": 37,
+        "MODEL": 43
+      }
+    },
+    "cadical": {
+      "n": 88,
+      "solved": 78,
+      "statuses": {
+        "UNSAT": 36,
+        "SAT": 42,
+        "TIMEOUT": 10
+      },
+      "par2_s": 0.24783915718186025,
+      "certificates": {
+        "DRAT": 36,
+        "MODEL": 42
+      }
+    }
+  },
+  "paired": {
+    "fusion1": {
+      "core_only": [
+        "N24"
+      ],
+      "baseline_only": [
+        "F03"
+      ]
+    },
+    "general14": {
+      "core_only": [
+        "F01",
+        "F07",
+        "F08",
+        "F09",
+        "F10",
+        "F11",
+        "F12",
+        "F16",
+        "F21",
+        "F22",
+        "F25",
+        "N03",
+        "N04",
+        "N05",
+        "N06",
+        "N07",
+        "N08",
+        "N09",
+        "N24",
+        "N39",
+        "N48",
+        "N49"
+      ],
+      "baseline_only": []
+    },
+    "unified3": {
+      "core_only": [
+        "F01",
+        "F11",
+        "F21",
+        "F22"
+      ],
+      "baseline_only": [
+        "F26"
+      ]
+    },
+    "kissat": {
+      "core_only": [],
+      "baseline_only": [
+        "F03",
+        "F13",
+        "F26"
+      ]
+    },
+    "cadical": {
+      "core_only": [],
+      "baseline_only": [
+        "F03"
+      ]
+    }
+  }
+}

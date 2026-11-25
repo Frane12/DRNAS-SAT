@@ -1,0 +1,344 @@
+[
+  {
+    "id": "F01",
+    "family": "archived-fusion",
+    "file": "regression/F01.cnf",
+    "sha256": "b8d4b184afdde3c4b98802be773c1cf7bd0f443ac60afcf98c8992191ac74a2b",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "d6bbb519a87cc24a3ad051a33367b5a82ab83349491d08b64a84a92388569807"
+  },
+  {
+    "id": "F02",
+    "family": "archived-fusion",
+    "file": "regression/F02.cnf",
+    "sha256": "ec8d0bf5171384c7ceed6e565246017764c12c8bc4f35e8270574c04863ae728",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "f8c0d47bf3702a8d49ee3f2367a69a28cf156e33f9fc16a6d2767a56ff1355dc"
+  },
+  {
+    "id": "F03",
+    "family": "archived-fusion",
+    "file": "regression/F03.cnf",
+    "sha256": "861043b63c7874433a88fb9e474d140e08cc5ff0e467c06f0ed5a745f998153f",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "fb654bfe3bf56290e7b29cd2b743d8903bd1a0a9d368fede4ef3b06bf6b814a3"
+  },
+  {
+    "id": "F04",
+    "family": "archived-fusion",
+    "file": "regression/F04.cnf",
+    "sha256": "00029cc3466e1e95e990464257a800f36a3e907afbba5f45a9059dfec8cf66ff",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "2b39f29ae4c34cfca0dc78bc581a02870cecf8a027260f916ad51d29db93cbd7"
+  },
+  {
+    "id": "F05",
+    "family": "archived-fusion",
+    "file": "regression/F05.cnf",
+    "sha256": "bf93e2ecd74bd0f3ae47d90ca472ea585e9ee8cb11af63555fb7a26f03b145ff",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "d8f41d61a905cce9ea4282dc64604be3094aedb03afa728a39f27dbfa0ce3d7f"
+  },
+  {
+    "id": "F06",
+    "family": "archived-fusion",
+    "file": "regression/F06.cnf",
+    "sha256": "c933f4efbdd211c825ba7c10f1da00467d94dfd3a41eaf5c89922fb5c747e714",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "69233ea3609983ee1b294876859a863357fa8cbd2b8deed32260c80428fb1e9c"
+  },
+  {
+    "id": "F07",
+    "family": "archived-fusion",
+    "file": "regression/F07.cnf",
+    "sha256": "a74d91691169ceebb2b9be88f0051f503abf5dfb680c82fa6301df9a20011c02",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "31a9d16a4888defcd550d277ac787be8a703c9bdc48edccf17afa1c1bffb3cba"
+  },
+  {
+    "id": "F08",
+    "family": "archived-fusion",
+    "file": "regression/F08.cnf",
+    "sha256": "9f14a1db516f34b562f4ff3194984da05b94eeb8dc96e8c35d77c05ade80ef7f",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "18d39c693e68cc72cb0d32733db2962d6667a5d22a06cd234d7470550b369aac"
+  },
+  {
+    "id": "F09",
+    "family": "archived-fusion",
+    "file": "regression/F09.cnf",
+    "sha256": "84930b6240fc46d06ee1861d09c858b16e60c98c2e587c19af2db8a046352ee1",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "dcb1574881170e6836ec2afd1b6cba8de18d26a23bc8150fa01744e9290e99d8"
+  },
+  {
+    "id": "F10",
+    "family": "archived-fusion",
+    "file": "regression/F10.cnf",
+    "sha256": "387f666ad059ae4ec4c48d1782825b1ebb12e30c9365dfe1b924f10981f85ed6",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "7fa34ccf3855428ef940ee38f06622e8b6b85371668646bd6bef64098049317c"
+  },
+  {
+    "id": "F11",
+    "family": "archived-fusion",
+    "file": "regression/F11.cnf",
+    "sha256": "f2db6ae3afeabeb6a6967642fd46dd2f0f61cdd6a1b70d2008f58ebd27b7bb6d",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "a498c1644847966855bbce8f8c19d6a772029143868a170f06d48a3540cc1d91"
+  },
+  {
+    "id": "F12",
+    "family": "archived-fusion",
+    "file": "regression/F12.cnf",
+    "sha256": "b0d973ce0aa4db3eb5f7596e2f6534e0e069c679430ab5abf01f965cd799914d",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "bd00c1d4ffa235597bf401f81341d47174c6db10161354545a64100c6db13c27"
+  },
+  {
+    "id": "F13",
+    "family": "archived-fusion",
+    "file": "regression/F13.cnf",
+    "sha256": "618012496a8ac66a03ceb2a9e45fb04d03b384adf9b55c66d721905e496a2942",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "8f7249b267d00ddf2bac7f35500b8975cc3746805669bfe12d711f85795cc766"
+  },
+  {
+    "id": "F14",
+    "family": "archived-fusion",
+    "file": "regression/F14.cnf",
+    "sha256": "821f8e1c03fbafceb023cfdaa87e2057524197e788fe91f4414aca7e6be4ea94",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "ca76a60cffbb421ce12568003067ece531234a20f81dcc979a35cc7533dfac81"
+  },
+  {
+    "id": "F15",
+    "family": "archived-fusion",
+    "file": "regression/F15.cnf",
+    "sha256": "67e7590067a5f76b4da184d03542399222a033017e79e2848476d0e39cd4dc25",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "84328508bc6d318d2ab8fce0f6235661babd2177ebfa8d65253090997628d66d"
+  },
+  {
+    "id": "F16",
+    "family": "archived-fusion",
+    "file": "regression/F16.cnf",
+    "sha256": "91cd0084f1ea0938898011af52afd76879138bce1960f68e07a22c3e369e0f36",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "957a14c07d2f7b8672efced2df55cb02fff76fe08307b5d8eb6fd5b8e11cd935"
+  },
+  {
+    "id": "F17",
+    "family": "archived-fusion",
+    "file": "regression/F17.cnf",
+    "sha256": "5c1480fd7cdecb6a07485cadfd2e095216a275696d42d441ae9f4db24d3b79df",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "eb11a457abcc60a989f3e9b50b937533140c9d1a78b541e6f9e702f76a245ddf"
+  },
+  {
+    "id": "F18",
+    "family": "archived-fusion",
+    "file": "regression/F18.cnf",
+    "sha256": "aef841acb4774387e7ddaf5c6357f50fe2e8bc3bb7e7b0a2c772909d919bac62",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "e6bc0665af62a1d78e7c85eab47a6d0ba691bf533cbd316cd358a9d32367acf1"
+  },
+  {
+    "id": "F19",
+    "family": "archived-fusion",
+    "file": "regression/F19.cnf",
+    "sha256": "062f6fcc341c1c0302f7cf6659edb3c45e245335454b457548d8ad87c9ca14a6",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "6aaad05a8edfa0849991dc48997ea61b3a31ebb31082a11864a31755285c3f39"
+  },
+  {
+    "id": "F20",
+    "family": "archived-fusion",
+    "file": "regression/F20.cnf",
+    "sha256": "5efc1cae05f13d6d9a323bf0b02594a335ca013dfc2347789018f9b30e60254c",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "3dec0669a082ff05cd254d42d4eb693c24c9e4064d9d562c99287bf87ea094a1"
+  },
+  {
+    "id": "F21",
+    "family": "archived-fusion",
+    "file": "regression/F21.cnf",
+    "sha256": "6bfd1d7e07cc1e3575ccf26da5c18ae5b7579563f40a02beeec95e527322d7dc",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "d82e6a63976e47773bbc3fdf9317b1d5b453ab6ba721f0b1fb840907af81ec85"
+  },
+  {
+    "id": "F22",
+    "family": "archived-fusion",
+    "file": "regression/F22.cnf",
+    "sha256": "1c9189adecf1687d3c6a8fdaae12b1df628e127da0a9f0866278757c1e3a3ff7",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "01a310a7a115d456b3ad27b428de6b69ab1e507fee2ae5f5bdd89e8da6943738"
+  },
+  {
+    "id": "F23",
+    "family": "archived-fusion",
+    "file": "regression/F23.cnf",
+    "sha256": "c9fc1b4b264d8787c6952b6960e1a5b4e1d3e13aaf607599554fa4ae88cd2176",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "12a7dd5066b6ee2b2b7a681fe919285283e4165840c765d2cf0de2cc3b94aeae"
+  },
+  {
+    "id": "F24",
+    "family": "archived-fusion",
+    "file": "regression/F24.cnf",
+    "sha256": "ffb647965a4e7e304f7d37e5d615d51c1b58554a5e35983f3cc97436e7f8aaa1",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "70835389efb513369aa0e0bad73d3f00f4e482be2a1440386a3238dc2c9391a1"
+  },
+  {
+    "id": "F25",
+    "family": "archived-fusion",
+    "file": "regression/F25.cnf",
+    "sha256": "a3e388f0ccd164925a39eac30f68c4fc6c77ef8c8ab9e8090d71ffee03ddd427",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "703687448c5c2556e90aaac523e948e21b1dea71bff78c328e9d2f70c01dc92f"
+  },
+  {
+    "id": "F26",
+    "family": "archived-fusion",
+    "file": "regression/F26.cnf",
+    "sha256": "1e43f223618aff2b07fe9676ff9ba8df1fcc54513384590b36678c862324e39d",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "ff81a60c349fd1efa8318dbf8d40353e79ba0c1fa374c47124c78aaeef089549"
+  },
+  {
+    "id": "F27",
+    "family": "archived-fusion",
+    "file": "regression/F27.cnf",
+    "sha256": "44ac7fe05e8689c4c1b082fc1e84f6d21ef741ef0b01de64004a20dcbb9b5be5",
+    "cohort": "replay",
+    "origin": "FUSION1 replay28",
+    "normalized_sha256": "70fbae58fb1550ea13a56fbf187ba3a1afb2d07fa455d200841adf7d05a83c0f"
+  },
+  {
+    "id": "G016",
+    "family": "archived-general",
+    "file": "regression/G016.cnf",
+    "sha256": "1fc78f937d304ba04bd2461030f082629f80fa1d0f63230faa0be82390abf74e",
+    "cohort": "replay",
+    "origin": "GENERAL14 previously tested holdout",
+    "normalized_sha256": "1ca5965fea8a92f58dca5b548843eb8ee58b5958786f3367e2e3d9d3d2ac5526"
+  },
+  {
+    "id": "G024",
+    "family": "archived-general",
+    "file": "regression/G024.cnf",
+    "sha256": "c21da878abd41d007fa7d7701b735923669a4ee7a4e5714d91d9bbfb6c5eea1c",
+    "cohort": "replay",
+    "origin": "GENERAL14 previously tested holdout",
+    "normalized_sha256": "53343c12ec1d96c7e80a429aef6e47d61e9af9e6c78e329c90c10bcd1676e516"
+  },
+  {
+    "id": "G031",
+    "family": "archived-general",
+    "file": "regression/G031.cnf",
+    "sha256": "cd90371a4885a9416ea1d21eaf1fdc1f69806547395930277649cbc62fa4f3b1",
+    "cohort": "replay",
+    "origin": "GENERAL14 previously tested holdout",
+    "normalized_sha256": "f4632aceb22b0648ee60be6d665ed611a0afce614d509a041f6273611ce5430e"
+  },
+  {
+    "id": "G039",
+    "family": "archived-general",
+    "file": "regression/G039.cnf",
+    "sha256": "2c0270608e7bc3ce0c0addd8a1307a3a457288f73f2152bf10fb7134d6392f32",
+    "cohort": "replay",
+    "origin": "GENERAL14 previously tested holdout",
+    "normalized_sha256": "dbd934c12a35750e8b0dafa9d1ffb744077e1564edb215f8d3e8b601ec6e783b"
+  },
+  {
+    "id": "G046",
+    "family": "archived-general",
+    "file": "regression/G046.cnf",
+    "sha256": "179e681f8e4a024d3bf40ece7cb5a89f1385c54b78b6dc9c0674a9932cb70135",
+    "cohort": "replay",
+    "origin": "GENERAL14 previously tested holdout",
+    "normalized_sha256": "149be089375f2bf0b226288043dd6e708a79906e31a155b5830e1c0b92920002"
+  },
+  {
+    "id": "G054",
+    "family": "archived-general",
+    "file": "regression/G054.cnf",
+    "sha256": "f6121813363254522ea9abb829d301bda6fa9afa3fea9750fb77b131a91129c7",
+    "cohort": "replay",
+    "origin": "GENERAL14 previously tested holdout",
+    "normalized_sha256": "9aae42a45b0587ec3706629e71e3e45f96dcd55de2437c2e4ce70e8db139f6b8"
+  },
+  {
+    "id": "G064",
+    "family": "archived-general",
+    "file": "regression/G064.cnf",
+    "sha256": "372cbaec10428985bc2527742b44b74e285d48dc1b3257dadcc064ef9daafc90",
+    "cohort": "replay",
+    "origin": "GENERAL14 previously tested holdout",
+    "normalized_sha256": "38b738085d0cd1100814803635dd04550f28ce3ff12b53cc621aef81a36c29d7"
+  },
+  {
+    "id": "G074",
+    "family": "archived-general",
+    "file": "regression/G074.cnf",
+    "sha256": "26e9898f8bcd77d167632bfd84d21b408b8d11585dc37433173ff86434c7c508",
+    "cohort": "replay",
+    "origin": "GENERAL14 previously tested holdout",
+    "normalized_sha256": "086f432843f48cec62c49e56c02814d520f4bb4b3ea36179d9c503299661873c"
+  },
+  {
+    "id": "G090",
+    "family": "archived-general",
+    "file": "regression/G090.cnf",
+    "sha256": "94a20251c58e033891d77f3fc050c03b84e2a7abc774bf5ffdb314508c11383e",
+    "cohort": "replay",
+    "origin": "GENERAL14 previously tested holdout",
+    "normalized_sha256": "a5badcaf34ec83919f905e0962a6c50e451b1f00c49f632c8ce16d8c348587b9"
+  },
+  {
+    "id": "G099",
+    "family": "archived-general",
+    "file": "regression/G099.cnf",
+    "sha256": "81a3cbe29dea8004df939801c74ad1092235f49a512e3fd9d7df9f8122c8a9fb",
+    "cohort": "replay",
+    "origin": "GENERAL14 previously tested holdout",
+    "normalized_sha256": "2a3373d779df9509600e62e994492b7cd47828bc92add434db93c02bfe683061"
+  },
+  {
+    "id": "R039",
+    "family": "selected-memory-target",
+    "file": "regression/R039.cnf",
+    "sha256": "c52c2b2d207389ea92da5cd9c188620439487757e28ca816afa7ff1ccdae9e77",
+    "cohort": "replay",
+    "origin": "GENERAL14 development target, not blind",
+    "normalized_sha256": "85a55c9986be937e91aabf633ab094188bfe62160d16078b9e7bfc048b7ec9a2"
+  }
+]
