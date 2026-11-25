@@ -32,14 +32,21 @@ jobs:
           cmake --build build --target drnas-pcmax -j2
           git clone --no-checkout https://github.com/jreeves3/Cardinality-CDCL.git cardinality
           git -C cardinality checkout --detach 75b47e4454d89c61005c48c273c2d274adc82c6e
-          git -C cardinality submodule update --init --recursive
+          # Upstream stores a gitlink but omits .gitmodules. Recover exactly its pinned dependency.
+          expected_drat="$(git -C cardinality ls-tree HEAD Tools/drat-trim | awk '{print $3}')"
+          test "$expected_drat" = cbd29151d263c901ff2d7b7d6dd64af8f1ee9e23
+          git -C cardinality config submodule.Tools/drat-trim.url https://github.com/marijnheule/drat-trim.git
+          git clone --no-checkout https://github.com/marijnheule/drat-trim.git cardinality/Tools/drat-trim
+          git -C cardinality/Tools/drat-trim checkout --detach "$expected_drat"
+          test "$(git -C cardinality/Tools/drat-trim rev-parse HEAD)" = "$expected_drat"
+          printf '%s\n' "$expected_drat" > metadata/drat-trim.sha
           git -C cardinality rev-parse HEAD > metadata/cardinality.sha
           (cd cardinality/cardinality-cadical; ./configure; make -j2)
           (cd cardinality/Extractor/cnf2knf/tbuddy; make -j2)
           (cd cardinality/Extractor/cnf2knf/src; make -j2)
           make -C cardinality/Tools derivation konly -j2
           (cd cardinality/Tools/cadical; ./configure; make -j2)
-          make -C cardinality/Tools/drat-trim -j2
+          gcc -D_GNU_SOURCE -std=c99 -O2 cardinality/Tools/drat-trim/drat-trim.c -o cardinality/Tools/drat-trim/drat-trim
           test -x cardinality/cardinality-cadical/build/cadical
           test -x cardinality/Extractor/cnf2knf/src/cnf2knf
           test -x cardinality/Tools/cadical/build/cadical
