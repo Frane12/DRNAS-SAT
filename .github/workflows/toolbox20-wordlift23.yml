@@ -1,0 +1,205 @@
+name: TOOLBOX20 WORDLIFT23 - source word arithmetic
+on:
+  push:
+    branches: [experiment/toolbox20-wordlift23-20261125]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build frozen candidate and references
+        run: |
+          set -eux
+          mkdir -p bin
+          c++ -std=c++20 -O3 -march=native -DNDEBUG research/toolbox20_native/solver.cpp -lcrypto -o bin/drnas
+          git fetch --no-tags origin cf2da80e9c5646942951210402568e30fed561ba
+          git worktree add --detach /tmp/affine-prior cf2da80e9c5646942951210402568e30fed561ba
+          c++ -std=c++20 -O3 -march=native -DNDEBUG /tmp/affine-prior/research/toolbox20_native/solver.cpp -lcrypto -o bin/prior
+          git clone https://github.com/arminbiere/kissat.git /tmp/kissat
+          git -C /tmp/kissat checkout 77bc7ea68afe80751a67df8561357f193e160fb1
+          (cd /tmp/kissat && ./configure && make -j2)
+          cp /tmp/kissat/build/kissat bin/
+          git clone https://github.com/arminbiere/cadical.git /tmp/cadical
+          git -C /tmp/cadical checkout 14593f819cb242082b127396218bd60889409737
+          (cd /tmp/cadical && ./configure && make -j2)
+          cp /tmp/cadical/build/cadical bin/
+          git clone https://github.com/marijnheule/drat-trim.git /tmp/drat
+          git -C /tmp/drat checkout 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+          cc -O2 -std=gnu99 /tmp/drat/drat-trim.c -o bin/drat-trim
+      - name: Native algebra self-tests before public inputs
+        run: |
+          set -eux
+          cat > /tmp/affine_selftest.cpp <<'CPP'
+          #include "affine_domains.hpp"
+          #include <cassert>
+          #include <iostream>
+          #include <random>
+          using namespace toolbox;
+          int main(){
+            std::mt19937 rng(231125);
+            for(int t=0;t<32;++t){
+              Input f{15,{}};
+              auto v=[](int g,int d){return 3*g+d+1;};
+              for(int g=0;g<5;++g){
+                f.cs.push_back({v(g,0),v(g,1),v(g,2)});
+                for(int a=0;a<3;++a)for(int b=a+1;b<3;++b)f.cs.push_back({-v(g,a),-v(g,b)});
+              }
+              std::vector<int> planted(5);for(auto& x:planted)x=rng()%3;
+              for(int g=0;g<4;++g){
+                int h=(g+1)%5,j=(g+3)%5,c=1+rng()%2;
+                int rhs=(planted[g]+c*planted[h]+planted[j])%3;
+                for(int a=0;a<3;++a)for(int b=0;b<3;++b)for(int d=0;d<3;++d)
+                  if((a+c*b+d)%3!=rhs)f.cs.push_back({-v(g,a),-v(h,b),-v(j,d)});
+              }
+              std::vector<int> perm(15);std::iota(perm.begin(),perm.end(),1);
+              std::shuffle(perm.begin(),perm.end(),rng);
+              for(auto& z:perm)if(rng()%2)z=-z;
+              for(auto& c:f.cs){for(auto& l:c)l=(l>0?1:-1)*perm[std::abs(l)-1];assert(normalize(c));}
+              std::shuffle(f.cs.begin(),f.cs.end(),rng);
+              Model m;AlgebraStats s;
+              assert(finite3_model(f,m,after(3),s));
+              assert(s.domains==5 && s.relations>=4 && satisfied(f.cs,m));
+            }
+            Input f{4,{}};
+            for(int a=0;a<2;++a)for(int b=0;b<2;++b)for(int z=0;z<2;++z)
+              if((a^b)!=z)f.cs.push_back({a?-1:1,b?-2:2,z?-3:3});
+            f.cs.push_back({-1,-3,4});f.cs.push_back({1,-4});f.cs.push_back({3,-4});
+            f.cs.push_back({3});f.cs.push_back({4});
+            for(auto& c:f.cs)assert(normalize(c));
+            Model fixed(5,-1),m;fixed[3]=fixed[4]=1;
+            AlgebraStats s;
+            assert(circuit_affine_model(f,fixed,m,after(3),s));
+            assert(s.free==0 && s.affine_rounds>=2 && satisfied(f.cs,m));
+            std::cout<<"AFFINE_SELFTEST PASS GF3 signed permutations=32 circuit affine closure=1"<<std::endl;
+          }
+          CPP
+          c++ -std=c++20 -O2 -I research/toolbox20_native /tmp/affine_selftest.cpp -o /tmp/affine_selftest
+          /tmp/affine_selftest
+      - name: Source gate to word equation self-test
+        run: |
+          set -eux
+          cat > /tmp/word_selftest.cpp <<'CPP'
+          #include "affine_domains.hpp"
+          #include <cassert>
+          #include <iostream>
+          using namespace toolbox;
+          int main(){
+            for(int form=0;form<2;++form){
+              const int w=form?12:8;
+              Input f{w,{}};
+              auto add_gate=[&](int op,int a,int b){
+                assert(a>0&&b>0&&a!=b);
+                int z=++f.n;
+                if(op==0){
+                  for(int x=0;x<2;++x)for(int y=0;y<2;++y)for(int t=0;t<2;++t)
+                    if((x^y)!=t)f.cs.push_back({x?-a:a,y?-b:b,t?-z:z});
+                }else if(op==1){
+                  f.cs.push_back({-a,-b,z});f.cs.push_back({a,-z});f.cs.push_back({b,-z});
+                }else{
+                  f.cs.push_back({a,b,-z});f.cs.push_back({-a,z});f.cs.push_back({-b,z});
+                }
+                return z;
+              };
+              WordBits x(w);std::iota(x.begin(),x.end(),1);
+              auto sh=[&](WordBits a,int s,bool left){
+                WordBits out=a;
+                for(int i=0;i<w;++i){int j=left?i-s:i+s;if(j>=0&&j<w)out[i]=add_gate(0,a[i],a[j]);}
+                return out;
+              };
+              auto y=sh(sh(x,2,true),3,false);
+              WordBits out(w);int carry=0;
+              for(int i=0;i<w;++i){
+                int a=x[i],b=y[i],p=add_gate(0,a,b);
+                out[i]=i?add_gate(0,p,carry):p;
+                if(i+1<w){
+                  int gen=add_gate(1,a,b);
+                  if(!i)carry=gen;
+                  else {int prop=form?p:add_gate(2,a,b);carry=add_gate(2,gen,add_gate(1,prop,carry));}
+                }
+              }
+              uint32_t mask=(1u<<w)-1,k=173u;
+              uint32_t v=(k^(k<<2))&mask;v^=v>>3;
+              uint32_t target=(k+v)&mask;
+              Model root(f.n+1,-1),m;
+              for(int i=0;i<w;++i){int b=(target>>i)&1;root[out[i]]=b;f.cs.push_back({b?out[i]:-out[i]});}
+              for(auto& c:f.cs)assert(normalize(c));
+              AlgebraStats st;
+              assert(circuit_affine_model(f,root,m,after(5),st));
+              assert(st.word.recovered==1&&st.word.adds>=1&&st.word.shifts>=2&&satisfied(f.cs,m));
+              std::cout<<"WORD_SELFTEST PASS width="<<w<<" adds="<<st.word.adds<<" shifts="<<st.word.shifts<<" candidates="<<st.word.candidates<<std::endl;
+            }
+          }
+          CPP
+          c++ -std=c++20 -O2 -I research/toolbox20_native /tmp/word_selftest.cpp -o /tmp/word_selftest
+          /tmp/word_selftest
+      - name: Freeze exact 23 catalog sources and download original bytes
+        run: |
+          set -eu
+          mkdir -p corpus metadata
+          curl --fail --location --retry 2 --max-time 60 https://satcompetition.github.io/2026/downloads/track_main_2026.uri -o metadata/official.uri
+          python3 - <<'PY'
+          import hashlib, json, pathlib, urllib.request, gzip, lzma, bz2, os
+          from urllib.parse import urlsplit
+          P=pathlib.Path
+          seed=os.environ['GITHUB_SHA']
+          sha=lambda b:hashlib.sha256(b).hexdigest()
+          urls=sorted(set(x.strip() for x in P('metadata/official.uri').read_text().splitlines() if x.strip().startswith(('https://','http://'))))
+          assert len(urls)==400, 'official URI list differs from frozen 400'
+          catalog=P('research/hall3/catalog2026.csv').read_text()
+          rows={p[0]:p for line in catalog.splitlines()[1:] if (p:=line.split()) and len(p)==6}
+          draw=[u for u in urls if (h:=urlsplit(u).path.rsplit('/',1)[-1]) in rows and rows[h][3]=='unknown' and rows[h][2] in ('linear-equations','xor-shifting')]
+          draw.sort(key=lambda u:(rows[urlsplit(u).path.rsplit('/',1)[-1]][2] not in ('linear-equations','xor-shifting'), rows[urlsplit(u).path.rsplit('/',1)[-1]][2],u))
+          assert len(draw)==23, f'catalog intersection differs: {len(draw)}'
+          P('metadata/catalog2026.csv').write_text(catalog)
+          print('AFFINE23 manifest',sha(catalog.encode()),flush=True)
+          P('metadata/draw.json').write_text(json.dumps(dict(freeze=seed,official_list_sha256=sha(P('metadata/official.uri').read_bytes()),population=len(urls),urls=draw),indent=2))
+          pinned={"247e42e46495f1c4b8707e497af8c93e":"dd2e52c12cafa012316052c6c2ac06ea48ccf1c999a5ae57a25c5f208e1cb9bc","2d89fda1bd6a761ca5e2f4bb89202681":"3eb26a21a55796207a5544ed941b82546d0c340aa5d3f00d56cca6a91cda0753","30c6fa5c4f5910029b782b712844c93a":"69b420a1aa0b26fa3c5accde03715c2ee9585d818b12abb3b33573e5142bc5ce","4d84e818a5ab324dde37429dd2455551":"5ba3ffc33a7435665f222f4d3586fec08cb30ca20b49644f09a669869aeb3773","511f1794698a8620c18a7cc32cfc7776":"0475e1012570d6763b0f2a163295d1f11a69c0665d92dd1427938339d60d2b38","744238c5aadea40f8e05db49429da576":"17bc33d70f3ea00b3fd12ab5c1e0cabdaf6764240316b57f0d683279ee5bd233","8e1cdc28bad48753110be5bd578cb934":"b4151c79e0f4def68b5c905298bd5af78c9cbd434d1c5ffe550167c3078955b9","9078ea73ff67edf2b6dcd007c9696ca0":"e1aa70cb484f75e3aad5d3698ec5d356a5fc9564000246ce24bf9fa7708fda5d","ab2ab3a0651f0f35ba319ad976b1b6fd":"ad83bf451395be3f2eb0cde669c90c31570519b3b2a1f0795fbc57e201a02d6b","aca9f4faabeb57a57c678d55f5bbd2f4":"7bbff45b9fac00b3259ccd49b9005e885d393cae266a8d7b779bada519006528","e3a132ecb8108f7d8a46b6686e686b60":"f1ef56ac141022892de05225b0a57274410bd811e0519be1421c7e2587347467","fed3f8d39738c2e935e8ed13ddeb6967":"cd4b8b432c2e4c9397d4cde88d63379d92d477f3e65cfe4bd7daeafbe1355104","1707c4c24e66b2cfe6c03955b638bebf":"03bae774557f351990c0348c7b11933d8760f4d7a8cf60455f1d4754fe9739c0","231f3a169120d3cda9f8feea88a20d85":"5e6cfa57979de4f73977cdfba64808e8bc6d664baae903b7aff9ef0f60d24e3a","43c298c756cac6d547a0457c2da7e468":"9c0044dba7a9c8250b57ff8739f25ccb19e410f927cdff076bd66ce85d3699ed","8d2b018a5f8855b6ba1868a3ffff9d2f":"93b3a29f2924074fdc5567d5bc89d2d0c6173f50cb21122a9c8281f6a85bff66","a08c17f9a3888841cf7bbc75a807ff7e":"c2e1be803877f33114b9478b289b507ee1a9de86f9c3f298cbab843bd15b19e1","a110c13186ef5785df8da4bfa2ce9a6d":"4f64738b58e3343b2ba4bd8bc18e34ae61f76c97a489f9cb7b82253c90f71ec3","a60a138325ac9c88ab293ec0c801a95c":"a3a163f95196ed951772e58adbe018225f0b555a58c5ded8ec79fd749ac11869","ad5b80bb4d1b60bee12163df25846801":"9a73008312c01b253a570ca0f02397e5ee3f7d9f3db1fae63b47472e6e3caccd","ca7f7824a958b98512a0c96d73251f8b":"7e0e7b2556bdc362acfcfabdf49908e8ca9634aa0b2bd632af882bdcb46be239","d10b8bcd1bb5977c5ffe2d1859e4335f":"d781f155d8986f93093fc39251e309147faabe36383db7d474894ee95c03c613","d418605014fdeb1236bfa720ac460c62":"46787d65f781e3db3f6b7601d10e1ff9c3be2dbb12e84e8669d334f147b94a31"}
+          cases=[]; failed=[]; total_raw=0
+          import io
+          for i,url in enumerate(draw):
+              cid=f'sat26-{i:02d}'
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'DRNAS reproducibility pilot'}),timeout=45) as f:
+                      packed=f.read(128*1024*1024+1)
+                  if len(packed)>128*1024*1024: raise ValueError('compressed input exceeds pilot memory policy')
+                  stream=io.BytesIO(packed)
+                  if packed.startswith(b'\xfd7zXZ\x00'): stream=lzma.LZMAFile(stream)
+                  elif packed.startswith(b'\x1f\x8b'): stream=gzip.GzipFile(fileobj=stream)
+                  elif packed.startswith(b'BZh'): stream=bz2.BZ2File(stream)
+                  raw=stream.read(256*1024*1024+1)
+                  if len(raw)>256*1024*1024: raise ValueError('uncompressed input exceeds stress memory policy')
+                  if total_raw+len(raw)>6*1024**3: raise ValueError('corpus disk policy')
+                  header=next((l.split() for l in io.BytesIO(raw) if l.lstrip().startswith(b'p cnf ')),None)
+                  if header is None or len(header)!=4: raise ValueError('not a DIMACS CNF')
+                  h=urlsplit(url).path.rsplit('/',1)[-1]; family=rows[h][2]
+                  assert sha(raw)==pinned[h], 'source changed since AFFINE23'
+                  total_raw+=len(raw)
+                  P('corpus',cid+'.cnf').write_bytes(raw)
+                  cases.append(dict(id=cid,group='public',family=family,catalog_label='unknown',gbd_hash=h,variables=int(header[2]),clauses=int(header[3]),url=url,cnf_sha256=sha(raw),download_sha256=sha(packed),bytes=len(raw)))
+                  print('SAT26_INPUT',cid,h,family,int(header[2]),int(header[3]),len(raw),sha(raw),flush=True)
+              except Exception as e:
+                  failed.append(dict(id=cid,url=url,error=str(e)))
+                  print('SAT26_SOURCE_FAILED',cid,str(e),flush=True)
+          P('metadata/manifest.json').write_text(json.dumps(dict(freeze=seed,cases=cases,failed=failed,requested=23),indent=2))
+          assert len(cases)==23 and not failed,'exact source set incomplete'
+          PY
+      - name: Serial one-CPU paired benchmark, no CDCL in DRNAS
+        run: |
+          python3 research/toolbox20_native/bench.py --manifest metadata/manifest.json --corpus corpus --out results --drnas bin/drnas --prior bin/prior --kissat bin/kissat --cadical bin/cadical --checker bin/drat-trim --cap 15 --reps 1
+      - name: Print results
+        if: always()
+        run: |
+          if test -f results/runs.csv; then cat results/runs.csv; fi
+          if test -f results/summary.json; then cat results/summary.json; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: toolbox20-wordlift23-paired
+          path: |
+            metadata/
+            results/
+          if-no-files-found: warn
