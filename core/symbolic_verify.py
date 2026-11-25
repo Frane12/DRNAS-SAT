@@ -51,7 +51,7 @@ def check(source,cert):
         result={}
     else:
         claimed=Q(next(z)); count=int(next(z))
-        lower=a.pop('I'*n,Q(0)); terms=sorted(a.items()); seen=set()
+        lower=a.pop('I'*n,Q(0)); terms=sorted(a.items()); seen=set(); rules=set()
         if not 0<=count<=len(terms): raise ValueError('group count')
         for _ in range(count):
             typ=next(z); size=int(next(z))
@@ -64,6 +64,7 @@ def check(source,cert):
                 if bound<0 or bound*bound<sum(c*c for s,c in group): raise ValueError('norm bound')
                 if any(not anti(bits(s),bits(t)) for (s,c),(t,d) in itertools.combinations(group,2)): raise ValueError('anticommutation')
                 lower-=bound
+                if 2<=size<=10 and bound<sum(abs(c) for s,c in group): rules.add('A'+str(size))
             elif typ=='C':
                 if size>10: raise ValueError('commuting block size')
                 bs=[bits(s) for s,c in group]
@@ -100,8 +101,16 @@ def check(source,cert):
                 masks=[sum(1<<j for j,i in enumerate(support) if s[i]=='Z') for s,c in group]
                 lower+=min(sum(c*(-1 if (mask&v).bit_count()%2 else 1) for mask,(s,c) in zip(masks,group)) for v in range(1<<len(support)))
             else: raise ValueError('group type')
+            if typ in ('C','D') and 3<=size<=32:
+                # Extract signed triple identities from the actual checked group.
+                bs={bits(s):s for s,c in group}
+                for u,v in itertools.combinations(bs,2):
+                    x,y=u; X,Y=v; z=(x^X,y^Y)
+                    if z not in bs or anti(u,v): continue
+                    phase=((x&y).bit_count()+(X&Y).bit_count()+2*(y&X).bit_count()-(z[0]&z[1]).bit_count())%4
+                    if phase in (0,2): rules.add('C3+' if phase==0 else 'C3-')
         if len(seen)!=len(terms) or lower!=claimed or lower<target: raise ValueError('lower bound')
-        result=dict(lower=str(lower),target=str(target),groups=count)
+        result=dict(lower=str(lower),target=str(target),groups=count,learned_rules=sorted(rules))
     if next(z,None) is not None: raise ValueError('trailing certificate')
     return dict(status='PROVED',certificate='SYMBOLIC_OPERATOR_EXACT',task=task,**result)
 
