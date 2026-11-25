@@ -170,3 +170,7 @@ See [analytic equivalence and limitations](YM17_GAUGE_BLOCK.md). Actual pinned A
 ## YM22 — second-order logarithmic vacuum correction (experimental)
 
 [Analytic local correction and limits](YM22_VACUUM2.md). The supplied F2 schema cancels the nonconstant second-order residual of F1 for open square grids. CORE checks the uniform auxiliary curvature gap and cubic local residual bound; no uniform original KS gap or convergence claim. Exact quaternion identity tests and actual pinned ATLAS forest control. Run python3 core/gauge_vacuum2_tests.py PATH_TO_PINNED_ATLAS. CI pending.
+
+## YM23 — convergent log-vacuum series on a single SU(2) cycle (experimental)
+
+[Proof and generalization limits](YM23_VACUUM_SERIES.md). Exact automatic polynomial recurrence, independent coefficient audit, analytic convergence/tail majorant and positive gap of the actual infinite-representation single-cycle Hamiltonian. The general graph recurrence remains formal; no volume-uniform interacting-lattice convergence or continuum result. Python prototype plus native CORE physical-loop cross-check; no ATLAS run in this task. Run python3 core/vacuum_series_tests.py. CI pending.
