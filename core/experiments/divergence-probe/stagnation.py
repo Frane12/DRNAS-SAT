@@ -23,7 +23,7 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def replay(src, state, dest, repetitions, log):
+def replay(src, state, dest, repetitions, log, policies=POLICIES):
     n, clauses = parse_cnf(src)
     messages = state / 'messages.txt'
     lines = messages.read_text().splitlines()
@@ -35,7 +35,7 @@ def replay(src, state, dest, repetitions, log):
             subprocess.run([CORE/'bin/priority-order', src, state/'active.rows', messages,
                             order.name, order], check=True, stdout=subprocess.DEVNULL)
         for rep in range(repetitions):
-            for policy in POLICIES[rep:] + POLICIES[:rep]:
+            for policy in policies[rep % len(policies):] + policies[:rep % len(policies)]:
                 model = dest / f'{src.stem}-{rep + 1}-{policy}.model'
                 trial = subprocess.run([CORE/'bin/divergence-trial', str(n), *orders, tmp/'trace',
                                         policy, model], check=True, capture_output=True, text=True, timeout=20)

@@ -86,3 +86,48 @@ stanja kako je opisano iznad, pokrenuti:
 python3 core/experiments/f26-replay/build.py
 python3 core/experiments/divergence-probe/stagnation.py previous stagnation-rerun
 ```
+
+## Privremeni posjet drugoj grani
+
+Na tri ranije ispitane formule uspoređena su dva fiksna trajanja posjeta.
+Pravilo do prvog zastoja radi jednako kao `patience`. Nakon zastoja privremeno
+nastavlja drugu granu i vraća se na prvu po isteku kvote. Ako ranije nađe
+model, završava odmah. Oba sačuvana stanja uključuju dodjelu, generator
+slučajnih brojeva i redoslijed klauzula. Kraća kvota iznosi 60 000 promjena
+(jedan ciklus popravka za 500 varijabli), a dulja 720 000 (trećina budžeta).
+U sve četiri varijante obračunavaju se obje probe. Jedno izvođenje koristi
+jedan logički CPU i ukupno najviše 2 160 000 promjena.
+
+| Ulaz | Nastavi prvu | Trajni prelazak | Posjet 60 000 | Posjet 720 000 |
+|---|---:|---:|---:|---:|
+| F26 | UNKNOWN | SAT · 1 901 840 | UNKNOWN | UNKNOWN |
+| H09 | UNKNOWN | SAT · 1 993 505 | UNKNOWN | SAT · 1 993 505 |
+| N00 | SAT · 1 301 887 | UNKNOWN | SAT · 1 361 887 | SAT · 2 021 887 |
+
+Brojevi označavaju ukupne promjene do provjerenog modela. Svaki UNKNOWN potrošio
+je cijeli budžet. U 36 izvođenja (tri ponavljanja s istim sjemenom za svaku od
+12 kombinacija) ponovili su se status, broj promjena i sažetak svakog modela.
+
+### Granice fiksne kvote na snimljenim putanjama
+
+Na F26 kontrola s trajnim prelaskom nalazi model pri ukupno 1 901 840 promjena,
+a na drugu granu prelazi pri 159 585. Jednokratni posjet mora trajati najmanje
+1 742 255 promjena da bi stigao do tog modela. Kontrola koja ostaje na prvoj
+grani iscrpljuje budžet. Na H09 ista razlika iznosi 632 532 promjene.
+
+Na N00 trajni prelazak potroši ostatak budžeta na drugoj grani bez modela.
+Kad se automat vrati na prvu granu, pauza joj dodaje točno trajanje posjeta na
+izvornih 1 301 887 ukupnih promjena do modela. Stoga posjet smije trajati
+najviše 858 113 promjena. Ta se gornja granica i donja granica za F26 ne
+preklapaju. Zaključak vrijedi za isti okidač, sačuvana stanja, sjeme, budžet i
+jedan posjet s jednakom kvotom na svim formulama. Sva tri ulaza su dijagnostička.
+
+[36 zapisa, sažeci izvora i provjereni modeli](temporary-results.zip)
+
+Nakon gradnje osnovnog pokusa i raspakiravanja `previous` prema gornjim uputama,
+iz korijena repozitorija pokrenuti:
+
+```sh
+tar -xf core/experiments/divergence-probe/stagnation-results.tar.xz
+python3 core/experiments/divergence-probe/temporary.py previous stagnation-results temporary-rerun
+```

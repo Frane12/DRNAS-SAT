@@ -79,7 +79,8 @@ int main(int argc,char**argv){
     const int n=std::stoi(argv[1]);
     const int cap=2160000,window=10000;
     const std::string policy=argv[5];
-    if(n!=500 || (policy!="mean"&&policy!="force-first"&&policy!="force-rank" && policy!="patience" && policy!="clock"))return 2;
+    const int visit_limit = policy=="visit-cycle" ? 120*n : policy=="visit-third" ? cap/3 : 0;
+    if(n!=500 || (!visit_limit && (policy!="mean"&&policy!="force-first"&&policy!="force-rank" && policy!="patience" && policy!="clock")))return 2;
     Lane a(argv[2],n,std::string(argv[4])+".a"),b(argv[3],n,std::string(argv[4])+".b");
     Lane* lanes[]={&a,&b};
     Cursor ac=observe(n,a.clauses,a.model,Time::max(),a.steps);
@@ -88,7 +89,7 @@ int main(int argc,char**argv){
     int total=0,split=0,samples=0,selected=-1,winner=-1;
     long long sums[2]={};
     int probe_best[2]={INT_MAX,INT_MAX};
-    int switched_at=0, switched_after=0;
+    int switched_at=0, switched_after=0, returned_at=0;
     for(int j=0;j<2;++j)if(satisfied(lanes[j]->clauses,lanes[j]->model)){winner=j;break;}
     // Both order-specific states and RNGs remain alive on a single CPU.
     // Even identical prefix flips are charged separately.
@@ -118,11 +119,14 @@ int main(int argc,char**argv){
                 last_record=total;
             }
             if(!switched_at && total<cap &&
-               ((policy=="patience" && total-last_record>=window) ||
+               (((policy=="patience" || visit_limit>0) && total-last_record>=window) ||
                 (policy=="clock" && total-probe_end>=window))){
                 switched_at=total;
                 switched_after=total-probe_end;
                 active=1-active;
+            }else if(visit_limit>0 && active!=selected && total-switched_at==visit_limit && total<cap){
+                active=selected;
+                returned_at=total;
             }
         }
     }
@@ -130,5 +134,6 @@ int main(int argc,char**argv){
     std::cout<<"{\"status\":\""<<(winner<0?"UNKNOWN":"SAT")<<"\",\"split\":"<<split
              <<",\"samples\":"<<samples<<",\"sums\":["<<sums[0]<<","<<sums[1]<<"],\"selected\":"<<selected
              <<",\"switch_at\":"<<switched_at<<",\"switch_after\":"<<switched_after
+             <<",\"visit_limit\":"<<visit_limit<<",\"return_at\":"<<returned_at
              <<",\"winner\":"<<winner<<",\"lane_flips\":["<<a.steps<<","<<b.steps<<"],\"charged\":"<<total<<"}\n";
 }
