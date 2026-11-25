@@ -44,8 +44,15 @@ jobs:
           cpu="$(awk '/Cpus_allowed_list/ {split($2,v,/[-,]/);print v[1]}' /proc/self/status)"
           taskset -c "$cpu" timeout 30s python3 pgpbs/src/constraint_extractor.py -v 2 -i metadata/smoke.cnf -o metadata/smoke.schedule | tee metadata/smoke-extract.log
           taskset -c "$cpu" timeout 30s python3 pgpbs/src/pgpbs.py -i metadata/smoke.cnf -s metadata/smoke.schedule -o metadata/smoke.lrat | tee metadata/smoke-solve.log
+          # Upstream lrat-check returns the DIMACS fscanf count (2) on success.
+          set +e
           taskset -c "$cpu" timeout 60s pgpbs/lrat/lrat-check metadata/smoke.cnf metadata/smoke.lrat | tee metadata/smoke-check.log
+          checker_rc=${PIPESTATUS[0]}
+          set -e
+          test "$checker_rc" = 0 || test "$checker_rc" = 2
           grep -Fx 'c VERIFIED' metadata/smoke-check.log
+          grep -F 'c verification time = ' metadata/smoke-check.log
+          if grep -E 'NOT VERIFIED|c ERROR|c failed' metadata/smoke-check.log; then exit 1; fi
       - name: Paired original20 — raw CNF, no oracle, proof production and checking
         run: |
           set -euo pipefail
