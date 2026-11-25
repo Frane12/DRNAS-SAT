@@ -178,3 +178,7 @@ See [analytic equivalence and limitations](YM17_GAUGE_BLOCK.md). Actual pinned A
 ## YM24 — local Fourier norm vacuum contraction (experimental)
 
 [Analytic derivation and scope](YM24_LOCAL_VACUUM.md). A per-link representation trace norm gives a sufficient volume-independent contraction and curvature gap for the original fixed-spacing SU(2) Hamiltonian at very small magnetic/electric ratio. Native CORE and independent auditor check the rational constants and all-order tail majorant, not the analytic premises or explicit full-lattice coefficients. ATLAS forest control is separate. No continuum claim, novelty claim or peer-reviewed proof. Run python3 core/gauge_local_vacuum_tests.py PATH_TO_PINNED_ATLAS. CI pending.
+
+## YM25 — recentered gauge-invariant vacuum contraction (experimental)
+
+[Analytic derivation and limitations](YM25_CONTINUATION.md). The stronger gauge-invariant norm and explicit second-order defect enlarge the sufficient strong-coupling interval by 12/5 on open cubic or periodic L>=4 grids. Native arithmetic and independent audit check the fixed-point constants and Picard tail, not a full coefficient computation or formal proof. No weak-coupling or continuum result. Run python3 core/gauge_vacuum_continue_tests.py. CI pending.
