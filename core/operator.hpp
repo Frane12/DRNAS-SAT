@@ -239,11 +239,48 @@ inline int ks_pair_run(const std::string& raw,std::istream& in,int len,const std
     return ok?30:0;
 }
 
+// Open square ladder. Two maximal-tree comparisons share the same
+// central product vacuum. Drop all rung electric energies for the lower
+// bound; use a full plaquette central-product Rayleigh trial for the upper.
+inline int ks_ladder_run(const std::string& raw,std::istream& in,int m,const std::filesystem::path& out,Clock::time_point stop){
+    int n;if(m<2||m>256||!(in>>n)||n<3||n>128)throw std::runtime_error("ladder dimensions");
+    Q a=rational(in),g2=rational(in),target=rational(in);std::string extra;
+    if(a<=0||g2<=0||target<=0||(in>>extra))throw std::runtime_error("ladder parameters");
+    Q e=g2/(4*a),f=g2/(2*a),k=2/(a*g2);
+    Q bottom=-2*k,tau=e*n*(n+2)-2*k,u=0,ulo=bottom;
+    Q l0=bottom,l1=bottom,la=bottom,h0=tau,h1=tau,ha=tau;
+    bool ok=false;Q lower=0,bound=0;int rounds=0;
+    try{
+        for(int it=0;it<28;++it){
+            tick(stop);
+            Q mid=(ulo+u)/2;
+            if(angular_sturm(n,0,f,k,mid,false,stop)>=1)u=mid;else ulo=mid;
+            auto refine=[&](Q& lo,Q& hi,int l,int count){
+                Q cut=(lo+hi)/2;
+                if(angular_sturm(n,l,e,k,cut,true,stop)<=count)lo=cut;else hi=cut;
+            };
+            refine(l0,h0,0,0);refine(l1,h1,0,1);refine(la,ha,1,0);
+            Q radial=(m-1)*l0+l1,angular=(m-2)*l0+2*la;
+            lower=radial<angular?radial:angular;bound=lower-m*u;
+            ++rounds;
+        }
+        tick(stop);ok=bound>=target;
+    }catch(const Limit&){ok=false;}
+    if(ok){
+        std::ofstream o(out,std::ios::binary);
+        o<<"drnas-op-v1\n"<<hash(raw)<<"\nks-ladder-gap "<<u<<" "<<l0<<" "<<l1<<" "<<la<<"\n";o.close();
+        if(!o)throw std::runtime_error("ladder evidence");
+    }
+    std::cout<<"c {\"domain\":\"operator\",\"method\":\"ks_ladder_two_tree_comparison\",\"certificate\":\""<<(ok?"OPERATOR_EXACT":"none")<<"\",\"rounds\":"<<rounds<<",\"candidate_bound\":\""<<bound<<"\"}\n";
+    return ok?30:0;
+}
+
 inline int run(const std::string& raw,const std::filesystem::path& out,double seconds){
     auto stop=Clock::now()+std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(seconds));
     if(raw.size()>65536)throw std::runtime_error("operator input limit");
     std::istringstream in(raw);std::string p,op,kind,extra;int n;
-    if(!(in>>p>>op>>kind>>n)||p!="p"||op!="op"||n<1||(kind=="gauge-gap"?n>256:n>24))throw std::runtime_error("operator header");
+    if(!(in>>p>>op>>kind>>n)||p!="p"||op!="op"||n<1||((kind=="gauge-gap"||kind=="ks-ladder-gap")?n>256:n>24))throw std::runtime_error("operator header");
+    if(kind=="ks-ladder-gap")return ks_ladder_run(raw,in,n,out,stop);
     if(kind=="ks-pair-gap")return ks_pair_run(raw,in,n,out,stop);
     if(kind=="ks-loop-gap")return ks_loop_run(raw,in,n,out,stop);
     if(kind=="gauge-gap")return gauge_run(raw,in,n,out,stop);

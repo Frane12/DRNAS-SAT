@@ -262,12 +262,49 @@ def ks_pair_verify(words,raw,cert):
     if gap<target:raise ValueError('pair gap')
     return dict(status='PROVED',certificate='OPERATOR_EXACT',task='ks-pair-gap',ground_upper=str(2*u),excited_lower=str(lower),gap_lower=str(gap),radial_lower=str(l0+l1),angular_lower=str(2*la),tail_lower=str(tau),magnetic_electric_ratio=str(4/g2**2),cutoff=n,shared_edges=1,all_representations=True,volume_uniform=False,continuum=False)
 
+def ks_ladder_verify(words,raw,cert):
+    if len(words)!=8:raise ValueError('ladder header')
+    m,n=map(int,words[3:5]);a,g2,target=map(q,words[5:8])
+    if not 2<=m<=256 or not 3<=n<=128 or min(a,g2,target)<=0:raise ValueError('ladder parameters')
+    e=g2/(4*a);f=g2/(2*a);k=2/(a*g2);tau=e*n*(n+2)-2*k
+    z=Path(cert).read_text().split()
+    if len(z)!=7 or z[:3]!=['drnas-op-v1',hashlib.sha256(raw).hexdigest(),'ks-ladder-gap']:raise ValueError('ladder binding')
+    u,l0,l1,la=map(Q,z[3:])
+    if max(l0,l1,la)>=tau:raise ValueError('tail cut')
+    # Independent LDL count; 2x2 pivot at a zero diagonal has inertia (1,1).
+    def hop(j,l):return k*k*(1-Q(l*(l+1),(j+1)*(j+2)))
+    def count(l,scale,cut,correct):
+        d=[scale*j*(j+2)-cut for j in range(l,n)]
+        if correct:d[-1]-=hop(n-1,l)/(tau-cut)
+        neg=0;i=0
+        while i<len(d):
+            if not d[i]:
+                if i+1<len(d):neg+=1;i+=2
+                else:i+=1
+                continue
+            neg+=d[i]<0
+            if i+1<len(d):d[i+1]-=hop(l+i,l)/d[i]
+            i+=1
+        return neg
+    if u>0 or (u and count(0,f,u,False)<1):raise ValueError('upper trial')
+    if count(0,e,l0,True)>0 or count(0,e,l1,True)>1 or count(1,e,la,True)>0:raise ValueError('lower comparison')
+    radial=(m-1)*l0+l1;angular=(m-2)*l0+2*la
+    lower=min(radial,angular);gap=lower-m*u
+    if gap<target:raise ValueError('ladder gap')
+    return dict(status='PROVED',certificate='OPERATOR_EXACT',task='ks-ladder-gap',
+        plaquettes=m,vertices=2*(m+1),edges=3*m+1,ground_upper=str(m*u),
+        excited_lower=str(lower),gap_lower=str(gap),radial_lower=str(radial),
+        angular_lower=str(angular),reference_ground_lower=str(m*l0),
+        per_plaquette_bracket_width=str(u-l0),cutoff=n,all_representations=True,
+        volume_uniform=False,continuum=False,magnetic_electric_ratio=str(4/g2**2))
+
 def verify(source,cert):
     raw=Path(source).read_bytes()
     if len(raw)>65536: raise ValueError('size')
     words=raw.decode('ascii').split()
     if words[:2]!=['p','op']: raise ValueError('header')
     kind=words[2]; n=int(words[3])
+    if kind=='ks-ladder-gap':return ks_ladder_verify(words,raw,cert)
     if kind=='ks-pair-gap':return ks_pair_verify(words,raw,cert)
     if kind=='ks-loop-gap':return ks_loop_verify(words,raw,cert)
     if kind=='gauge-gap':return gauge_verify(words,raw,cert)
