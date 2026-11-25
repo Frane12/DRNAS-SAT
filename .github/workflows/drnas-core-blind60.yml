@@ -1,0 +1,134 @@
+name: DRNAS CORE - blind CNF 60
+on:
+  push:
+    branches: [development/drnas-core]
+    paths: ['.github/workflows/drnas-core-blind60.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  blind:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 012315d0a62443667aad69fe0dd42c72dd375630
+      - name: Build frozen CORE and pinned references
+        run: |
+          bash core/build.sh
+          bash core/prepare_references.sh
+      - name: Generate blind panel and paired run
+        run: |
+          cd core
+          python3 -u - <<'PY'
+          import benchmark as b
+          import collections, csv, hashlib, itertools, json, os, pathlib, random, secrets, subprocess
+          out=pathlib.Path('results/blind60').resolve()
+          for d in ('cnf','evidence','logs'):
+              (out/d).mkdir(parents=True,exist_ok=False)
+          cap=5.0
+          arms=['core','kissat','cadical']
+          seed=secrets.randbits(128)
+          rng=random.Random(seed)
+          frozen=b.source_hashes()
+          freeze={'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'sources':frozen,'seed':str(seed),'arms':arms,'cap_s':cap,'audit_s':5,'repetitions':1,'design':'60 fresh synthetic CNFs; no labels or generator metadata passed to solvers; no tuning; six generator families, ten each','binary_hashes':{a:b.digest((b.ROOT/'bin'/('drnas-core' if a=='core' else a)).read_bytes()) for a in arms},'workflow_run_id':os.environ['GITHUB_RUN_ID']}
+          (out/'freeze.json').write_text(json.dumps(freeze,indent=2))
+          def generate(f,i):
+              n=[48,64,80,96,120,144,168,192,240,300][i]
+              if f=='random3':
+                  return n,b.random3(rng,list(range(1,n+1)),round(n*4.26))
+              if f=='random4':
+                  return n,[tuple(v*rng.choice([-1,1]) for v in rng.sample(range(1,n+1),4)) for _ in range(round(n*9.75))]
+              if f=='mixed-planted':
+                  bits={v:bool(rng.getrandbits(1)) for v in range(1,n+1)}
+                  cs=[]
+                  while len(cs)<5*n:
+                      k=rng.choice([2,3,3,4,5])
+                      c=tuple(v*rng.choice([-1,1]) for v in rng.sample(range(1,n+1),k))
+                      if any(bits[abs(l)]==(l>0) for l in c):cs.append(c)
+                  return n,cs
+              if f=='nae3':
+                  cs=[]
+                  for _ in range(round(n*2.1)):
+                      c=tuple(v*rng.choice([-1,1]) for v in rng.sample(range(1,n+1),3))
+                      cs.extend([c,tuple(-l for l in c)])
+                  return n,cs
+              if f=='tseitin':
+                  # Cubic graph: cycle plus random nonadjacent perfect matching.
+                  vcount=max(12,n//3*2)
+                  edges=[(j,(j+1)%vcount) for j in range(vcount)]
+                  while True:
+                      perm=list(range(vcount));rng.shuffle(perm)
+                      pairs=list(zip(perm[::2],perm[1::2]))
+                      if all((a-b)%vcount not in (1,vcount-1) for a,b in pairs):break
+                  edges+=pairs
+                  inc=[[] for _ in range(vcount)]
+                  for k,(a,c) in enumerate(edges,1):inc[a].append(k);inc[c].append(k)
+                  rhs=[rng.randrange(2) for _ in range(vcount)]
+                  rhs[-1]=(sum(rhs[:-1])+i%2)%2
+                  cs=[]
+                  for vs,r in zip(inc,rhs):
+                      cs+=b.gate(vs,lambda *bits,r=r:sum(bits)%2==r)
+                  return len(edges),cs
+              if f=='guarded-blocks':
+                  # Two random formula blocks selected by a hidden Boolean gate.
+                  k=n//2; cs=[]
+                  for sign,vs in [(1,list(range(2,k+2))),(-1,list(range(k+2,2*k+2)))]:
+                      for c in b.random3(rng,vs,round(4.26*k)):
+                          cs.append((sign,)+c)
+                  return 2*k+1,cs
+              raise ValueError(f)
+          families=['random3','random4','mixed-planted','nae3','tseitin','guarded-blocks']
+          specs=[(f,i) for f in families for i in range(10)]
+          rng.shuffle(specs)
+          cases=[];seen=set()
+          for index,(f,i) in enumerate(specs):
+              n,cs=generate(f,i)
+              n,cs=b.hide(rng,n,cs)
+              h=b.norm_digest(n,cs)
+              if h in seen:raise RuntimeError('duplicate input')
+              seen.add(h)
+              cid=f'B{index:03}'
+              p=out/'cnf'/f'{cid}.cnf'
+              b.write(p,n,cs)
+              cases.append(dict(id=cid,cohort='fresh',family=f,path='cnf/'+p.name,sha256=b.digest(p.read_bytes()),normalized_sha256=h))
+          (out/'manifest.json').write_text(json.dumps(cases,indent=2))
+          assert b.source_hashes()==frozen
+          cpus=sorted(os.sched_getaffinity(0))
+          os.sched_setaffinity(0,{cpus[0]})
+          (out/'environment.json').write_text(json.dumps({'logical_cpu':cpus[0],'serial':True,'platform':list(os.uname())}))
+          rows=[];disagreements=[]
+          with (out/'runs.jsonl').open('w') as stream:
+              for i,case in enumerate(cases):
+                  assert b.digest((out/case['path']).read_bytes())==case['sha256']
+                  group=[]
+                  for arm in arms[i%3:]+arms[:i%3]:
+                      row=b.attempt(case,arm,out,cap)
+                      rows.append(row);group.append(row)
+                      stream.write(json.dumps(row)+'\n');stream.flush()
+                      print('CORE_BLIND_ROW '+json.dumps(row),flush=True)
+                  answers={r['status'] for r in group if r['status'] in ('SAT','UNSAT')}
+                  if len(answers)>1:disagreements.append(case['id'])
+          def stats(rr):
+              good=[r for r in rr if r['status'] in ('SAT','UNSAT')]
+              return {'n':len(rr),'solved':len(good),'statuses':dict(collections.Counter(r['status'] for r in rr)),'certificates':dict(collections.Counter(r['certificate'] for r in good)),'par2_s':sum(r['solve_s'] if r in good else 2*cap for r in rr)/max(1,len(rr))}
+          summary={'all':{a:stats([r for r in rows if r['arm']==a]) for a in arms},'families':{f:{a:stats([r for r in rows if r['arm']==a and r['family']==f]) for a in arms} for f in families},'paired':{},'disagreements':disagreements}
+          for a in arms[1:]:
+              c={r['id'] for r in rows if r['arm']=='core' and r['status'] in ('SAT','UNSAT')}
+              d={r['id'] for r in rows if r['arm']==a and r['status'] in ('SAT','UNSAT')}
+              summary['paired'][a]={'core_only':sorted(c-d),'reference_only':sorted(d-c)}
+          (out/'summary.json').write_text(json.dumps(summary,indent=2))
+          with (out/'runs.csv').open('w') as stream:
+              w=csv.DictWriter(stream,fieldnames=sorted(set().union(*(r.keys() for r in rows))))
+              w.writeheader();w.writerows(rows)
+          print('CORE_BLIND_SUMMARY '+json.dumps(summary),flush=True)
+          assert b.source_hashes()==frozen
+          if disagreements or any(r['status'] in ('ERROR','REJECTED') for r in rows):raise RuntimeError('verification failure')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: drnas-core-blind60
+          path: core/results/blind60/
+          if-no-files-found: warn
