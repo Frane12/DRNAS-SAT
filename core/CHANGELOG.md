@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2-adaptive-repair.1 — 2026-11-25 (experiment)
+
+- Added an opt-in bounded multi-guard controller which ranks source-clause impact, tries conditional propagation, retains strict seed improvements, and independently checks complete answers. Paired fresh and separate transfer-generator controls; not the default schedule. CI results pending.
+
 ## 0.1.2-boundary-repair.1 — 2026-11-25 (experiment)
 
 - Added an opt-in post-installation repair against the original clauses, with conditional propagation and independent model and prefix audits. See `experiments/boundary-repair/` for the frozen paired protocol and patch to the BOUNDARY100 kernel.
