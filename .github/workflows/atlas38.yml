@@ -23,7 +23,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           repository: Frane12/DRNAS-SAT
-          run-id: 27360211946
+          run-id: 45360211946
           github-token: ${{ github.token }}
           name: DRNAS-ATLAS22-ORIGINAL-CHACHA32-CNF-CERTIFIED-PAIRED
           path: baseline
