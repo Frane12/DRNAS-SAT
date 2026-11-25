@@ -53,9 +53,7 @@ def extract(src,cert):
 def execute(root,label,raw,memory=None):
     src=root/(label+'.op');cert=root/(label+'.cert')
     src.write_text(raw)
-    if memory is None: os.environ.pop(MEM,None)
-    else: os.environ[MEM]=str(memory)
-    result=run(src,cert,5,audit_seconds=15)
+    result=run(src,cert,5,audit_seconds=15,rule_memory=memory)
     return result,src,cert
 
 def word(n, entries):
