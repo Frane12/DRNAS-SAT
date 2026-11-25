@@ -166,3 +166,7 @@ See [analytic equivalence and limitations](YM17_GAUGE_BLOCK.md). Actual pinned A
 ### YM21 finite-volume residual extension
 
 [Derivation and scope](YM21_PARENT_VOLUME.md). Separate input p op gauge-parent-volume D L ALPHA K GAMMA retains the existing YM21 gauge-parent-gap interface and adds an exact count of local residuals for open grids. The auxiliary gap is uniform, the original finite-volume comparison is not. Actual pinned ATLAS forest controls at the same parameters and independent CORE certificates. Run python3 core/gauge_parent_volume_tests.py PATH_TO_PINNED_ATLAS. CI pending.
+
+## YM22 — second-order logarithmic vacuum correction (experimental)
+
+[Analytic local correction and limits](YM22_VACUUM2.md). The supplied F2 schema cancels the nonconstant second-order residual of F1 for open square grids. CORE checks the uniform auxiliary curvature gap and cubic local residual bound; no uniform original KS gap or convergence claim. Exact quaternion identity tests and actual pinned ATLAS forest control. Run python3 core/gauge_vacuum2_tests.py PATH_TO_PINNED_ATLAS. CI pending.

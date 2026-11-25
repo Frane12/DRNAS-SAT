@@ -374,6 +374,28 @@ def gauge_parent_volume_verify(words,raw,cert):
         uniform_original_gap=False,all_representations=True,continuum=False,
         dimension=d,L=L,lambda_value=str(lam),analytic_theorem='Bakry-Emery curvature criterion')
 
+
+def gauge_vacuum2_verify(words,raw,cert):
+    if len(words)!=7:raise ValueError('vacuum2 header')
+    d=int(words[3]);alpha,k,target=map(q,words[4:7])
+    if d not in (2,3) or min(alpha,target)<=0:raise ValueError('vacuum2 parameters')
+    t=k/(3*alpha);u=abs(t);degree=2*d-2
+    # Independently sum the local derivative estimates by term type.
+    adjacent=degree*4*(degree-1)
+    b=degree*Q(1,2)+adjacent*(Q(8,39)+Q(4,13))
+    c=degree*2+adjacent*(Q(8,39)*3+Q(16,13))
+    gap=alpha*(Q(1,2)-4*degree*u-2*c*u*u)
+    rem=alpha*u**2*((degree+b*u)**2-degree**2)
+    z=Path(cert).read_text().split()
+    if len(z)!=8 or z[:3]!=['drnas-op-v1',hashlib.sha256(raw).hexdigest(),'gauge-vacuum2']:raise ValueError('vacuum2 binding')
+    if list(map(Q,z[3:]))!=[t,b,c,gap,rem] or gap<target:raise ValueError('vacuum2 bound')
+    return dict(status='PROVED',certificate='OPERATOR_EXACT',task='gauge-vacuum2',
+        reference_hamiltonian=True,correction_order=2,residual_order=3,
+        gap_lower=str(gap),local_residual_abs_upper=str(rem),
+        first_order_residual_upper=str(alpha*degree**2*t*t),
+        uniform_reference_gap=True,uniform_original_gap=False,
+        all_representations=True,continuum=False,dimension=d,lambda_value=str(t))
+
 def verify(source,cert):
     raw=Path(source).read_bytes()
     if len(raw)>65536: raise ValueError('size')
@@ -388,6 +410,7 @@ def verify(source,cert):
     if kind=='gauge-stability':return gauge_stability_verify(words,raw,cert)
     if kind=='gauge-parent-gap':return gauge_parent_verify(words,raw,cert)
     if kind=='gauge-parent-volume':return gauge_parent_volume_verify(words,raw,cert)
+    if kind=='gauge-vacuum2':return gauge_vacuum2_verify(words,raw,cert)
     if not 1<=n<=24: raise ValueError('dimension')
     if kind=='rotor-gap':return rotor_verify(words,raw,cert)
     if kind=='decimation-gap':return decimation_verify(words,raw,cert)
