@@ -189,11 +189,62 @@ inline int ks_loop_run(const std::string& raw,std::istream& in,int len,const std
     return ok?30:0;
 }
 
+// Two cycles sharing one edge. Delete its positive Casimir for a lower
+// comparison, retain it in a central product Rayleigh trial for the upper.
+inline Q angular_hop2(int j,int l,const Q& k){
+    return k*k*Q((j-l+1)*(j+l+2))/((j+1)*(j+2));
+}
+inline int angular_sturm(int n,int l,const Q& e,const Q& k,const Q& cut,bool tail,Clock::time_point stop){
+    Q prev=1,last=1;int count=0,prior=1;
+    Q tau=e*n*(n+2)-2*k;
+    for(int j=l;j<n;++j){
+        tick(stop);Q d=e*j*(j+2)-cut;
+        if(tail&&j==n-1)d-=angular_hop2(j,l,k)/(tau-cut);
+        Q next=d*last;if(j>l)next-=angular_hop2(j-1,l,k)*prev;
+        int sign=next>0?1:next<0?-1:0;
+        if(sign){if(sign!=prior)++count;prior=sign;}
+        prev=last;last=next;
+    }
+    return count;
+}
+inline int ks_pair_run(const std::string& raw,std::istream& in,int len,const std::filesystem::path& out,Clock::time_point stop){
+    int n;if(len<3||len>24||!(in>>n)||n<3||n>128)throw std::runtime_error("pair dimensions");
+    Q a=rational(in),g2=rational(in),target=rational(in);std::string extra;
+    if(a<=0||g2<=0||target<=0||(in>>extra))throw std::runtime_error("pair parameters");
+    Q e=Q(len-1)*g2/(8*a),f=Q(len)*g2/(8*a),k=2/(a*g2);
+    Q bottom=-2*k,tau=e*n*(n+2)-2*k,u=0,ulo=bottom;
+    Q l0=bottom,l1=bottom,la=bottom,h0=tau,h1=tau,ha=tau;
+    bool ok=false;Q lower=0;
+    try{
+        for(int it=0;it<32;++it){
+            tick(stop);
+            Q mid=(ulo+u)/2;
+            if(angular_sturm(n,0,f,k,mid,false,stop)>=1)u=mid;else ulo=mid;
+            auto refine=[&](Q& lo,Q& hi,int l,int count){
+                Q m=(lo+hi)/2;
+                if(angular_sturm(n,l,e,k,m,true,stop)<=count)lo=m;else hi=m;
+            };
+            refine(l0,h0,0,0);refine(l1,h1,0,1);refine(la,ha,1,0);
+            Q radial=l0+l1,angular=2*la;lower=radial<angular?radial:angular;
+            if(lower-2*u>=target){ok=true;break;}
+        }
+        tick(stop);
+    }catch(const Limit&){ok=false;}
+    if(ok){
+        std::ofstream o(out,std::ios::binary);
+        o<<"drnas-op-v1\n"<<hash(raw)<<"\nks-pair-gap "<<u<<" "<<l0<<" "<<l1<<" "<<la<<"\n";o.close();
+        if(!o)throw std::runtime_error("pair evidence");
+    }
+    std::cout<<"c {\"domain\":\"operator\",\"method\":\"ks_shared_edge_angular_comparison\",\"certificate\":\""<<(ok?"OPERATOR_EXACT":"none")<<"\"}\n";
+    return ok?30:0;
+}
+
 inline int run(const std::string& raw,const std::filesystem::path& out,double seconds){
     auto stop=Clock::now()+std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(seconds));
     if(raw.size()>65536)throw std::runtime_error("operator input limit");
     std::istringstream in(raw);std::string p,op,kind,extra;int n;
     if(!(in>>p>>op>>kind>>n)||p!="p"||op!="op"||n<1||(kind=="gauge-gap"?n>256:n>24))throw std::runtime_error("operator header");
+    if(kind=="ks-pair-gap")return ks_pair_run(raw,in,n,out,stop);
     if(kind=="ks-loop-gap")return ks_loop_run(raw,in,n,out,stop);
     if(kind=="gauge-gap")return gauge_run(raw,in,n,out,stop);
     if(kind=="gauge-stability")return gauge_stability_run(raw,in,n,out,stop);

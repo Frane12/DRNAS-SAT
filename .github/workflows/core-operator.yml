@@ -50,5 +50,7 @@ jobs:
         run: python3 core/gauge_stability_tests.py
       - name: Physical SU2 single-loop scaling (YM15)
         run: python3 core/ks_loop_tests.py
+      - name: Physical shared-edge SU2 cycles (YM16B)
+        run: python3 core/ks_pair_tests.py
       - name: Existing CNF regression
         run: python3 core/tests.py

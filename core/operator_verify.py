@@ -232,12 +232,43 @@ def multiscale_verify(words,raw,cert):
                 ground_upper=str(u),excited_lower=str(l),gap_lower=str(l-u),
                 layers=s,dimensions=dims,eliminated=len(drop),remaining=n-len(drop),finite_only=True)
 
+def ks_pair_verify(words,raw,cert):
+    if len(words)!=8:raise ValueError('pair header')
+    length,n=map(int,words[3:5]);a,g2,target=map(q,words[5:8])
+    if not 3<=length<=24 or not 3<=n<=128 or min(a,g2,target)<=0:raise ValueError('pair parameters')
+    e=(length-1)*g2/(8*a);f=length*g2/(8*a);k=2/(a*g2);tau=e*n*(n+2)-2*k
+    z=Path(cert).read_text().split()
+    if len(z)!=7 or z[:3]!=['drnas-op-v1',hashlib.sha256(raw).hexdigest(),'ks-pair-gap']:raise ValueError('pair binding')
+    u,l0,l1,la=map(Q,z[3:])
+    if max(l0,l1,la)>=tau:raise ValueError('tail cut')
+    # Independent rational LDL inertia. Squared off-diagonals are sufficient.
+    def hop(j,l):return k*k*(1-Q(l*(l+1),(j+1)*(j+2)))
+    def count(l,scale,cut,correct):
+        d=[scale*j*(j+2)-cut for j in range(l,n)]
+        if correct:d[-1]-=hop(n-1,l)/(tau-cut)
+        neg=0;i=0
+        while i<len(d):
+            if d[i]==0:
+                if i+1<len(d):neg+=1;i+=2
+                else:i+=1
+                continue
+            neg+=d[i]<0
+            if i+1<len(d):d[i+1]-=hop(l+i,l)/d[i]
+            i+=1
+        return neg
+    if u>0 or (u!=0 and count(0,f,u,False)<1):raise ValueError('upper trial')
+    if count(0,e,l0,True)>0 or count(0,e,l1,True)>1 or count(1,e,la,True)>0:raise ValueError('lower comparison')
+    lower=min(l0+l1,2*la);gap=lower-2*u
+    if gap<target:raise ValueError('pair gap')
+    return dict(status='PROVED',certificate='OPERATOR_EXACT',task='ks-pair-gap',ground_upper=str(2*u),excited_lower=str(lower),gap_lower=str(gap),radial_lower=str(l0+l1),angular_lower=str(2*la),tail_lower=str(tau),magnetic_electric_ratio=str(4/g2**2),cutoff=n,shared_edges=1,all_representations=True,volume_uniform=False,continuum=False)
+
 def verify(source,cert):
     raw=Path(source).read_bytes()
     if len(raw)>65536: raise ValueError('size')
     words=raw.decode('ascii').split()
     if words[:2]!=['p','op']: raise ValueError('header')
     kind=words[2]; n=int(words[3])
+    if kind=='ks-pair-gap':return ks_pair_verify(words,raw,cert)
     if kind=='ks-loop-gap':return ks_loop_verify(words,raw,cert)
     if kind=='gauge-gap':return gauge_verify(words,raw,cert)
     if kind=='gauge-stability':return gauge_stability_verify(words,raw,cert)
