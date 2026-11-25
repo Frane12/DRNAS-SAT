@@ -112,7 +112,8 @@ def check(source,cert):
                     if phase in (0,2):
                         sign=1 if phase==0 else -1
                         rules.add('C3+' if sign==1 else 'C3-')
-                        triples[frozenset((u,v,prod))]=sign
+                        relation=frozenset((u,v,prod))
+                        if len(triples)<128 or relation in triples: triples[relation]=sign
                 # Bounded recursive closure on signed relations in one checked,
                 # pairwise commuting block. Symmetric difference cancels repeated
                 # involutions; signs multiply. Depth is measured in proof layers.
