@@ -162,3 +162,7 @@ See [analytic equivalence and limitations](YM17_GAUGE_BLOCK.md). Actual pinned A
 ## YM21 — interacting gauge parent with quantitative uniform gap (experimental)
 
 [Derivation and limits](YM21_PARENT_GAP.md). Input p op gauge-parent-gap D ALPHA K GAMMA. Exact rational curvature certificate for the auxiliary Hamiltonian H_parent=H_KS+alpha |grad F|^2 with explicit positive vacuum exp(F), F=K sum Wilson traces/(3 ALPHA). The explicit bound is independent of volume, but it is NOT a uniform bound for H_KS. Local residual is quantified; its removal requires a separate stability proof. Eight prepared cases and 18 incidence checks. Run python3 core/gauge_parent_tests.py. No ATLAS call in this task; CI pending.
+
+### YM21 finite-volume residual extension
+
+[Derivation and scope](YM21_PARENT_VOLUME.md). Separate input p op gauge-parent-volume D L ALPHA K GAMMA retains the existing YM21 gauge-parent-gap interface and adds an exact count of local residuals for open grids. The auxiliary gap is uniform, the original finite-volume comparison is not. Actual pinned ATLAS forest controls at the same parameters and independent CORE certificates. Run python3 core/gauge_parent_volume_tests.py PATH_TO_PINNED_ATLAS. CI pending.

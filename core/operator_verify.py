@@ -353,6 +353,27 @@ def gauge_parent_verify(words,raw,cert):
                 residual_per_edge_upper=str(residual),volume_uniform=True,all_representations=True,
                 original_KS_uniform_gap=False,continuum=False,analytic_premise='Bakry-Emery ground-state transform')
 
+def gauge_parent_volume_verify(words,raw,cert):
+    from math import comb
+    if len(words)!=8:raise ValueError('parent header')
+    d,L=map(int,words[3:5]);alpha,k,target=map(q,words[5:8])
+    if d not in (2,3) or not 2<=L<=64 or min(alpha,target)<=0:raise ValueError('parent parameters')
+    lam=k/(3*alpha);degree=2*(d-1)
+    # Independent combinatorial count: s boundary transverse coordinates
+    # each contribute one instead of two neighboring plaquettes.
+    total=d*(L-1)*sum(comb(d-1,s)*2**s*(L-2)**(d-1-s)*(degree-s)**2 for s in range(d))
+    gap=alpha/2-4*degree*abs(k)/3
+    local=alpha*lam**2*degree**2;residual=alpha*lam**2*total
+    z=Path(cert).read_text().split()
+    if len(z)!=8 or z[:3]!=['drnas-op-v1',hashlib.sha256(raw).hexdigest(),'gauge-parent-volume']:raise ValueError('parent binding')
+    if list(map(Q,z[3:]))!=[lam,gap,local,residual,gap-residual] or gap<target:raise ValueError('parent bound')
+    return dict(status='PROVED',certificate='OPERATOR_EXACT',task='gauge-parent-volume',
+        reference_hamiltonian=True,gap_lower=str(gap),local_residual_upper=str(local),
+        total_residual_upper=str(residual),original_finite_gap_lower=str(gap-residual),
+        original_positive_bound=gap-residual>0,uniform_reference_gap=True,
+        uniform_original_gap=False,all_representations=True,continuum=False,
+        dimension=d,L=L,lambda_value=str(lam),analytic_theorem='Bakry-Emery curvature criterion')
+
 def verify(source,cert):
     raw=Path(source).read_bytes()
     if len(raw)>65536: raise ValueError('size')
@@ -366,6 +387,7 @@ def verify(source,cert):
     if kind=='gauge-gap':return gauge_verify(words,raw,cert)
     if kind=='gauge-stability':return gauge_stability_verify(words,raw,cert)
     if kind=='gauge-parent-gap':return gauge_parent_verify(words,raw,cert)
+    if kind=='gauge-parent-volume':return gauge_parent_volume_verify(words,raw,cert)
     if not 1<=n<=24: raise ValueError('dimension')
     if kind=='rotor-gap':return rotor_verify(words,raw,cert)
     if kind=='decimation-gap':return decimation_verify(words,raw,cert)
