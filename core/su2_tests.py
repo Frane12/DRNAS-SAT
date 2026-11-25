@@ -44,7 +44,7 @@ def main():
             print('YM12_ROW '+json.dumps(dict(id=label,**r)),flush=True)
             return r,s,c
         for sizes in ([2],[4],[6],[8],[4]*12,[6]*20,[8]*30):
-            n,a,blocks,gap,dim=build(sizes,1234+n)
+            n,a,blocks,gap,dim=build(sizes,1234+sum(sizes))
             r,s,c=test(f'casimir-{n}',cas(n,a,gap))
             assert r['gap_lower']==str(gap) and r['ground_dimension']==str(dim) and r['blocks']==len(blocks),r
             old=c.read_text();lines=old.splitlines();lines[-1]=f'{len(blocks)} {gap+1}';c.write_text('\n'.join(lines)+'\n')
