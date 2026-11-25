@@ -146,3 +146,7 @@ ATLAS30 at the same pinned source commit is called on successive symbolic fill g
 ## YM17 — exact spatial gauge blocking (experimental)
 
 See [analytic equivalence and limitations](YM17_GAUGE_BLOCK.md). Actual pinned ATLAS30 proposes safe degree-two vertex sets, the structural auditor reconstructs original weighted paths and Wilson loops, and the native CORE independently certifies the original graph gap. Run python3 core/atlas_gauge_block_tests.py PATH_TO_PINNED_ATLAS. This is an exact graph subdivision equivalence, not a continuum limit. Four prepared controls; CI status separate.
+
+## YM18 — maximal-tree SU(2) coordinates (experimental)
+
+[Analytic transformation and scope](YM18_TREE_GAUGE.md). Pinned ATLAS30 chooses a rooted spanning tree using CNF parent choices; the independent structural auditor reconstructs all Wilson words and signed electric derivation rows, including mixed terms. CORE independently certifies the original gauge-gap bound. Run python3 core/tree_gauge_tests.py PATH_TO_PINNED_ATLAS. The gauge coordinates are eliminated exactly, but this is not physical coarse-graining or a new continuum gap result. CI pending.
