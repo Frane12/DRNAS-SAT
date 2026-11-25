@@ -46,5 +46,7 @@ jobs:
         run: python3 core/rotor_gap_tests.py
       - name: Full finite SU2 graph gap bounds (YM13)
         run: python3 core/gauge_gap_tests.py
+      - name: Qualitative uniform SU2 stability theorem (YM14)
+        run: python3 core/gauge_stability_tests.py
       - name: Existing CNF regression
         run: python3 core/tests.py
