@@ -89,6 +89,7 @@ def main():
     for arg in ["manifest","corpus","out","drnas","kissat","cadical","checker"]:
         p.add_argument("--"+arg,type=Path,required=True)
     p.add_argument("--cap",type=float,default=3.0);p.add_argument("--reps",type=int,default=3)
+    p.add_argument("--prior",type=Path,help="optional frozen DRNAS reference")
     p.add_argument("--ablation",action="store_true",help="only the paired --no-repair diagnostic")
     a=p.parse_args()
     if a.cap<=0 or a.reps<=0:p.error("positive cap and repetitions required")
@@ -96,7 +97,8 @@ def main():
     cpu=min(os.sched_getaffinity(0));os.sched_setaffinity(0,{cpu})
     manifest=json.loads(a.manifest.read_bytes())
     files={k:getattr(a,k).resolve() for k in ("drnas","kissat","cadical","checker")}
-    arms=("DRNAS-no-repair",) if a.ablation else MAIN
+    if a.prior: files["prior"]=a.prior.resolve()
+    arms=("DRNAS-no-repair",) if a.ablation else (("DRNAS","DRNAS-prior","Kissat","CaDiCaL") if a.prior else MAIN)
     meta=dict(freeze=manifest["freeze"],cap_s=a.cap,repetitions=a.reps,cpu=cpu,
               cpu_model=next((line.split(":",1)[1].strip() for line in Path("/proc/cpuinfo").read_text().splitlines() if line.startswith("model name")),"unknown"),
               platform=platform.platform(),python=platform.python_version(),manifest_sha256=sha(a.manifest.read_bytes()),
@@ -117,7 +119,7 @@ def main():
                 start=(i+rep)%len(arms)
                 for order,name in enumerate(arms[start:]+arms[:start]):
                     if name.startswith("DRNAS"):
-                        cmd=[files["drnas"],path,proof,str(a.cap)]
+                        cmd=[files["prior" if name=="DRNAS-prior" else "drnas"],path,proof,str(a.cap)]
                         if a.ablation:cmd+=["--no-repair"]
                     else:
                         cmd=[files[name.lower()],"-q",path,proof]
