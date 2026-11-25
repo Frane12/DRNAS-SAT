@@ -26,15 +26,17 @@ def run(source, evidence, seconds=5, mode='default', audit_seconds=5):
     if result['solve_s'] > seconds + .05:
         result['status'] = 'TIMEOUT'
         return result
-    if proc.returncode not in (0, 10, 20):
+    if proc.returncode not in (0, 10, 20, 30):
         result.update(status='ERROR', error=proc.stderr.strip())
         return result
     if not proc.returncode:
         return result
     started = time.monotonic()
     try:
-        audit = subprocess.run([sys.executable, ROOT / 'verify.py', source, evidence,
-                                str(proc.returncode), '--seconds', str(audit_seconds)],
+        command = ([sys.executable, ROOT / 'operator_verify.py', source, evidence]
+                   if proc.returncode == 30 else
+                   [sys.executable, ROOT / 'verify.py', source, evidence, str(proc.returncode), '--seconds', str(audit_seconds)])
+        audit = subprocess.run(command,
                                capture_output=True, text=True, timeout=audit_seconds + .1)
         result.update(json.loads(audit.stdout))
     except subprocess.TimeoutExpired:
@@ -55,4 +57,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     answer = run(args.input, args.evidence, args.seconds, args.mode, args.audit_seconds)
     print(json.dumps(answer, ensure_ascii=False))
-    sys.exit(0 if answer['status'] in ('SAT', 'UNSAT', 'UNKNOWN', 'TIMEOUT', 'AUDIT_LIMIT') else 1)
+    sys.exit(0 if answer['status'] in ('SAT', 'UNSAT', 'PROVED', 'UNKNOWN', 'TIMEOUT', 'AUDIT_LIMIT') else 1)
