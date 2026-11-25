@@ -1,0 +1,17 @@
+name: DRNAS CORE - YM33 physical torus gap bounds
+on:
+  push:
+    branches: [experiment/ym33-torus-gap, development/drnas-core]
+    paths: ['core/ym33_torus*.py', 'core/YM33_TORUS_GAP.md', '.github/workflows/core-ym33-torus.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bounds:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 core/ym33_torus_tests.py
