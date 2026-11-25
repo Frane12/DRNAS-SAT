@@ -136,4 +136,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     answer = run(args.input, args.evidence, args.seconds, args.mode, args.audit_seconds, args.rule_memory, args.rule_feedback)
     print(json.dumps(answer, ensure_ascii=False))
-    sys.exit(0 if answer['status'] in ('SAT', 'UNSAT', 'PROVED', 'UNKNOWN', 'TIMEOUT', 'AUDIT_LIMIT') else 1)
+    sys.exit(0 if answer['status'] in ('SAT', 'UNSAT', 'PROVED', 'THEOREM_APPLIED', 'UNKNOWN', 'TIMEOUT', 'AUDIT_LIMIT') else 1)
