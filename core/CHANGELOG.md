@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2-boundary-repair.1 — 2026-11-25 (experiment)
+
+- Added an opt-in post-installation repair against the original clauses, with conditional propagation and independent model and prefix audits. See `experiments/boundary-repair/` for the frozen paired protocol and patch to the BOUNDARY100 kernel.
+
 ## 0.1.2 — 2026-11-25
 
 - Imported the latest pinned WORDLIFT23 word-arithmetic recovery into the existing affine kernel, with source unit closure and its bounded circuit budget.

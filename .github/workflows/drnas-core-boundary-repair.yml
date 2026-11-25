@@ -1,0 +1,51 @@
+name: DRNAS CORE - immediate certified boundary repair
+on:
+  workflow_dispatch:
+  push:
+    branches: [development/drnas-core]
+    paths: ['.github/workflows/drnas-core-boundary-repair.yml', 'core/experiments/boundary-repair/**']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: 012315d0a62443667aad69fe0dd42c72dd375630
+          path: pilot
+      - uses: actions/download-artifact@v4
+        with:
+          name: drnas-core-boundary100
+          run-id: 45613133887
+          github-token: ${{ github.token }}
+          path: previous
+      - name: Restore original BOUNDARY and add the opt-in source repair
+        run: |
+          echo 'c5eecedb8e2f799ca8d8f296f9ea7dfa398519fd49dddcd055078e1e2256b8c9  previous/boundary-scheduler.patch' | sha256sum -c -
+          cd pilot
+          git apply ../previous/boundary-scheduler.patch
+          git apply ../core/experiments/boundary-repair/repair.patch
+          bash core/build.sh
+      - name: Check soundness and the conditional repair path
+        run: |
+          cd pilot/core
+          DRNAS_SCHEDULE=boundary-repair python3 tests.py
+          bin/drnas-core --boundary-selftest repair-test
+          bin/check-rup repair-test/source.cnf repair-test/proof.rup --prefix repair-test/messages.txt
+          bin/check-rup repair-test/repair-source.cnf repair-test/repair.rup --prefix repair-test/repair.messages
+          python3 verify.py repair-test/repair-source.cnf repair-test/repair.model 10
+      - name: Three paired repetitions with independently checked outcomes
+        run: |
+          python3 core/experiments/boundary-repair/run_panel.py --core pilot/core --previous previous --output result
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: drnas-core-boundary-repair
+          path: |
+            result/
+            pilot/core/repair-test/
+          if-no-files-found: warn

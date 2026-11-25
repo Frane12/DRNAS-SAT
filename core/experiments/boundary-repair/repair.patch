@@ -1,0 +1,148 @@
+--- a/core/core.cpp
++++ b/core/core.cpp
+@@ -150,6 +150,7 @@
+     // and lock root-implied variables; no incremental swap/pop assumptions.
+     struct RepairProgress { int initial=0,best=0,windows=0,stalls=0; uint64_t moves=0; double elapsed=0; };
+     RepairProgress live_repair;
++    bool immediate_boundary_repair=false;
+     bool repair_feedback(int n,const F& input,toolbox::Model& m,const toolbox::Model& fixed,Time until){
+         live_repair=RepairProgress{};
+         const auto start=Clock::now();
+@@ -335,6 +336,26 @@
+         write_file(out/"source.cnf","p cnf 4 3\n"+clauses_text(cnf));
+         write_file(out/"proof.rup",clauses_text(r.trace));
+         write_file(out/"messages.txt",clauses_text(F{r.clause}));
++        // Prove a fresh unit, export it, and exercise a source-checked repair.
++        original={2,{{1,2},{-1,2}}};
++        all=proof_db=original.cs;
++        active_known=known=set<C>(all.begin(),all.end());
++        if(absorb(F{{2}},F{{2}},toolbox::after(1))||!active_known.count(C{2}))
++            throw runtime_error("repair selftest: missing accepted guard");
++        toolbox::Model test_seed(3,0);
++        if(!try_boundary_repair(F{{2}},test_seed,toolbox::after(1)))
++            throw runtime_error("repair selftest: missing source model");
++        write_file(out/"repair-source.cnf","p cnf 2 2\n"+clauses_text(original.cs));
++        write_file(out/"repair.model",artifact);
++        write_file(out/"repair.rup",clauses_text(ledger));
++        write_file(out/"repair.messages",clauses_text(F{{2}}));
++        test_seed[2]=1;
++        if(try_boundary_repair(F{{2}},test_seed,toolbox::after(1)))
++            throw runtime_error("repair selftest: should skip satisfied guard");
++        test_seed[2]=0;
++        original.cs.push_back({-2});all.push_back({-2});
++        if(try_boundary_repair(F{{2}},test_seed,toolbox::after(1)))
++            throw runtime_error("repair selftest: inconsistent conditional branch");
+         std::fprintf(stderr,"BOUNDARY_SELFTEST passed\n");
+     }
+     bool local_exact(int n,const F& input,toolbox::Model& m,const toolbox::Model& fixed,Time until,toolbox::Proof* proof=nullptr,F* exports=nullptr){
+@@ -440,6 +461,68 @@
+         }
+         return false;
+     }
++    // Temporary assumptions stay in this attempt. Only a source model leaves it.
++    bool try_boundary_repair(const F& accepted,const toolbox::Model& seed,Time until){
++        if(seed.size()!=size_t(original.n+1)||Clock::now()>=until)return false;
++        const C* guard=nullptr;
++        for(const C& clause:accepted){
++            if(clause.empty()||std::any_of(clause.begin(),clause.end(),
++                    [&](int l){return toolbox::value(seed,l)==1;}))continue;
++            if(!guard||clause.size()<guard->size())guard=&clause;
++        }
++        if(!guard){
++            std::fprintf(stderr,"IMMEDIATE skip=no_violated_guard\n");
++            return false;
++        }
++        auto violations=[&](const toolbox::Model& candidate){
++            return std::count_if(original.cs.begin(),original.cs.end(),[&](const C& c){
++                return std::none_of(c.begin(),c.end(),[&](int l){return toolbox::value(candidate,l)==1;});
++            });
++        };
++        // Prefer the single guard flip which leaves fewest original clauses false.
++        vector<pair<int,int>> pivots;
++        toolbox::Model probe=seed;
++        for(int l:*guard){
++            if(Clock::now()>=until)return false;
++            probe[abs(l)]^=1;
++            pivots.emplace_back(violations(probe),l);
++            probe[abs(l)]^=1;
++        }
++        sort(pivots.begin(),pivots.end());
++        F without_guard;
++        for(const C& clause:all)if(clause!=*guard)without_guard.push_back(clause);
++        toolbox::AdaptivePropagator before(original.n,without_guard),after(original.n,all);
++        const int initial=violations(seed);
++        int tried=0;
++        for(auto [score,pivot]:pivots){
++            (void)score;
++            if(++tried>4||Clock::now()>=until)break;
++            C assumptions;
++            for(int l:*guard)if(l!=pivot)assumptions.push_back(-l);
++            bool consistent_before=before.consistent(assumptions);
++            if(!after.consistent(assumptions)){
++                std::fprintf(stderr,"IMMEDIATE branch_conflict=1 guard_added_conflict=%d\n",consistent_before);
++                continue;
++            }
++            if(!consistent_before||toolbox::value(after.state,pivot)!=1)
++                throw std::logic_error("invalid conditional boundary propagation");
++            const int extra_units=int(after.trail.size())-int(before.trail.size());
++            toolbox::Model candidate=seed;
++            for(int l:after.trail)candidate[abs(l)]=l>0;
++            const auto saved_progress=live_repair;
++            bool solved=toolbox::satisfied(original.cs,candidate);
++            if(!solved&&Clock::now()<until)
++                solved=repair_feedback(original.n,original.cs,candidate,after.state,until);
++            live_repair=saved_progress; // preserve later controller decisions
++            int final_bad=violations(candidate);
++            bool accepted_model=solved&&model(candidate,"boundary_immediate_source_model");
++            std::fprintf(stderr,"IMMEDIATE attempt=1 width=%zu initial_bad=%d final_bad=%d extra_units=%d model=%d\n",
++                         guard->size(),initial,final_bad,extra_units,accepted_model);
++            return accepted_model;
++        }
++        std::fprintf(stderr,"IMMEDIATE skip=no_admissible_pivot\n");
++        return false;
++    }
+     int discover(double fraction=.50,double maximum=.6,int responsive=0){
+         ProfileScope scope("discovery");
+         if(no_share||original.n>1500||all.size()>10000||left()<.06)return 0;
+@@ -450,6 +533,7 @@
+         toolbox::Model answer;
+         auto stop=budget(fraction,maximum);
+         F boundary_exports;
++        toolbox::Model boundary_seed;
+         auto work=f.cs;toolbox::Model fixed(original.n+1,-1);
+         bool consistent=toolbox::reduce_root(f.n,work,fixed,p);
+         if(consistent){
+@@ -480,6 +564,7 @@
+                         good=repair_feedback(f.n,work,m,fixed,part(responsive>=3?.45:.60));
+                         if(responsive>=3&&!good&&live_repair.best>0&&live_repair.best<=8&&Clock::now()<stop)
+                             good=local_exact(f.n,work,m,fixed,min(part(responsive==4?.65:.45),toolbox::after(responsive==4?.25:.15)),responsive==4?&p:nullptr,responsive==4?&boundary_exports:nullptr);
++                        if(immediate_boundary_repair&&!boundary_exports.empty())boundary_seed=m;
+                         // If the measured local attempt did not finish but is
+                         // close to a model, allow the original repair path too.
+                         if(!good&&live_repair.best<=2&&Clock::now()<stop)
+@@ -527,6 +612,8 @@
+                 write_file(string(side)+".boundary.rup",clauses_text(ledger));
+                 write_file(string(side)+".boundary.messages",clauses_text(accepted));
+             }
++            if(!terminal&&immediate_boundary_repair&&!accepted.empty()&&
++               try_boundary_repair(accepted,boundary_seed,budget(.12,.12)))return 10;
+         }
+         if(terminal)return 20;
+         return 0;
+@@ -581,6 +668,8 @@
+         int rc=relations();if(rc)return rc;
+         const char* raw_schedule=std::getenv("DRNAS_SCHEDULE");
+         string schedule=raw_schedule?raw_schedule:"legacy";
++        immediate_boundary_repair=schedule=="boundary-repair";
++        if(immediate_boundary_repair)schedule="boundary";
+         bool eligible=!no_share&&original.n<=1500&&all.size()<=10000&&left()>.12;
+         if(eligible&&(schedule=="feedback"||schedule=="local"||schedule=="boundary")){
+             // Use the twice-validated staged schedule as the safety baseline.
+@@ -665,6 +754,7 @@
+         cout<<"c {\"version\":\"0.1.2\",\"method\":\""<<method<<"\",\"certificate\":\""<<format
+             <<"\",\"shared_clauses\":"<<shared<<",\"share_budget_stops\":"<<rejected_by_budget
+             <<",\"relation_pairs\":"<<unified.pairs<<",\"feedback_messages\":"<<fb_messages
++            <<",\"boundary_repair_revision\":"<<(immediate_boundary_repair?1:0)
+             <<",\"proof_helpers\":"<<ledger.size()<<",\"active_clauses\":"<<all.size()
+             <<",\"unified_projected\":"<<projected_variables<<",\"unified_repair_flips\":"<<repair_flips
+             <<",\"factor_messages\":"<<factors.novel<<",\"factor_projections\":"<<factors.projections
