@@ -1,0 +1,22 @@
+name: DRNAS CORE - operator domain and CNF regression
+on:
+  push:
+    branches: [development/drnas-core]
+    paths: ['core/**', '.github/workflows/core-operator.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies
+        run: sudo apt-get update && sudo apt-get install -y libssl-dev libboost-dev
+      - name: Native build
+        run: bash core/build.sh
+      - name: Operator exact proofs and negative controls
+        run: python3 core/operator_tests.py
+      - name: Existing CNF regression
+        run: python3 core/tests.py
