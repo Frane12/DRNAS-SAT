@@ -1,0 +1,33 @@
+name: DRNAS UNIFIED5 - autonomous proof method memory
+on:
+  push:
+    branches: [experiment/drnas-unified5-proof-method-memory-20261125]
+    paths:
+      - 'research/toolbox20_native/unified5*'
+      - '.github/workflows/drnas-unified5.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  transfer:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile frozen native UNIFIED4 and pinned independent checker
+        run: |
+          set -eux
+          mkdir -p bin
+          c++ -std=c++20 -O3 -DNDEBUG research/toolbox20_native/unified4.cpp -lcrypto -o bin/unified4
+          git clone https://github.com/marijnheule/drat-trim.git /tmp/drat
+          git -C /tmp/drat checkout 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+          cc -O2 -std=gnu99 /tmp/drat/drat-trim.c -o bin/drat-trim
+      - name: Freeze learning corpus, learn macros, then paired unseen transfer
+        run: |
+          python3 -u research/toolbox20_native/unified5_memory.py --solver bin/unified4 --checker bin/drat-trim --out u5-results --freeze "$GITHUB_SHA"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unified5-proof-method-memory
+          path: u5-results/
+          if-no-files-found: warn
