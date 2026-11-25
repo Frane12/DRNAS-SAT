@@ -9,6 +9,7 @@ import os
 import fcntl
 import tempfile
 import re
+import rule_utility
 
 ROOT = pathlib.Path(__file__).resolve().parent
 
@@ -38,11 +39,15 @@ def store_rules(path, rules):
         return len(new-old)
 
 
-def run(source, evidence, seconds=5, mode='default', audit_seconds=5, rule_memory=None):
+def run(source, evidence, seconds=5, mode='default', audit_seconds=5, rule_memory=None, rule_feedback=False):
     started = time.monotonic()
     result = dict(status='UNKNOWN', mode=mode, budget_s=seconds)
     env=os.environ.copy()
     env.pop('DRNAS_CORE_RULE_MEMORY',None)
+    env.pop('DRNAS_CORE_RULE_SELECT',None)
+    selected=ctx=utility=None
+    if rule_feedback and rule_memory is None:
+        return dict(status='ERROR',error='rule feedback requires rule memory')
     if rule_memory is not None:
         memory=pathlib.Path(rule_memory).resolve()
         protected=[pathlib.Path(p).resolve() for p in (source,evidence)]
@@ -52,6 +57,31 @@ def run(source, evidence, seconds=5, mode='default', audit_seconds=5, rule_memor
             if memory.exists() and p.exists() and memory.samefile(p):
                 return dict(status='ERROR',error='memory aliases input/evidence')
         env['DRNAS_CORE_RULE_MEMORY']=str(memory)
+        if rule_feedback:
+            utility=pathlib.Path(str(memory)+'.utility.json').resolve()
+            lock=pathlib.Path(str(utility)+'.lock').resolve()
+            for p in protected+[memory]:
+                if p in (utility,lock) or any(q.exists() and p.exists() and q.samefile(p) for q in (utility,lock)):
+                    return dict(status='ERROR',error='utility path conflicts with input/evidence/memory')
+            try:
+                ctx=rule_utility.context(source)
+                if ctx:
+                    selected=rule_utility.choose(rule_utility.read_rules(memory),rule_utility.load(utility).get(ctx,{}))
+                    if selected: env['DRNAS_CORE_RULE_SELECT']=selected
+                result['rule_feedback']=dict(context=ctx,selected=selected)
+            except (OSError,ValueError) as error:
+                result['rule_feedback_error']=str(error)
+                # Invalid statistics do not affect certificate checking.
+                selected=None
+    def feedback():
+        if not selected:return
+        t=result.get('telemetry',{})
+        if t.get('memory_attempts')!=1:return
+        matched=t.get('memory_matches',0)>0
+        proved=(result.get('status')=='PROVED' and t.get('memory_proved') is True)
+        try:
+            result['rule_feedback']['observation']=rule_utility.observe(utility,ctx,selected,matched,proved,float(t['memory_s']))
+        except (OSError,ValueError,KeyError) as error:result['rule_feedback_error']=str(error)
     try:
         proc = subprocess.run([ROOT / 'bin/drnas-core', source, evidence, str(seconds), mode],
                               capture_output=True, text=True, timeout=seconds + .1, env=env)
@@ -70,6 +100,7 @@ def run(source, evidence, seconds=5, mode='default', audit_seconds=5, rule_memor
         result.update(status='ERROR', error=proc.stderr.strip())
         return result
     if not proc.returncode:
+        feedback()
         return result
     started = time.monotonic()
     try:
@@ -89,6 +120,7 @@ def run(source, evidence, seconds=5, mode='default', audit_seconds=5, rule_memor
     if rule_memory is not None and proc.returncode==31 and result.get('status')=='PROVED' and audit.returncode==0:
         try: result['rules_added']=store_rules(memory,result.get('learned_rules',[]))
         except (OSError,ValueError) as error: result['memory_error']=str(error)
+    feedback()
     return result
 
 
@@ -100,7 +132,8 @@ if __name__ == '__main__':
     parser.add_argument('--mode', choices=['default', 'memory', 'no-share'], default='default')
     parser.add_argument('--audit-seconds', type=float, default=5)
     parser.add_argument('--rule-memory', help='optional persistent symbolic rule file')
+    parser.add_argument('--rule-feedback', action='store_true', help='learn contextual rule scheduling utility')
     args = parser.parse_args()
-    answer = run(args.input, args.evidence, args.seconds, args.mode, args.audit_seconds, args.rule_memory)
+    answer = run(args.input, args.evidence, args.seconds, args.mode, args.audit_seconds, args.rule_memory, args.rule_feedback)
     print(json.dumps(answer, ensure_ascii=False))
     sys.exit(0 if answer['status'] in ('SAT', 'UNSAT', 'PROVED', 'UNKNOWN', 'TIMEOUT', 'AUDIT_LIMIT') else 1)
