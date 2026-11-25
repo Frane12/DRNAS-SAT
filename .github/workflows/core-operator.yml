@@ -22,5 +22,7 @@ jobs:
         run: python3 core/symbolic_tests.py
       - name: Learned rule memory transfer and controls
         run: python3 core/rule_memory_tests.py
+      - name: Audited rule transfer and finite Z2 gauge controls
+        run: python3 core/operator_rule_tests.py
       - name: Existing CNF regression
         run: python3 core/tests.py
