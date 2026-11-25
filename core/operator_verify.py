@@ -68,12 +68,58 @@ def rotor_verify(words,raw,cert):
                 ground_upper=str(upper),excited_lower=str(lower),gap_lower=str(lower-upper),
                 tail_lower=str(tail),rotors=d,cutoff=n,infinite_representation=True)
 
+
+def gauge_verify(words,raw,cert):
+    from collections import deque
+    n,m,p=map(int,words[3:6]); alpha,target=map(q,words[6:8])
+    if not 1<=n<=256 or not 0<=m<=1024 or not 0<=p<=512 or min(alpha,target)<=0: raise ValueError('gauge parameters')
+    i=8; edges=set(); adj=[set() for _ in range(n)]
+    for _ in range(m):
+        a,b=map(int,words[i:i+2]);i+=2
+        e=tuple(sorted((a,b)))
+        if a==b or not (0<=a<n and 0<=b<n) or e in edges:raise ValueError('edge')
+        edges.add(e);adj[a].add(b);adj[b].add(a)
+    magnetic=Q(0);upper=Q(0);loops=set()
+    for _ in range(p):
+        length=int(words[i]);k=q(words[i+1]);i+=2
+        if not 3<=length<=n:raise ValueError('loop length')
+        v=list(map(int,words[i:i+length]));i+=length
+        if len(v)!=length or len(set(v))!=length or any(not 0<=a<n for a in v):raise ValueError('loop vertices')
+        boundary=frozenset(tuple(sorted((a,b))) for a,b in zip(v,v[1:]+v[:1]))
+        if not boundary<=edges or boundary in loops:raise ValueError('loop boundary')
+        loops.add(boundary)
+        magnetic+=2*abs(k)
+        e=alpha*3*length/4
+        upper=min(upper,-k*k*e/(e*e+k*k))
+    if i!=len(words):raise ValueError('trailing input')
+    # Independently compute girth by deleting each edge and finding
+    # a shortest alternate path between its endpoints.
+    girth=n+1
+    for a,b in edges:
+        todo=deque([(a,0)]);seen={a}
+        while todo:
+            u,d=todo.popleft()
+            if u==b:girth=min(girth,d+1);break
+            for v in adj[u]:
+                if (u==a and v==b) or (u==b and v==a) or v in seen:continue
+                seen.add(v);todo.append((v,d+1))
+    if girth>n:raise ValueError('no nontrivial physical sector')
+    lower=alpha*3*girth/4-magnetic
+    lines=Path(cert).read_text().split()
+    if len(lines)!=6 or lines[:3]!=['drnas-op-v1',hashlib.sha256(raw).hexdigest(),'gauge-gap']:raise ValueError('gauge binding')
+    if int(lines[3])!=girth or Q(lines[4])!=upper or Q(lines[5])!=lower or lower-upper<target:raise ValueError('gauge bound')
+    return dict(status='PROVED',certificate='OPERATOR_EXACT',task='gauge-gap',
+        electric_gap=str(alpha*3*girth/4),girth=girth,ground_upper=str(upper),
+        excited_lower=str(lower),gap_lower=str(lower-upper),requested_gap=str(target),
+        vertices=n,edges=m,loops=p,all_representations=True,volume_uniform=False)
+
 def verify(source,cert):
     raw=Path(source).read_bytes()
     if len(raw)>65536: raise ValueError('size')
     words=raw.decode('ascii').split()
     if words[:2]!=['p','op']: raise ValueError('header')
     kind=words[2]; n=int(words[3])
+    if kind=='gauge-gap':return gauge_verify(words,raw,cert)
     if not 1<=n<=24: raise ValueError('dimension')
     if kind=='rotor-gap':return rotor_verify(words,raw,cert)
     i=4; e=Q(0); g=Q(0)
