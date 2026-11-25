@@ -332,6 +332,27 @@ def ks_bouquet_verify(words,raw,cert):
         topology='edge_disjoint_cycles_common_vertex',shared_edges=False,
         all_representations=True,continuum=False,magnetic_electric_ratio=str(4/g2**2))
 
+
+def gauge_parent_verify(words,raw,cert):
+    if len(words)!=7:raise ValueError('parent header')
+    d=int(words[3]);alpha,k,target=map(q,words[4:])
+    if not 2<=d<=4 or min(alpha,target)<=0:raise ValueError('parent parameters')
+    t=k/(3*alpha)
+    # Each edge has at most two plaquettes per perpendicular direction.
+    # Each plaquette has Hessian norm at most 4/2 on its four edges.
+    degree=2*(d-1)
+    curvature=Q(1,2)-4*degree*abs(t)
+    gap=alpha*curvature
+    residual=alpha*(degree*abs(t))**2
+    z=Path(cert).read_text().split()
+    if len(z)!=7 or z[:3]!=['drnas-op-v1',hashlib.sha256(raw).hexdigest(),'gauge-parent-gap']:raise ValueError('parent binding')
+    if list(map(Q,z[3:]))!=[t,curvature,gap,residual] or gap<target:raise ValueError('parent bound')
+    return dict(status='PROVED',certificate='OPERATOR_EXACT',task='gauge-parent-gap',
+                model='interacting_gauge_parent_not_KS',ground='0',ground_dimension='1',
+                gap_lower=str(gap),curvature_lower=str(curvature),vacuum_exponent=str(t),
+                residual_per_edge_upper=str(residual),volume_uniform=True,all_representations=True,
+                original_KS_uniform_gap=False,continuum=False,analytic_premise='Bakry-Emery ground-state transform')
+
 def verify(source,cert):
     raw=Path(source).read_bytes()
     if len(raw)>65536: raise ValueError('size')
@@ -344,6 +365,7 @@ def verify(source,cert):
     if kind=='ks-loop-gap':return ks_loop_verify(words,raw,cert)
     if kind=='gauge-gap':return gauge_verify(words,raw,cert)
     if kind=='gauge-stability':return gauge_stability_verify(words,raw,cert)
+    if kind=='gauge-parent-gap':return gauge_parent_verify(words,raw,cert)
     if not 1<=n<=24: raise ValueError('dimension')
     if kind=='rotor-gap':return rotor_verify(words,raw,cert)
     if kind=='decimation-gap':return decimation_verify(words,raw,cert)

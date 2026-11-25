@@ -56,5 +56,7 @@ jobs:
         run: python3 core/ks_ladder_tests.py
       - name: Exact ground cancellation on SU2 bouquets (YM18B)
         run: python3 core/ks_bouquet_tests.py
+      - name: Uniform interacting parent Hamiltonian (YM21)
+        run: python3 core/gauge_parent_tests.py
       - name: Existing CNF regression
         run: python3 core/tests.py

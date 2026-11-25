@@ -158,3 +158,7 @@ See [analytic equivalence and limitations](YM17_GAUGE_BLOCK.md). Actual pinned A
 ## YM20 — local gauge forests (experimental)
 
 [Form comparison and limits](YM20_LOCAL_FOREST.md). Pinned ATLAS30 proposes local trees, independent auditor checks all root actions, Wilson words, electric rows and an exact rational electric form factor uniform in volume for fixed box size. CORE certifies the original finite graph separately. This does not prove a uniform interacting gap or the continuum limit. Eight prepared controls. CI pending.
+
+## YM21 — interacting gauge parent with quantitative uniform gap (experimental)
+
+[Derivation and limits](YM21_PARENT_GAP.md). Input p op gauge-parent-gap D ALPHA K GAMMA. Exact rational curvature certificate for the auxiliary Hamiltonian H_parent=H_KS+alpha |grad F|^2 with explicit positive vacuum exp(F), F=K sum Wilson traces/(3 ALPHA). The explicit bound is independent of volume, but it is NOT a uniform bound for H_KS. Local residual is quantified; its removal requires a separate stability proof. Eight prepared cases and 18 incidence checks. Run python3 core/gauge_parent_tests.py. No ATLAS call in this task; CI pending.
