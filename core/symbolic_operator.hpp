@@ -136,7 +136,7 @@ inline std::set<std::string> load_rules(){
     std::ifstream in(name);std::string s;
     if(!std::getline(in,s)||s!="drnas-rule-memory-v1")return result;
     for(int i=0;i<32&&std::getline(in,s);++i){
-        if(s=="C4+"||s=="C4-"||s=="C3+"||s=="C3-"||(s.size()==2&&s[0]=='A'&&s[1]>='2'&&s[1]<='9')||s=="A10")result.insert(s);
+        if((s.size()==3&&s[0]=='C'&&s[1]>='3'&&s[1]<='8'&&(s[2]=='+'||s[2]=='-'))||(s.size()==2&&s[0]=='A'&&s[1]>='2'&&s[1]<='9')||s=="A10")result.insert(s);
     }
     return result;
 }
@@ -145,6 +145,45 @@ inline Partition replay_rules(const std::vector<Term>& terms,Q constant,const st
     Groups groups;std::vector<char> types;std::vector<bool> used(terms.size());
     std::map<std::string,int> index;
     for(int i=0;i<int(terms.size());++i)index.emplace(terms[i].first,i);
+    // Longer learned identities: discover a commuting neighborhood and
+    // find signed dependencies in its bounded subset lattice. The verifier
+    // will reconstruct the actual commuting block, not trust the memory.
+    bool long_rules=false;
+    for(int len=5;len<=8;++len)
+        long_rules=long_rules||rules.count("C"+std::to_string(len)+"+")||rules.count("C"+std::to_string(len)+"-");
+    if(long_rules){
+        unsigned scans=0,checks=0;
+        const std::string id(terms.empty()?0:terms[0].first.size(),'I');
+        for(int seed=0;seed<int(terms.size())&&scans<50000&&checks<50000;++seed){
+            tick(stop);if(used[seed])continue;
+            std::vector<int> g{seed};
+            for(int j=seed+1;j<int(terms.size())&&g.size()<10&&checks<50000;++j){
+                if((j&63)==0)tick(stop);++checks;if(used[j])continue;
+                bool good=true;for(int k:g)if(anti(terms[k].first,terms[j].first)){good=false;break;}
+                if(good)g.push_back(j);
+            }
+            if(g.size()<5)continue;
+            const unsigned count=1u<<g.size();
+            std::vector<std::pair<std::string,int>> products(count);
+            products[0]={id,0};
+            unsigned selected=0;
+            for(unsigned mask=1;mask<count&&scans<50000;++mask){
+                if((mask&63u)==0)tick(stop);++scans;
+                unsigned bit=std::countr_zero(mask),prev=mask&(mask-1);
+                auto [w,p]=multiply(products[prev].first,terms[g[bit]].first);
+                p=(p+products[prev].second)%4;products[mask]={std::move(w),p};
+                int len=std::popcount(mask);
+                if(len<5||len>8||products[mask].first!=id||p%2)continue;
+                if(!rules.count("C"+std::to_string(len)+(p==0?"+":"-")))continue;
+                if(!selected||len>std::popcount(selected))selected=mask;
+            }
+            if(selected){
+                std::vector<int> hit;
+                for(unsigned i=0;i<g.size();++i)if(selected&(1u<<i)){hit.push_back(g[i]);used[g[i]]=true;}
+                groups.push_back(std::move(hit));types.push_back('C');++matches;
+            }
+        }
+    }
     // Composed relation: two signed commuting triples sharing a factor
     // imply a signed four-word identity. The shared factor need not be
     // present in a new input. Match equal pair products and check ALL pairs.
