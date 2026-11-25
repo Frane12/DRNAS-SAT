@@ -398,19 +398,72 @@ inline bool discover_stabilizer_gap(const Sum& a,int n,Q gamma,Clock::time_point
     return false;
 }
 
+// Exact Lie bracket [A,B] = i C in the sparse Hermitian Pauli basis.
+inline bool lie_relation(const Sum& a,const Sum& b,const Sum& c,Clock::time_point stop){
+    Sum residual;
+    for(const auto& [word,q]:c)residual[word]-=q;
+    for(const auto& [x,p]:a)for(const auto& [y,q]:b){
+        tick(stop);if(!anti(x,y))continue;
+        auto [word,phase]=multiply(x,y);
+        if(phase==1)residual[word]+=2*p*q;
+        else if(phase==3)residual[word]-=2*p*q;
+        else return false;
+    }
+    for(const auto& [word,q]:residual)if(q!=0)return false;
+    return true;
+}
+// Recover disjoint complete isotropic spin blocks, H=sum w_b J_b^2.
+// Even blocks contain j=0 and j=1 irreps; their first nonzero energy
+// is 2*w_b. Unused spins contribute only degeneracy.
+inline bool casimir_gap(const Sum& a,int n,Q target,Clock::time_point stop,
+                       int& blocks,Q& gap){
+    if(target<=0)return false;
+    std::map<std::pair<int,int>,std::map<char,Q>> edges;
+    Q constant=0;
+    for(const auto& [word,c]:a){
+        tick(stop);std::vector<int> ix;
+        for(int i=0;i<n;++i)if(word[i]!='I')ix.push_back(i);
+        if(ix.empty()){constant=c;continue;}
+        if(ix.size()!=2||word[ix[0]]!=word[ix[1]]||c<=0)return false;
+        edges[{ix[0],ix[1]}][word[ix[0]]]=c;
+    }
+    if(edges.empty())return false;
+    std::vector<std::vector<int>> adj(n);
+    for(const auto& [ij,axes]:edges){
+        if(axes.size()!=3||axes.at('X')!=axes.at('Y')||axes.at('X')!=axes.at('Z'))return false;
+        adj[ij.first].push_back(ij.second);adj[ij.second].push_back(ij.first);
+    }
+    std::vector<bool> seen(n);Q expected=0;gap=0;blocks=0;
+    for(int i=0;i<n;++i)if(!seen[i]&&!adj[i].empty()){
+        std::vector<int> component{i};seen[i]=true;
+        for(size_t j=0;j<component.size();++j)for(int k:adj[component[j]])if(!seen[k]){seen[k]=true;component.push_back(k);}
+        int m=int(component.size());if(m<2||m%2)return false;
+        Q q=edges.at(std::minmax(i,adj[i][0])).at('X');
+        for(int u:component)for(int v:component)if(u<v){
+            tick(stop);auto it=edges.find({u,v});
+            if(it==edges.end()||it->second.at('X')!=q)return false;
+        }
+        expected+=3*q*m/2;Q g=4*q;if(gap==0||g<gap)gap=g;++blocks;
+    }
+    return blocks>0&&constant==expected&&gap>=target;
+}
+
 inline int run(const std::string& raw,const std::filesystem::path& out,double seconds){
     auto stop=Clock::now()+std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(seconds));
     if(raw.size()>2000000)throw std::runtime_error("symbolic input limit");
-    std::istringstream in(raw);std::string p,s,task,extra;int n,m,k=0;
+    std::istringstream in(raw);std::string p,s,task,extra;int n,m,k=0,l=0;
     if(!(in>>p>>s>>task>>n>>m)||p!="p"||s!="sop"||n<1||n>256)throw std::runtime_error("symbolic header");
-    Q target=0;if(task=="lower"||task=="lower-fixed"||task=="projector-gap"||task=="product-gap"||task=="auto-stabilizer-gap")target=core_operator::rational(in);
+    Q target=0;if(task=="lower"||task=="lower-fixed"||task=="projector-gap"||task=="product-gap"||task=="auto-stabilizer-gap"||task=="casimir-gap")target=core_operator::rational(in);
     else if(task=="stabilizer-gap"){target=core_operator::rational(in);if(!(in>>k)||k<1||k>256)throw std::runtime_error("stabilizer count");}
+    else if(task=="lie"){if(!(in>>k>>l)||k<0||l<0)throw std::runtime_error("Lie term counts");}
     else if(task=="commute"){if(!(in>>k))throw std::runtime_error("second term count");}
     else throw std::runtime_error("symbolic task");
-    Sum a=read(in,n,m),b;if(task=="commute"||task=="stabilizer-gap")b=read(in,n,k);if(in>>extra)throw std::runtime_error("trailing symbolic input");
+    Sum a=read(in,n,m),b,c;if(task=="commute"||task=="stabilizer-gap"||task=="lie")b=read(in,n,k);if(task=="lie")c=read(in,n,l);if(in>>extra)throw std::runtime_error("trailing symbolic input");
     bool ok=false;std::string method="symbolic_limits";std::ostringstream proof;int attempts=0,memory_matches=0;bool memory_won=false;double memory_s=0;int memory_attempts=0;std::string best_bound="none";
     try{
         if(task=="commute"){ok=commutes(a,b,stop);method="sparse_commutator";}
+        else if(task=="lie"){ok=lie_relation(a,b,c,stop);method="exact_lie_bracket";}
+        else if(task=="casimir-gap"){int blocks=0;Q gap=0;ok=casimir_gap(a,n,target,stop,blocks,gap);method="su2_casimir_blocks";if(ok)proof<<blocks<<" "<<gap<<"\n";}
         else if(task=="projector-gap"){int rank=0;Q lower=0;ok=commuting_projector_gap(a,n,target,stop,rank,lower);method="commuting_projector_gap";if(ok)proof<<rank<<" "<<lower<<"\n";}
         else if(task=="auto-stabilizer-gap"){
             method="discovered_stabilizer_comparison";ok=discover_stabilizer_gap(a,n,target,stop,attempts,proof,best_bound);

@@ -14,10 +14,11 @@ def check(source,cert):
     if (next(w),next(w))!=('p','sop'): raise ValueError('header')
     task=next(w); n=int(next(w)); m=int(next(w))
     if not 1<=n<=256: raise ValueError('dimension')
-    if task in ('lower','lower-fixed','projector-gap','product-gap','auto-stabilizer-gap'): target=Q(next(w)); k=0
+    if task in ('lower','lower-fixed','projector-gap','product-gap','auto-stabilizer-gap','casimir-gap'): target=Q(next(w)); k=0
     elif task=='stabilizer-gap':
         target=Q(next(w)); k=int(next(w))
         if not 1<=k<=256: raise ValueError('stabilizer count')
+    elif task=='lie': k=int(next(w)); l=int(next(w)); target=0
     elif task=='commute': k=int(next(w)); target=0
     else: raise ValueError('task')
     def read(m):
@@ -28,7 +29,7 @@ def check(source,cert):
             if len(s)!=n or set(s)-set('IXYZ'): raise ValueError('word')
             a[s]+=c
         return {s:c for s,c in a.items() if c}
-    a=read(m); b=read(k)
+    a=read(m); b=read(k); c=read(l) if task=='lie' else {}
     if next(w,None) is not None: raise ValueError('trailing data')
     z=iter(Path(cert).read_text().split())
     if (next(z),next(z),next(z))!=('drnas-sop-v1',hashlib.sha256(raw).hexdigest(),task): raise ValueError('binding')
@@ -40,7 +41,59 @@ def check(source,cert):
     def anti(u,v):
         x,y=u; X,Y=v
         return ((x&Y).bit_count()+(y&X).bit_count())%2
-    if task=='projector-gap':
+    if task=='lie':
+        # Convert to the independent X^x Z^z phase representation.
+        residual=defaultdict(Q)
+        for word,q in c.items():
+            x,y=bits(word);p=((x&y).bit_count()+1)%4
+            residual[(x,y,p%2)]-=q*(1 if p<2 else -1)
+        for word,q in a.items():
+            x,y=bits(word)
+            for other,r in b.items():
+                X,Y=bits(other)
+                if anti((x,y),(X,Y)):
+                    p=((x&y).bit_count()+(X&Y).bit_count()+2*(y&X).bit_count())%4
+                    residual[(x^X,y^Y,p%2)]+=2*q*r*(1 if p<2 else -1)
+        if any(residual.values()): raise ValueError('Lie bracket')
+        result={}
+    elif task=='casimir-gap':
+        from math import comb
+        claimed_blocks=int(next(z));claimed_gap=Q(next(z))
+        constant=a.get('I'*n,Q(0))
+        # Group the exact coefficients by axis and support using masks.
+        by_axis={axis:{} for axis in 'XYZ'}
+        for word,q in a.items():
+            if word=='I'*n: continue
+            support=tuple(i for i,ch in enumerate(word) if ch!='I')
+            if len(support)!=2 or word[support[0]]!=word[support[1]] or q<=0:
+                raise ValueError('not isotropic pair')
+            by_axis[word[support[0]]][support]=q
+        edges=by_axis['X']
+        if not edges or by_axis['Y']!=edges or by_axis['Z']!=edges or target<=0:
+            raise ValueError('axis mismatch')
+        # Independent union-find and explicit complete graph reconstruction.
+        root=list(range(n))
+        def find(i):
+            while root[i]!=i:i=root[i]
+            return i
+        for i,j in edges:root[find(i)]=find(j)
+        components=defaultdict(set)
+        for i,j in edges:components[find(i)].update((i,j))
+        expected=Q(0);gaps=[];dimension=1;active=0
+        for component in components.values():
+            m=len(component)
+            if m%2 or m<2:raise ValueError('even block required')
+            pairs=list(itertools.combinations(sorted(component),2))
+            q=edges.get(pairs[0])
+            if q is None or any(edges.get(pair)!=q for pair in pairs):
+                raise ValueError('incomplete Casimir block')
+            expected+=Q(3*m,2)*q;gaps.append(4*q);active+=m
+            dimension*=comb(m,m//2)-comb(m,m//2-1)
+        gap=min(gaps);dimension*=1<<(n-active)
+        if expected!=constant or gap!=claimed_gap or gap<target or len(components)!=claimed_blocks:
+            raise ValueError('Casimir certificate')
+        result=dict(ground='0',gap_lower=str(gap),gap_exact=True,blocks=claimed_blocks,ground_dimension=str(dimension))
+    elif task=='projector-gap':
         claimed_rank=int(next(z)); claimed_gap=Q(next(z))
         constant=a.pop('I'*n,Q(0))
         if not a or target<=0 or constant!=sum(abs(c) for c in a.values()):
