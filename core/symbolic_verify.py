@@ -51,7 +51,7 @@ def check(source,cert):
         result={}
     else:
         claimed=Q(next(z)); count=int(next(z))
-        lower=a.pop('I'*n,Q(0)); terms=sorted(a.items()); seen=set(); rules=set(); composed=set()
+        lower=a.pop('I'*n,Q(0)); terms=sorted(a.items()); seen=set(); rules=set(); composed=set(); max_depth=0; closure_steps=0; derivations=[]
         if not 0<=count<=len(terms): raise ValueError('group count')
         for _ in range(count):
             typ=next(z); size=int(next(z))
@@ -113,19 +113,38 @@ def check(source,cert):
                         sign=1 if phase==0 else -1
                         rules.add('C3+' if sign==1 else 'C3-')
                         triples[frozenset((u,v,prod))]=sign
-                # Two checked relations with one shared factor compose to a
-                # four-word identity; the shared factor cancels since P^2=I.
-                by_factor=defaultdict(list)
-                for relation,sign in triples.items():
-                    for factor in relation: by_factor[factor].append((relation,sign))
-                for relatives in by_factor.values():
-                    for (r1,s1),(r2,s2) in itertools.combinations(relatives,2):
-                        if len(r1 & r2)!=1: continue
-                        rule='C4+' if s1*s2==1 else 'C4-'
+                # Bounded recursive closure on signed relations in one checked,
+                # pairwise commuting block. Symmetric difference cancels repeated
+                # involutions; signs multiply. Depth is measured in proof layers.
+                known={r:(s,0) for r,s in triples.items()}
+                for depth in range(1,6):
+                    old=sorted(known.items(),key=lambda t:(len(t[0]),sorted(t[0])))
+                    additions={}
+                    for (r1,(s1,d1)),(r2,(s2,d2)) in itertools.combinations(old,2):
+                        if max(d1,d2)!=depth-1 or len(r1&r2)!=1: continue
+                        out=r1^r2
+                        if not 4<=len(out)<=8: continue
+                        sign=s1*s2
+                        if out in known:
+                            if known[out][0]!=sign: raise ValueError('inconsistent relation')
+                            continue
+                        if out in additions: continue
+                        if len(known)+len(additions)>=128: break
+                        additions[out]=(sign,depth)
+                        rule='C'+str(len(out))+('+' if sign==1 else '-')
                         composed.add(rule)
+                        closure_steps+=1;max_depth=max(max_depth,depth)
+                        if len(derivations)<128:
+                            # Local term indices, not a persistent answer.
+                            idx={bits(s):i for i,(s,c) in zip(ids,group)}
+                            derivations.append(dict(left=sorted(idx[b] for b in r1),
+                                right=sorted(idx[b] for b in r2),result=sorted(idx[b] for b in out),
+                                left_sign=s1,right_sign=s2,sign=sign,depth=depth,rule=rule))
+                    if not additions: break
+                    known.update(additions)
                 rules.update(composed)
         if len(seen)!=len(terms) or lower!=claimed or lower<target: raise ValueError('lower bound')
-        result=dict(lower=str(lower),target=str(target),groups=count,learned_rules=sorted(rules),composed_rules=sorted(composed))
+        result=dict(lower=str(lower),target=str(target),groups=count,learned_rules=sorted(rules),composed_rules=sorted(composed),closure_depth=max_depth,closure_steps=closure_steps,rule_derivations=derivations)
     if next(z,None) is not None: raise ValueError('trailing certificate')
     return dict(status='PROVED',certificate='SYMBOLIC_OPERATOR_EXACT',task=task,**result)
 
