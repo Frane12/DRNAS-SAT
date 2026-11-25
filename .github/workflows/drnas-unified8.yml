@@ -1,0 +1,42 @@
+name: DRNAS UNIFIED8 - exact factor representation and projected relations
+on:
+  push:
+    branches: [experiment/drnas-unified8-factor-representation-20261125]
+    paths:
+      - 'research/toolbox20_native/unified8*'
+      - 'research/toolbox20_native/factor_reason.hpp'
+      - '.github/workflows/drnas-unified8.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build frozen baselines, native factor solver and kernel tests
+        run: |
+          set -eux
+          mkdir -p bin kernel-evidence
+          for v in 4 7 8; do c++ -std=c++20 -O3 -DNDEBUG research/toolbox20_native/unified$v.cpp -lcrypto -o bin/unified$v; done
+          c++ -std=c++20 -O2 research/toolbox20_native/unified8_kernel.cpp -o bin/u8-kernel
+          git clone https://github.com/marijnheule/drat-trim.git /tmp/drat
+          git -C /tmp/drat checkout 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+          cc -O2 -std=gnu99 /tmp/drat/drat-trim.c -o bin/drat-trim
+      - name: Exhaustive factor projection equivalence and independent RUP
+        run: |
+          bin/u8-kernel kernel-evidence
+          python3 research/toolbox20_native/unified8_audit.py kernel-evidence
+          python3 research/toolbox20_native/unified_smoke.py bin/unified8 bin/drat-trim
+      - name: Replay 8 failures and 50 fresh paired CNFs
+        run: |
+          python3 -u research/toolbox20_native/unified8_bench.py --base bin/unified4 --frontier bin/unified7 --factor bin/unified8 --checker bin/drat-trim --out u8-results --freeze "$GITHUB_SHA"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unified8-factor-representation
+          path: |
+            kernel-evidence/
+            u8-results/
+          if-no-files-found: warn
