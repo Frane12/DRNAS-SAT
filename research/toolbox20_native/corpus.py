@@ -20,6 +20,14 @@ PUBLIC = {
     "dubois": "DIMACS/DUBOIS/dubois.tar.gz",
     "colour75": "GCP/flat75-180.tar.gz",
 }
+TRANSFER = {
+    "aim": "DIMACS/AIM/aim.tar.gz",
+    "jnh": "DIMACS/JNH/jnh.tar.gz",
+    "parity": "DIMACS/PARITY/parity.tar.gz",
+    "bmc": "BMC/bmc.tar.gz",
+    "quasigroup": PUBLIC["quasigroup"],
+    "colour75": PUBLIC["colour75"],
+}
 FRESH = ("tseitin", "random3", "colour", "circuit")
 def sha(raw):
     return hashlib.sha256(raw).hexdigest()
@@ -130,10 +138,10 @@ def fresh(family, index, seed):
     return n, masked
 
 
-def download(cache, group, expected=None):
+def download(cache, group, expected=None, sources=PUBLIC):
     path = cache/(group+".tar.gz")
     if not path.exists():
-        with urllib.request.urlopen(BASE+PUBLIC[group],timeout=60) as response:
+        with urllib.request.urlopen(BASE+sources[group],timeout=60) as response:
             data = response.read()
         path.write_bytes(data)
     raw = path.read_bytes()
@@ -149,6 +157,7 @@ def main():
     select.add_argument("--draw",metavar="FREEZE_COMMIT")
     select.add_argument("--restore",type=Path,metavar="MANIFEST")
     p.add_argument("--prior",type=Path,help="development fingerprints/names for original draw")
+    p.add_argument("--transfer",action="store_true",help="draw four originals from each postprojection transfer collection")
     a=p.parse_args()
     a.out.mkdir(parents=True,exist_ok=True)
     cache=a.out/"archives"; cache.mkdir(exist_ok=True)
@@ -157,6 +166,11 @@ def main():
     else:
         if a.prior is None: p.error("--draw requires --prior")
         freeze=a.draw; manifest={"freeze":freeze,"archives":{},"excluded":[],"cases":[]}
+    if not a.restore and a.transfer:
+        manifest["cohort"]="postprojection-transfer"
+    transfer=manifest.get("cohort")=="postprojection-transfer"
+    sources=TRANSFER if transfer else PUBLIC
+    per_family=4 if transfer else 3
     if len(freeze)!=40 or any(c not in "0123456789abcdef" for c in freeze):
         raise ValueError("expected immutable git commit SHA")
     previous=json.loads(a.prior.read_text()) if a.prior else {}
@@ -172,9 +186,9 @@ def main():
         if a.restore and row != index[case_id]: raise ValueError(f"manifest mismatch: {case_id}")
         if not a.restore: manifest["cases"].append(row)
         (a.out/(case_id+".cnf")).write_bytes(data)
-    for fam in PUBLIC:
-        archive=download(cache,fam,manifest["archives"].get(fam,{}).get("sha256"))
-        manifest["archives"][fam]={"url":BASE+PUBLIC[fam],"sha256":sha(archive)}
+    for fam in sources:
+        archive=download(cache,fam,manifest["archives"].get(fam,{}).get("sha256"),sources)
+        manifest["archives"][fam]={"url":BASE+sources[fam],"sha256":sha(archive)}
         with tarfile.open(fileobj=io.BytesIO(archive),mode="r:gz") as tar:
             members=[m for m in tar.getmembers() if m.isfile() and m.name.lower().endswith(".cnf")
                      and not Path(m.name).name.startswith(".")]
@@ -194,9 +208,9 @@ def main():
                     manifest["excluded"].append([fam,member.name,"development overlap or duplicate"]); continue
                 save(f"p-{fam}-{selected+1}","public",fam,n,cs,member=member.name,original_sha256=sha(raw))
                 selected+=1
-                if selected==3: break
-            if selected!=3: raise ValueError(f"{fam}: insufficient eligible members ({selected})")
-    for fam in FRESH:
+                if selected==per_family: break
+            if selected!=per_family: raise ValueError(f"{fam}: insufficient eligible members ({selected})")
+    for fam in (() if transfer else FRESH):
         for i in range(3):
             seed=int(sha(f"{freeze}|fresh|{fam}|{i}".encode())[:16],16)
             n,cs=fresh(fam,i,seed)

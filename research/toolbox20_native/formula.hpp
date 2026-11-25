@@ -6,6 +6,7 @@
 #include <fstream>
 #include <limits>
 #include <set>
+#include <span>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -111,6 +112,9 @@ public:
         }
     }
     bool consistent(std::initializer_list<int> assumptions={}) {
+        return consistent(std::span<const int>(assumptions.begin(),assumptions.size()));
+    }
+    bool consistent(std::span<const int> assumptions) {
         for (int l:trail) state[std::abs(l)]=-1;
         trail.clear();
         if (empty) return false;

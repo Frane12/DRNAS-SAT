@@ -1,5 +1,6 @@
 #include "cases.hpp"
 #include "projection.hpp"
+#include "postprojection.hpp"
 #include "repair.hpp"
 #include "../../src/pcmax_capacity.hpp"
 #include "../../src/pcmax_clause_hall.hpp"
@@ -22,13 +23,16 @@ std::string sha256(const std::string& raw) {
 }
 struct Stats {
     CaseStats cases;
+    PostStats post;
     int eliminated=0, resolvents=0, residual=0;
     uint64_t flips=0;
     void print(const char* phase) const {
         std::cout<<"c phase "<<phase<<" single "<<cases.single<<" joint "<<cases.joint
                  <<" covers "<<cases.covers<<" facts "<<cases.facts<<" composed "<<cases.composed
                  <<" implications "<<cases.implications<<" eliminated "<<eliminated
-                 <<" resolvents "<<resolvents<<" residual "<<residual<<" flips "<<flips<<"\n";
+                 <<" resolvents "<<resolvents<<" residual "<<residual<<" flips "<<flips
+                 <<" post_units "<<post.units<<" post_singles "<<post.singles<<" post_probes "<<post.tree_probes
+                 <<" post_nodes "<<post.nodes<<" post_ms "<<post.milliseconds<<"\n";
     }
 };
 int emit_sat(const Input& input,const Model& m,const char* phase,const Stats& stats) {
@@ -100,6 +104,8 @@ int solve(const std::string& path,const std::string& artifact,double seconds,boo
     }
     bool good=satisfied(residual,m);
     const char* phase="projection-model";
+    if (!good && postprojection(f.n,residual,proof,deadline,stats.post))
+        return emit_unsat(proof,"postprojection-rup",stats);
     if (!good && construct) { phase="residual-repair"; good=repair(f.n,residual,m,deadline,stats.flips); }
     if (good) {
         p.reconstruct(m); patch_fixed(m); return emit_sat(f,m,phase,stats);

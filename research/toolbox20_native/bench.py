@@ -90,13 +90,18 @@ def main():
         p.add_argument("--"+arg,type=Path,required=True)
     p.add_argument("--cap",type=float,default=3.0);p.add_argument("--reps",type=int,default=3)
     p.add_argument("--ablation",action="store_true",help="only the paired --no-repair diagnostic")
+    p.add_argument("--parent",type=Path,help="include the frozen parent DRNAS binary as a fourth arm")
     a=p.parse_args()
+    if a.parent and a.ablation: p.error("--parent and --ablation select different comparison protocols")
     if a.cap<=0 or a.reps<=0:p.error("positive cap and repetitions required")
     a.out.mkdir(parents=True,exist_ok=False)
     cpu=min(os.sched_getaffinity(0));os.sched_setaffinity(0,{cpu})
     manifest=json.loads(a.manifest.read_bytes())
     files={k:getattr(a,k).resolve() for k in ("drnas","kissat","cadical","checker")}
     arms=("DRNAS-no-repair",) if a.ablation else MAIN
+    if a.parent:
+        arms=("DRNAS","DRNAS-parent","Kissat","CaDiCaL")
+        files["parent"]=a.parent.resolve()
     meta=dict(freeze=manifest["freeze"],cap_s=a.cap,repetitions=a.reps,cpu=cpu,
               cpu_model=next((line.split(":",1)[1].strip() for line in Path("/proc/cpuinfo").read_text().splitlines() if line.startswith("model name")),"unknown"),
               platform=platform.platform(),python=platform.python_version(),manifest_sha256=sha(a.manifest.read_bytes()),
@@ -117,7 +122,7 @@ def main():
                 start=(i+rep)%len(arms)
                 for order,name in enumerate(arms[start:]+arms[:start]):
                     if name.startswith("DRNAS"):
-                        cmd=[files["drnas"],path,proof,str(a.cap)]
+                        cmd=[files["parent" if name=="DRNAS-parent" else "drnas"],path,proof,str(a.cap)]
                         if a.ablation:cmd+=["--no-repair"]
                     else:
                         cmd=[files[name.lower()],"-q",path,proof]
