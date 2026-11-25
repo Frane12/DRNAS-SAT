@@ -51,7 +51,7 @@ def check(source,cert):
         result={}
     else:
         claimed=Q(next(z)); count=int(next(z))
-        lower=a.pop('I'*n,Q(0)); terms=sorted(a.items()); seen=set(); rules=set()
+        lower=a.pop('I'*n,Q(0)); terms=sorted(a.items()); seen=set(); rules=set(); composed=set()
         if not 0<=count<=len(terms): raise ValueError('group count')
         for _ in range(count):
             typ=next(z); size=int(next(z))
@@ -104,13 +104,28 @@ def check(source,cert):
             if typ in ('C','D') and 3<=size<=32:
                 # Extract signed triple identities from the actual checked group.
                 bs={bits(s):s for s,c in group}
+                triples={}
                 for u,v in itertools.combinations(bs,2):
                     x,y=u; X,Y=v; prod=(x^X,y^Y)
                     if prod not in bs or anti(u,v): continue
                     phase=((x&y).bit_count()+(X&Y).bit_count()+2*(y&X).bit_count()-(prod[0]&prod[1]).bit_count())%4
-                    if phase in (0,2): rules.add('C3+' if phase==0 else 'C3-')
+                    if phase in (0,2):
+                        sign=1 if phase==0 else -1
+                        rules.add('C3+' if sign==1 else 'C3-')
+                        triples[frozenset((u,v,prod))]=sign
+                # Two checked relations with one shared factor compose to a
+                # four-word identity; the shared factor cancels since P^2=I.
+                by_factor=defaultdict(list)
+                for relation,sign in triples.items():
+                    for factor in relation: by_factor[factor].append((relation,sign))
+                for relatives in by_factor.values():
+                    for (r1,s1),(r2,s2) in itertools.combinations(relatives,2):
+                        if len(r1 & r2)!=1: continue
+                        rule='C4+' if s1*s2==1 else 'C4-'
+                        composed.add(rule)
+                rules.update(composed)
         if len(seen)!=len(terms) or lower!=claimed or lower<target: raise ValueError('lower bound')
-        result=dict(lower=str(lower),target=str(target),groups=count,learned_rules=sorted(rules))
+        result=dict(lower=str(lower),target=str(target),groups=count,learned_rules=sorted(rules),composed_rules=sorted(composed))
     if next(z,None) is not None: raise ValueError('trailing certificate')
     return dict(status='PROVED',certificate='SYMBOLIC_OPERATOR_EXACT',task=task,**result)
 
