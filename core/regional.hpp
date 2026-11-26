@@ -9,7 +9,7 @@ struct Result{
 };
 struct Step{int a,b,v;};
 struct Frame{int v;std::vector<int> parents;};
-inline Result solve(const toolbox::Input& f,const std::string& hash,Time stop){
+inline Result solve(const toolbox::Input& f,const std::string& hash,Time stop,bool affine=false){
     Result r;r.residual=f.cs.size();
     if(f.n>2000000||f.cs.size()>3000000||toolbox::Clock::now()>=stop)return r;
     F db=f.cs;const size_t base=db.size();
@@ -76,7 +76,7 @@ inline Result solve(const toolbox::Input& f,const std::string& hash,Time stop){
     // using the existing native model constructor. No component failure means UNSAT.
     toolbox::Model model(f.n+1,0);
     if(r.residual){
-        if(r.residual>50000)return r;
+        if(r.residual>(affine?300000u:50000u))return r;
         std::vector<int> parent(f.n+1,0);
         auto find=[&](int v){int x=v;while(parent[x]!=x)x=parent[x];while(parent[v]!=v){int w=parent[v];parent[v]=x;v=w;}return x;};
         for(int i=0;i<int(db.size());++i)if(live[i]){
@@ -96,8 +96,17 @@ inline Result solve(const toolbox::Input& f,const std::string& hash,Time stop){
             if(toolbox::Clock::now()>=stop)return r;
             F& cs=entry.second;std::vector<int> vars{0};
             for(C& c:cs)for(int& l:c){int v=std::abs(l);if(!local[v]){local[v]=int(vars.size());vars.push_back(v);}l=l>0?local[v]:-local[v];}
-            if(vars.size()>5001||cs.size()>20000)return r;
+            if(vars.size()>(affine?200001u:5001u)||cs.size()>(affine?300000u:20000u))return r;
             for(C& c:cs)c=fusion_kernel::norm(std::move(c));
+            if(affine){
+                auto now=toolbox::Clock::now();
+                auto a=core_affine::solve(toolbox::Input{int(vars.size()-1),cs},now+(stop-now)/2);
+                if(!a.model.empty()&&toolbox::satisfied(cs,a.model)){
+                    for(size_t i=1;i<vars.size();++i){model[vars[i]]=a.model[i];local[vars[i]]=0;}
+                    continue;
+                }
+                if(vars.size()>5001||cs.size()>20000)return r;
+            }
             std::vector<int> a(vars.size(),-1);
             if(!fusion_kernel::verify(cs,a)){
                 std::fill(a.begin(),a.end(),1);
