@@ -1,0 +1,50 @@
+name: DRNAS CORE - REGIONAL4 affine block frontier 100k
+on:
+  push:
+    branches: [development/drnas-core]
+    paths:
+      - 'core/regional4_bench.py'
+      - '.github/workflows/core-regional4.yml'
+  workflow_dispatch:
+jobs:
+  paired:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies
+        run: sudo apt-get update && sudo apt-get install -y libssl-dev libboost-dev
+      - name: Build CORE
+        run: bash core/build.sh
+      - name: Direct affine block truth-table controls
+        run: |
+          c++ -std=c++20 -O2 core/affine_block_tests.cpp -o core/bin/affine-block-tests
+          core/bin/affine-block-tests
+      - name: Build pinned CDCL references and proof checker
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd core
+          mkdir -p results/references bin
+          fetch_source() {
+            git clone --no-checkout "$2" "results/references/$1"
+            git -C "results/references/$1" checkout --detach "$3"
+          }
+          fetch_source kissat https://github.com/arminbiere/kissat.git 77bc7ea68afe80751a67df8561357f193e160fb1
+          (cd results/references/kissat && ./configure && make -j2)
+          cp results/references/kissat/build/kissat bin/kissat
+          fetch_source cadical https://github.com/arminbiere/cadical.git 14593f819cb242082b127396218bd60889409737
+          (cd results/references/cadical && ./configure && make -j2)
+          cp results/references/cadical/build/cadical bin/cadical
+          fetch_source drat-trim https://github.com/marijnheule/drat-trim.git 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+          cc -O2 results/references/drat-trim/drat-trim.c -o bin/drat-trim
+      - name: Frozen single-CPU paired benchmark
+        run: |
+          ulimit -v 4194304
+          ulimit -f 262144
+          python3 -u core/regional4_bench.py --out core/results/regional4
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: core-regional4
+          path: core/results/regional4/
