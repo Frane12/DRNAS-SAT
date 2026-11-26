@@ -55,6 +55,7 @@ struct Core {
     F all,ledger,proof_db; set<C> known,active_known;
     Time start=Clock::now(),deadline;
     double seconds;bool memory=false,no_share=false,free_reason=false;
+    string free_profile="narrow";
     long long free_pairs=0,free_novel=0;int free_rounds=0,free_width=2,free_revisits=0;
     Scratch tmp;
     string method="limits",format="none",artifact;
@@ -103,7 +104,7 @@ struct Core {
     int freedom_rounds(double fraction){
         if(!free_reason||original.n>5000||all.size()>20000||left()<.015)return 0;
         auto stop=budget(fraction,.55);
-        size_t frontier=0;int width=2;
+        size_t frontier=0;int width=free_profile=="wide"?6:free_profile=="bridge"?4:2;
         for(int epoch=0;epoch<6&&Clock::now()<stop&&all.size()<=20000;++epoch){
             ++free_rounds;free_width=max(free_width,width);
             vector<vector<int>> pos(original.n+1),neg(original.n+1);
@@ -114,7 +115,7 @@ struct Core {
                 auto &p=pos[v],&q=neg[v];
                 long long cost=1LL*p.size()*q.size();
                 if(cost&&cost<=4096&&(p.back()>=int(frontier)||q.back()>=int(frontier)))
-                    order.push_back({cost,v});
+                    order.push_back({free_profile=="bridge"?-min<long long>(p.size(),q.size())*4096+cost:cost,v});
             }
             sort(order.begin(),order.end());
             F batch;set<C> fresh;long long scans=0;
@@ -306,6 +307,7 @@ struct Core {
             <<",\"components\":"<<fusion_kernel::stats.component_groups<<",\"split_nodes\":"<<fusion_kernel::stats.split_nodes
             <<",\"gf3_domains\":"<<algebra.domains<<",\"affine_gates\":"<<algebra.gates
             <<",\"word_recovered\":"<<algebra.word.recovered<<",\"word_candidates\":"<<algebra.word.candidates
+            <<",\"freedom_profile\":\""<<free_profile<<"\""
             <<",\"freedom_rounds\":"<<free_rounds<<",\"freedom_pairs\":"<<free_pairs
             <<",\"freedom_novel\":"<<free_novel<<",\"freedom_width\":"<<free_width
             <<",\"freedom_revisits\":"<<free_revisits
@@ -325,6 +327,9 @@ int main(int argc,char** argv){
         if(fs::exists(out))throw runtime_error("evidence already exists; choose a new path");
         { std::ifstream probe(argv[1],std::ios::binary);std::string p,kind; if(probe>>p>>kind && p=="p" && (kind=="op"||kind=="sop")){if(mode!="default")throw runtime_error("operator requires default mode");return kind=="op"?core_operator::run(read_file(argv[1]),out,seconds):core_symbolic::run(read_file(argv[1]),out,seconds);} }
         Core core(seconds);core.memory=mode=="memory";core.no_share=mode=="no-share";core.free_reason=mode=="freedom";
+        if(core.free_reason)if(const char* hint=getenv("DRNAS_CORE_FREEDOM_PROFILE")){
+            string h=hint;if(h=="narrow"||h=="wide"||h=="bridge")core.free_profile=h;
+        }
         int rc=core.solve(argv[1]);
         if(core.left()==0){rc=0;core.artifact.clear();core.format="none";core.method="solve_budget";}
         if(rc)write_file(out,core.artifact);
