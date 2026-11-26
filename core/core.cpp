@@ -19,6 +19,7 @@ namespace fusion_kernel {
 namespace general_kernel {
 #include "vendor/general/general14.cpp"
 }
+#include "affine_sparse.hpp"
 #include "regional.hpp"
 using namespace std;
 namespace fs = std::filesystem;
@@ -55,7 +56,9 @@ struct Core {
     toolbox::Input original;
     F all,ledger,proof_db; set<C> known,active_known;
     Time start=Clock::now(),deadline;
-    double seconds;bool memory=false,no_share=false,free_reason=false,regional=false;
+    double seconds;bool memory=false,no_share=false,free_reason=false,regional=false,regional2=false;
+    int affine_equations=0,affine_rank=0,affine_free=0,affine_best=-1,affine_restarts=0;
+    long long affine_moves=0,affine_work=0;size_t affine_entries=0,affine_basis=0;
     int regional_eliminated=0,regional_generated=0,regional_blocked=0,regional_components=0,regional_boundary=0;size_t regional_residual=0;
     string free_profile="narrow";
     long long free_pairs=0,free_novel=0;int free_rounds=0,free_width=2,free_revisits=0;
@@ -267,8 +270,16 @@ struct Core {
         unsigned char bytes[EVP_MAX_MD_SIZE];unsigned count=0;
         if(!EVP_Digest(raw.data(),raw.size(),bytes,&count,EVP_sha256(),nullptr)||count!=32)throw runtime_error("SHA256");
         ostringstream hash;hash<<hex<<setfill('0');for(unsigned i=0;i<count;++i)hash<<setw(2)<<unsigned(bytes[i]);
+        if(regional2){
+            auto a=core_affine::solve(original,budget(.52,10.0));
+            affine_equations=a.equations;affine_rank=a.rank;affine_free=a.free;affine_best=a.best;
+            affine_restarts=a.restarts;affine_moves=a.moves;affine_work=a.work;
+            affine_entries=a.direction_entries;affine_basis=a.basis_entries;
+            if(!a.model.empty()&&model(std::move(a.model),"regional2_affine_model"))return 10;
+            if(left()<.005)return 0;
+        }
         if(regional){
-            auto r=core_regional::solve(original,hash.str(),budget(.65));
+            auto r=core_regional::solve(original,hash.str(),budget(.65),regional2);
             regional_eliminated=r.eliminated;regional_generated=r.generated;regional_blocked=r.blocked;
             regional_components=r.components;regional_boundary=r.max_boundary;regional_residual=r.residual;
             if(r.status==20){artifact=std::move(r.proof);format="REGIONAL-RES";method="regional_resolution";return 20;}
@@ -318,6 +329,10 @@ struct Core {
             <<",\"gf3_domains\":"<<algebra.domains<<",\"affine_gates\":"<<algebra.gates
             <<",\"word_recovered\":"<<algebra.word.recovered<<",\"word_candidates\":"<<algebra.word.candidates
             <<",\"freedom_profile\":\""<<free_profile<<"\""
+            <<",\"affine_equations\":"<<affine_equations<<",\"affine_rank\":"<<affine_rank
+            <<",\"affine_free\":"<<affine_free<<",\"affine_best_unsatisfied\":"<<affine_best
+            <<",\"affine_restarts\":"<<affine_restarts<<",\"affine_moves\":"<<affine_moves
+            <<",\"affine_work\":"<<affine_work<<",\"affine_direction_entries\":"<<affine_entries<<",\"affine_basis_entries\":"<<affine_basis
             <<",\"regional_eliminated\":"<<regional_eliminated<<",\"regional_generated\":"<<regional_generated
             <<",\"regional_blocked\":"<<regional_blocked<<",\"regional_components\":"<<regional_components
             <<",\"regional_boundary\":"<<regional_boundary<<",\"regional_residual\":"<<regional_residual
@@ -330,16 +345,16 @@ struct Core {
 };
 int main(int argc,char** argv){
     try{
-        if(argc<3||argc>5)throw runtime_error("usage: drnas-core INPUT.cnf|INPUT.op|INPUT.sop EVIDENCE [seconds [default|memory|no-share|freedom|regional]]");
+        if(argc<3||argc>5)throw runtime_error("usage: drnas-core INPUT.cnf|INPUT.op|INPUT.sop EVIDENCE [seconds [default|memory|no-share|freedom|regional|regional2]]");
         double seconds=5;if(argc>=4){size_t used;seconds=stod(argv[3],&used);if(used!=strlen(argv[3]))throw runtime_error("invalid budget");}
         if(!isfinite(seconds)||seconds<=0||seconds>86400)throw runtime_error("invalid budget");
         string mode=argc==5?argv[4]:"default";
-        if(mode!="default"&&mode!="memory"&&mode!="no-share"&&mode!="freedom"&&mode!="regional")throw runtime_error("invalid mode");
+        if(mode!="default"&&mode!="memory"&&mode!="no-share"&&mode!="freedom"&&mode!="regional"&&mode!="regional2")throw runtime_error("invalid mode");
         fs::path out=argv[2];
         if(fs::exists(out)&&fs::equivalent(argv[1],out))throw runtime_error("evidence must differ from input");
         if(fs::exists(out))throw runtime_error("evidence already exists; choose a new path");
         { std::ifstream probe(argv[1],std::ios::binary);std::string p,kind; if(probe>>p>>kind && p=="p" && (kind=="op"||kind=="sop")){if(mode!="default")throw runtime_error("operator requires default mode");return kind=="op"?core_operator::run(read_file(argv[1]),out,seconds):core_symbolic::run(read_file(argv[1]),out,seconds);} }
-        Core core(seconds);core.memory=mode=="memory";core.no_share=mode=="no-share";core.free_reason=mode=="freedom"||mode=="regional";core.regional=mode=="regional";
+        Core core(seconds);core.memory=mode=="memory";core.no_share=mode=="no-share";core.free_reason=mode=="freedom"||mode=="regional"||mode=="regional2";core.regional=mode=="regional"||mode=="regional2";core.regional2=mode=="regional2";
         if(core.free_reason)if(const char* hint=getenv("DRNAS_CORE_FREEDOM_PROFILE")){
             string h=hint;if(h=="narrow"||h=="wide"||h=="bridge")core.free_profile=h;
         }
