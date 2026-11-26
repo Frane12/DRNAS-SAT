@@ -1,0 +1,28 @@
+name: DRNAS CORE - freedom strategy transfer
+on:
+  push:
+    branches: [development/drnas-core]
+    paths:
+      - 'core/strategy.py'
+      - 'core/strategy_tests.py'
+      - '.github/workflows/core-strategy.yml'
+  workflow_dispatch:
+jobs:
+  transfer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies
+        run: sudo apt-get update && sudo apt-get install -y libssl-dev libboost-dev
+      - name: Native build
+        run: bash core/build.sh
+      - name: Frozen transfer benchmark
+        run: |
+          set -o pipefail
+          python3 -u core/strategy_tests.py | tee strategy-results.jsonl
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: core-strategy-results
+          path: strategy-results.jsonl
