@@ -134,7 +134,7 @@ if __name__ == '__main__':
     parser.add_argument('input')
     parser.add_argument('evidence', help='new evidence path; existing files are protected')
     parser.add_argument('--seconds', type=float, default=5)
-    parser.add_argument('--mode', choices=['default', 'memory', 'no-share', 'freedom', 'regional', 'regional2', 'regional3'], default='default')
+    parser.add_argument('--mode', choices=['default', 'memory', 'no-share', 'freedom', 'regional', 'regional2', 'regional3', 'regional4'], default='default')
     parser.add_argument('--audit-seconds', type=float, default=5)
     parser.add_argument('--rule-memory', help='optional persistent symbolic rule file')
     parser.add_argument('--rule-feedback', action='store_true', help='learn contextual rule scheduling utility')
