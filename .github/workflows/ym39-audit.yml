@@ -1,0 +1,30 @@
+name: DRNAS YM39 - soft mode stress tests
+on:
+  push:
+    branches: [experiment/ym39-soft-mode-audit]
+    paths: ['core/ym39/**', 'core/ym38/wave.cpp', '.github/workflows/ym39-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy==2.3.5 scipy==1.17.0
+      - name: Verify gauge and center controls and legacy sampler
+        working-directory: core/ym39
+        run: |
+          g++ -O3 -std=c++17 probes.cpp -o probes
+          ./probes 4 125 0 0 check 2.35 both
+          g++ -O3 -std=c++17 ../ym38/wave.cpp -o ym38
+          ./ym38 4 123 0 0 check
+      - name: Recompute correlation, sensitivity and variational tests
+        working-directory: core/ym39
+        env:
+          OPENBLAS_NUM_THREADS: '1'
+        run: python controls.py

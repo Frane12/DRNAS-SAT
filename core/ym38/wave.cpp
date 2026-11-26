@@ -115,6 +115,7 @@ struct Lattice{
    if(abs(after[i]-before[i])>1e-9)throw runtime_error("gauge invariance mismatch");
  }
 };
+#ifndef YM38_LINK_LIBRARY
 int main(int argc,char** argv){
  if(argc!=6) return 2;
  int l=stoi(argv[1]),seed=stoi(argv[2]),warm=stoi(argv[3]),samples=stoi(argv[4]);
@@ -133,3 +134,4 @@ int main(int argc,char** argv){
   }
  }
 }
+#endif
