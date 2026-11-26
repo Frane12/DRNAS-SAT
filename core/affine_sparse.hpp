@@ -8,13 +8,14 @@ struct Result{
     toolbox::Model model;
     int equations=0,rank=0,free=0,best=-1,restarts=0;
     size_t basis_entries=0,direction_entries=0;
-    long long moves=0,work=0;
+    long long moves=0,work=0,block_trials=0,block_moves=0,block_states=0;
+    int affine_factors=0,affine_trivial=0,max_block=0;
 };
 inline V symmetric(const V&a,const V&b){
     V out;out.reserve(a.size()+b.size());
     std::set_symmetric_difference(a.begin(),a.end(),b.begin(),b.end(),std::back_inserter(out));return out;
 }
-inline Result solve(const toolbox::Input& f,Time stop,bool weighted=false){
+inline Result solve(const toolbox::Input& f,Time stop,bool weighted=false,bool blocks=false){
     Result r;auto live=[&](){return toolbox::Clock::now()<stop;};
     if(f.n<1||f.n>200000||f.cs.size()>1000000||!live())return r;
     // Complete forbidden half-cubes only: every recovered equation is implied by CNF.
@@ -87,6 +88,36 @@ inline Result solve(const toolbox::Input& f,Time stop,bool weighted=false){
         if((i&255)==0&&!live())return r;
         for(int l:f.cs[i])occ[std::abs(l)].push_back(l>0?i+1:-i-1);
     }
+    // The residual factor graph is defined in free coordinates, not x.
+    // A factor is removed from the *search graph* only when simultaneous
+    // falsification of its literals is algebraically inconsistent.
+    std::vector<V> scope,incidence;
+    if(blocks){
+        scope.resize(f.cs.size());incidence.resize(f.n+1);
+        size_t links=0;
+        for(int i=0;i<int(f.cs.size());++i){
+            if((i&127)==0&&!live())return r;
+            const auto& c=f.cs[i];bool trivial=false;
+            if(c.size()<=8){
+                std::map<int,Row> small;
+                for(int l:c){
+                    int v=std::abs(l);Row a{dep[v],int(l<0)^int(origin[v])};bool inserted=false;
+                    while(!a.vars.empty()){
+                        int p=a.vars.back();auto it=small.find(p);
+                        if(it==small.end()){small.emplace(p,std::move(a));inserted=true;break;}
+                        a.vars=symmetric(a.vars,it->second.vars);a.rhs^=it->second.rhs;
+                    }
+                    if(!inserted&&a.vars.empty()&&a.rhs){trivial=true;break;}
+                }
+            }
+            if(trivial){++r.affine_trivial;continue;}
+            V& vs=scope[i];for(int l:c)vs.insert(vs.end(),dep[std::abs(l)].begin(),dep[std::abs(l)].end());
+            std::sort(vs.begin(),vs.end());vs.erase(std::unique(vs.begin(),vs.end()),vs.end());
+            if(vs.empty())continue;
+            links+=vs.size();if(links>6000000)return r;
+            ++r.affine_factors;for(int z:vs)incidence[z].push_back(i);
+        }
+    }
     std::mt19937 rng(26112026);
     std::vector<int> count(f.cs.size()),where(f.cs.size(),-1),delta(f.cs.size()),stamp(f.cs.size());
     V bad,touched;int epoch=0;
@@ -111,6 +142,64 @@ inline Result solve(const toolbox::Input& f,Time stop,bool weighted=false){
         }
         return true;
     };
+    // Exact conditional optimization on a bounded overlapping block of free
+    // coordinates. Every affected nontrivial factor is included, even when
+    // its support extends outside the block. Outside coordinates stay fixed.
+    auto block_step=[&](int seed)->bool{
+        if(!blocks||!live()||scope[seed].empty())return false;
+        V block=scope[seed];
+        auto low_cost=[&](int a,int b){return std::make_pair(incidence[a].size(),a)<std::make_pair(incidence[b].size(),b);};
+        std::sort(block.begin(),block.end(),low_cost);if(block.size()>6)block.resize(6);
+        V factors;
+        auto collect=[&](){
+            factors.clear();for(int z:block)factors.insert(factors.end(),incidence[z].begin(),incidence[z].end());
+            std::sort(factors.begin(),factors.end());factors.erase(std::unique(factors.begin(),factors.end()),factors.end());
+        };
+        collect();while(factors.size()>192&&block.size()>1){block.pop_back();collect();}
+        if(factors.size()>192)return false;
+        // Expand by residual factor overlap, favoring nearby low-cost coordinates.
+        std::map<int,int> overlap;
+        for(int i:factors)for(int z:scope[i])if(std::find(block.begin(),block.end(),z)==block.end())++overlap[z];
+        V near;for(auto [z,h]:overlap)near.push_back(z);
+        std::sort(near.begin(),near.end(),[&](int a,int b){
+            long long x=1LL*overlap[a]*(incidence[b].size()+1),y=1LL*overlap[b]*(incidence[a].size()+1);
+            return x!=y?x>y:a<b;
+        });
+        for(int z:near){if(block.size()>=8||!live())break;
+            if(incidence[z].size()>192)continue;
+            block.push_back(z);collect();if(factors.size()>192){block.pop_back();collect();}
+        }
+        if(block.size()<2||!live())return false;
+        struct Lit{unsigned mask;bool sat;};
+        std::vector<std::vector<Lit>> local;local.reserve(factors.size());
+        for(int i:factors){
+            std::vector<Lit> ls;
+            for(int l:f.cs[i]){
+                int v=std::abs(l);unsigned mask=0;
+                for(size_t j=0;j<block.size();++j)if(std::binary_search(dep[v].begin(),dep[v].end(),block[j]))mask|=1u<<j;
+                ls.push_back({mask,toolbox::value(m,l)==1});
+            }
+            local.push_back(std::move(ls));
+        }
+        ++r.block_trials;r.max_block=std::max(r.max_block,int(block.size()));
+        int before=0;for(int i:factors)if(!count[i])before+=weight[i];
+        int best=before;unsigned choice=0;
+        for(unsigned bits=1;bits<(1u<<block.size());++bits){
+            if(!live())return false;++r.block_states;int cost=0;
+            for(size_t i=0;i<local.size();++i){
+                bool sat=false;for(auto l:local[i])if(l.sat^bool(__builtin_parity(bits&l.mask))){sat=true;break;}
+                if(!sat)cost+=weight[factors[i]];if(cost>=best)break;
+            }
+            if(cost<best){best=cost;choice=bits;if(!best)break;}
+        }
+        if(!choice)return false;
+        // Committing flips one at a time is safe: each is a nullspace direction.
+        // If the deadline interrupts a block, no model is accepted here.
+        for(size_t j=0;j<block.size();++j)if(choice&(1u<<j)){
+            int ignored=0;if(!evaluate(block[j],true,ignored))return false;++r.moves;
+        }
+        ++r.block_moves;return true;
+    };
     for(int restart=0;restart<64&&live();++restart){
         ++r.restarts;m=origin;
         std::fill(weight.begin(),weight.end(),1);
@@ -130,7 +219,9 @@ inline Result solve(const toolbox::Input& f,Time stop,bool weighted=false){
                 for(int i:bad)weight[i]=std::min(32,weight[i]+1);
                 if(stale%384==0)for(int& w:weight)w=1+(w-1)/2;
             }
-            const auto& c=f.cs[bad[rng()%bad.size()]];
+            int seed=bad[rng()%bad.size()];
+            if(blocks&&(step%32==0|| (stale>96&&step%8==0))&&block_step(seed))continue;
+            const auto& c=f.cs[seed];
             V candidates;for(int l:c)for(int z:dep[std::abs(l)])candidates.push_back(z);
             if(candidates.empty())break;
             std::sort(candidates.begin(),candidates.end());candidates.erase(std::unique(candidates.begin(),candidates.end()),candidates.end());
