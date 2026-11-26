@@ -214,3 +214,22 @@ See [analytic equivalence and limitations](YM17_GAUGE_BLOCK.md). Actual pinned A
 ## YM32 — exact flat holonomy elimination (experimental)
 
 [Derivation and scope](YM32_FLAT_HOLONOMY.md). ATLAS chooses a spanning tree, then a Python prototype eliminates group-word constraints and independently audits original SU(2) flat witnesses and rational tangent ranks. Distinguishes gauge redundancy, global flat holonomy and singular infinitesimal directions. Classical finite cell complexes only; no quantum gap or native solver execution. CI pending.
+
+
+## CORE-FREEDOM1 — adaptive CNF inference frontier (experimental)
+
+Opt-in: `python3 core/run.py formula.cnf evidence.cert --mode freedom --seconds 5`.
+Native bounded non-eliminating resolution prioritizes lower-cost pivot pairs,
+retains original clauses, and reacts to measured novelty: starts at width 2,
+widens to 4/6 when stalled, and narrows after high yield. New facts are checked
+by the existing RUP ledger before activation. The relation stage can consume
+the active ledger and is revisited after discovery yields additional facts.
+No CDCL, no learned cross-instance policy, no unrestricted theorem synthesis.
+Default mode remains unchanged. Bounds: 5000 variables, 20000 active clauses,
+6 rounds per call, 24000 pair scans and 512 proposed clauses per round,
+fractional solve budgets and a 0.55 s cap per call. Telemetry:
+freedom_rounds, freedom_pairs, freedom_novel, freedom_width, freedom_revisits.
+The paired pilot uses 120 small synthetic formulas (including signed
+permutations), exhaustive truth-table ground truth and independent certificate
+checking; it does not establish generalization to real CNFs. CI status pending.
+Run `python3 core/freedom_tests.py` after building.
