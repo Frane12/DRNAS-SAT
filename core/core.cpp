@@ -19,6 +19,7 @@ namespace fusion_kernel {
 namespace general_kernel {
 #include "vendor/general/general14.cpp"
 }
+#include "regional.hpp"
 using namespace std;
 namespace fs = std::filesystem;
 using C=vector<int>; using F=vector<C>; using Clock=chrono::steady_clock;
@@ -54,7 +55,8 @@ struct Core {
     toolbox::Input original;
     F all,ledger,proof_db; set<C> known,active_known;
     Time start=Clock::now(),deadline;
-    double seconds;bool memory=false,no_share=false,free_reason=false;
+    double seconds;bool memory=false,no_share=false,free_reason=false,regional=false;
+    int regional_eliminated=0,regional_generated=0,regional_blocked=0,regional_components=0,regional_boundary=0;size_t regional_residual=0;
     string free_profile="narrow";
     long long free_pairs=0,free_novel=0;int free_rounds=0,free_width=2,free_revisits=0;
     Scratch tmp;
@@ -262,13 +264,21 @@ struct Core {
     int solve(const string& input){
         string raw=read_file(input);original=toolbox::parse(raw);
         if(original.n>2000000||original.cs.size()>10000000)throw runtime_error("input resource limit");
+        unsigned char bytes[EVP_MAX_MD_SIZE];unsigned count=0;
+        if(!EVP_Digest(raw.data(),raw.size(),bytes,&count,EVP_sha256(),nullptr)||count!=32)throw runtime_error("SHA256");
+        ostringstream hash;hash<<hex<<setfill('0');for(unsigned i=0;i<count;++i)hash<<setw(2)<<unsigned(bytes[i]);
+        if(regional){
+            auto r=core_regional::solve(original,hash.str(),budget(.65));
+            regional_eliminated=r.eliminated;regional_generated=r.generated;regional_blocked=r.blocked;
+            regional_components=r.components;regional_boundary=r.max_boundary;regional_residual=r.residual;
+            if(r.status==20){artifact=std::move(r.proof);format="REGIONAL-RES";method="regional_resolution";return 20;}
+            if(r.status==10&&model(std::move(r.model),"regional_reconstruction"))return 10;
+            if(left()<.005)return 0;
+        }
         all=original.cs;for(C& c:all)c=fusion_kernel::norm(move(c));known.insert(all.begin(),all.end());
         proof_db=all;active_known=known;
         for(int bit:{0,1})if(model(toolbox::Model(original.n+1,int8_t(bit)),"constant_model"))return 10;
         if(free_reason){int rc=freedom_rounds(.22);if(rc)return rc;}
-        unsigned char bytes[EVP_MAX_MD_SIZE];unsigned count=0;
-        if(!EVP_Digest(raw.data(),raw.size(),bytes,&count,EVP_sha256(),nullptr)||count!=32)throw runtime_error("SHA256");
-        ostringstream hash;hash<<hex<<setfill('0');for(unsigned i=0;i<count;++i)hash<<setw(2)<<unsigned(bytes[i]);
         toolbox::Model seed;
         auto gf2=pcmax::math4::xor_unit(original.cs,original.n,hash.str(),min({left(),.25,seconds*.08}),&seed);
         if(gf2.verified){artifact=gf2.certificate_json+"\n";format="GF2";method="structural_GF2";return 20;}
@@ -308,6 +318,9 @@ struct Core {
             <<",\"gf3_domains\":"<<algebra.domains<<",\"affine_gates\":"<<algebra.gates
             <<",\"word_recovered\":"<<algebra.word.recovered<<",\"word_candidates\":"<<algebra.word.candidates
             <<",\"freedom_profile\":\""<<free_profile<<"\""
+            <<",\"regional_eliminated\":"<<regional_eliminated<<",\"regional_generated\":"<<regional_generated
+            <<",\"regional_blocked\":"<<regional_blocked<<",\"regional_components\":"<<regional_components
+            <<",\"regional_boundary\":"<<regional_boundary<<",\"regional_residual\":"<<regional_residual
             <<",\"freedom_rounds\":"<<free_rounds<<",\"freedom_pairs\":"<<free_pairs
             <<",\"freedom_novel\":"<<free_novel<<",\"freedom_width\":"<<free_width
             <<",\"freedom_revisits\":"<<free_revisits
@@ -317,16 +330,16 @@ struct Core {
 };
 int main(int argc,char** argv){
     try{
-        if(argc<3||argc>5)throw runtime_error("usage: drnas-core INPUT.cnf|INPUT.op|INPUT.sop EVIDENCE [seconds [default|memory|no-share|freedom]]");
+        if(argc<3||argc>5)throw runtime_error("usage: drnas-core INPUT.cnf|INPUT.op|INPUT.sop EVIDENCE [seconds [default|memory|no-share|freedom|regional]]");
         double seconds=5;if(argc>=4){size_t used;seconds=stod(argv[3],&used);if(used!=strlen(argv[3]))throw runtime_error("invalid budget");}
         if(!isfinite(seconds)||seconds<=0||seconds>86400)throw runtime_error("invalid budget");
         string mode=argc==5?argv[4]:"default";
-        if(mode!="default"&&mode!="memory"&&mode!="no-share"&&mode!="freedom")throw runtime_error("invalid mode");
+        if(mode!="default"&&mode!="memory"&&mode!="no-share"&&mode!="freedom"&&mode!="regional")throw runtime_error("invalid mode");
         fs::path out=argv[2];
         if(fs::exists(out)&&fs::equivalent(argv[1],out))throw runtime_error("evidence must differ from input");
         if(fs::exists(out))throw runtime_error("evidence already exists; choose a new path");
         { std::ifstream probe(argv[1],std::ios::binary);std::string p,kind; if(probe>>p>>kind && p=="p" && (kind=="op"||kind=="sop")){if(mode!="default")throw runtime_error("operator requires default mode");return kind=="op"?core_operator::run(read_file(argv[1]),out,seconds):core_symbolic::run(read_file(argv[1]),out,seconds);} }
-        Core core(seconds);core.memory=mode=="memory";core.no_share=mode=="no-share";core.free_reason=mode=="freedom";
+        Core core(seconds);core.memory=mode=="memory";core.no_share=mode=="no-share";core.free_reason=mode=="freedom"||mode=="regional";core.regional=mode=="regional";
         if(core.free_reason)if(const char* hint=getenv("DRNAS_CORE_FREEDOM_PROFILE")){
             string h=hint;if(h=="narrow"||h=="wide"||h=="bridge")core.free_profile=h;
         }
