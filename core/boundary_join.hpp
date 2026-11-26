@@ -55,7 +55,7 @@ Result solve(const toolbox::Input& f,const std::vector<V>& vars,const V& group,
         if(now()>=end)return -1;
         F cs=inside[g];cs.insert(cs.end(),extra.begin(),extra.end());
         M a=solve_local(int(vars[g].size()),cs,end);
-        if(a.empty()||!toolbox::satisfied(cs,a))return -1;
+        if(a.size()!=vars[g].size()+1||!toolbox::satisfied(cs,a))return -1;
         return store(g,std::move(a));
     };
     V order(k);std::iota(order.begin(),order.end(),0);
@@ -87,7 +87,7 @@ Result solve(const toolbox::Input& f,const std::vector<V>& vars,const V& group,
         }return extra;
     };
     auto check=[&](){
-        int bad=0;for(const auto& c:f.cs){bool sat=false;for(int l:c)if(toolbox::value(m,l)==1){sat=true;break;}bad+=!sat;}
+        int bad=0;size_t tick=0;for(const auto& c:f.cs){if((++tick&1023)==0&&!live())return false;bool sat=false;for(int l:c)if(toolbox::value(m,l)==1){sat=true;break;}bad+=!sat;}
         if(r.best<0||bad<r.best)r.best=bad;
         if(!bad){r.model=m;r.joined=k;return true;}return false;
     };
@@ -142,7 +142,7 @@ Result solve(const toolbox::Input& f,const std::vector<V>& vars,const V& group,
         for(int v=1;v<=ng;++v)x[v]=a[v];
         for(int v=1;v<=nh;++v)y[v]=a[ng+v];
         int px=store(g,std::move(x)),py=store(h,std::move(y));
-        if(px<0||py<0)return false;apply(g,px);apply(h,py);++r.merges;return true;
+        if(px<0||py<0){if(px>=0&&selected[g]<0)apply(g,px);if(py>=0&&selected[h]<0)apply(h,py);return false;}apply(g,px);apply(h,py);++r.merges;return true;
     };
     for(int pass=0;pass<8&&live();++pass){
         ++r.passes;V active;std::vector<char> seen(k,0);
@@ -157,6 +157,7 @@ Result solve(const toolbox::Input& f,const std::vector<V>& vars,const V& group,
                 int p=attempt(g,conditional(g),t+(end-t)/2);
                 if(p<0)p=attempt(g,{},end);if(p>=0)apply(g,p);continue;
             }
+            if(selected[g]<0)apply(g,0);
             int old=selected[g],best=old,cost=score(g);
             for(int p=0;p<int(bank[g].size());++p){
                 if(!live())return r;apply(g,p);int c=score(g);
