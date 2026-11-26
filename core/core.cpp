@@ -54,7 +54,8 @@ struct Core {
     toolbox::Input original;
     F all,ledger,proof_db; set<C> known,active_known;
     Time start=Clock::now(),deadline;
-    double seconds;bool memory=false,no_share=false;
+    double seconds;bool memory=false,no_share=false,free_reason=false;
+    long long free_pairs=0,free_novel=0;int free_rounds=0,free_width=2,free_revisits=0;
     Scratch tmp;
     string method="limits",format="none",artifact;
     long long shared=0,rejected_by_budget=0,fb_messages=0,mem_saved=0,mem_activated=0;
@@ -97,10 +98,74 @@ struct Core {
         }
         return false;
     }
+    // Bounded non-eliminating resolution: keep all source constraints, choose
+    // pivots by frontier cost, adapt width to measured novelty, audit every fact.
+    int freedom_rounds(double fraction){
+        if(!free_reason||original.n>5000||all.size()>20000||left()<.015)return 0;
+        auto stop=budget(fraction,.55);
+        size_t frontier=0;int width=2;
+        for(int epoch=0;epoch<6&&Clock::now()<stop&&all.size()<=20000;++epoch){
+            ++free_rounds;free_width=max(free_width,width);
+            vector<vector<int>> pos(original.n+1),neg(original.n+1);
+            for(int i=0;i<int(all.size());++i)for(int l:all[i])
+                (l>0?pos[l]:neg[-l]).push_back(i);
+            vector<pair<long long,int>> order;
+            for(int v=1;v<=original.n;++v){
+                auto &p=pos[v],&q=neg[v];
+                long long cost=1LL*p.size()*q.size();
+                if(cost&&cost<=4096&&(p.back()>=int(frontier)||q.back()>=int(frontier)))
+                    order.push_back({cost,v});
+            }
+            sort(order.begin(),order.end());
+            F batch;set<C> fresh;long long scans=0;
+            for(auto [cost,v]:order){
+                if(Clock::now()>=stop||scans>=24000||batch.size()>=512)break;
+                for(int a:pos[v]){
+                    if(Clock::now()>=stop||scans>=24000||batch.size()>=512)break;
+                    for(int b:neg[v]){
+                        if(Clock::now()>=stop||scans>=24000||batch.size()>=512)break;
+                        ++scans;
+                        if(size_t(a)<frontier&&size_t(b)<frontier)continue;
+                        ++free_pairs;
+                        C r;for(int l:all[a])if(l!=v)r.push_back(l);
+                        for(int l:all[b])if(l!=-v)r.push_back(l);
+                        sort(r.begin(),r.end());r.erase(unique(r.begin(),r.end()),r.end());
+                        if(r.size()>size_t(width))continue;
+                        bool taut=false;for(int l:r)if(binary_search(r.begin(),r.end(),-l)){taut=true;break;}
+                        if(taut)continue;
+                        r=fusion_kernel::norm(move(r));
+                        if(known.count(r)||!fresh.insert(r).second)continue;
+                        batch.push_back(r);
+                        if(r.empty())break;
+                    }
+                }
+            }
+            size_t before=all.size();
+            if(!batch.empty()&&absorb(batch,batch,stop)){
+                method="freedom_resolution";return 20;
+            }
+            size_t gain=all.size()-before;free_novel+=gain;
+            if(gain){frontier=before; if(gain>=32)width=max(2,width-1);}
+            else if(width<6){width+=2;frontier=0;}
+            else break;
+            if(gain&&left()>.003){
+                toolbox::Propagator p(original.n,all);
+                if(!p.consistent()){
+                    if(absorb(F{C{}},F{},stop)){method="freedom_root";return 20;}
+                }else for(int bit:{0,1}){
+                    toolbox::Model m(original.n+1,int8_t(bit));
+                    for(int v=1;v<=original.n;++v)if(p.state[v]>=0)m[v]=p.state[v];
+                    if(model(m,"freedom_closure_model"))return 10;
+                }
+            }
+        }
+        return 0;
+    }
     int relations(){
         if(no_share||original.n>50000||all.size()>160000||left()<.003)return 0;
         auto path=tmp.dir/"relations.rup";toolbox::Proof p(path.string());
-        auto active=original.cs;toolbox::Model fixed(original.n+1,-1);
+        if(free_reason){for(const C& c:ledger)p.add(c);p.out.flush();}
+        auto active=free_reason?all:original.cs;toolbox::Model fixed(original.n+1,-1);
         bool consistent=toolbox::reduce_root(original.n,active,fixed,p);
         if(consistent)consistent=toolbox::cooperate(original.n,active,fixed,p,budget(.18,.7),cases,unified,4);
         if(consistent&&!active.empty()&&left()>.04){
@@ -199,6 +264,7 @@ struct Core {
         all=original.cs;for(C& c:all)c=fusion_kernel::norm(move(c));known.insert(all.begin(),all.end());
         proof_db=all;active_known=known;
         for(int bit:{0,1})if(model(toolbox::Model(original.n+1,int8_t(bit)),"constant_model"))return 10;
+        if(free_reason){int rc=freedom_rounds(.22);if(rc)return rc;}
         unsigned char bytes[EVP_MAX_MD_SIZE];unsigned count=0;
         if(!EVP_Digest(raw.data(),raw.size(),bytes,&count,EVP_sha256(),nullptr)||count!=32)throw runtime_error("SHA256");
         ostringstream hash;hash<<hex<<setfill('0');for(unsigned i=0;i<count;++i)hash<<setw(2)<<unsigned(bytes[i]);
@@ -219,8 +285,14 @@ struct Core {
         if(toolbox::circuit_affine_model(original,root,m,budget(.68),algebra)&&
            model(m,algebra.word.recovered&&algebra.word.candidates?"word_lift_circuit":"affine_circuit"))return 10;
         int rc=relations();if(rc)return rc;
+        if(free_reason&&shared>0&&left()>.04){++free_revisits;rc=freedom_rounds(.15);if(rc)return rc;}
         rc=fusion();if(rc)return rc;
+        auto prior=shared;
         rc=discover();if(rc)return rc;
+        if(free_reason&&shared>prior&&left()>.06){
+            ++free_revisits;rc=relations();if(rc)return rc;
+            if(left()>.04){rc=freedom_rounds(.2);if(rc)return rc;}
+        }
         return general();
     }
     void report(int rc)const{
@@ -234,22 +306,25 @@ struct Core {
             <<",\"components\":"<<fusion_kernel::stats.component_groups<<",\"split_nodes\":"<<fusion_kernel::stats.split_nodes
             <<",\"gf3_domains\":"<<algebra.domains<<",\"affine_gates\":"<<algebra.gates
             <<",\"word_recovered\":"<<algebra.word.recovered<<",\"word_candidates\":"<<algebra.word.candidates
+            <<",\"freedom_rounds\":"<<free_rounds<<",\"freedom_pairs\":"<<free_pairs
+            <<",\"freedom_novel\":"<<free_novel<<",\"freedom_width\":"<<free_width
+            <<",\"freedom_revisits\":"<<free_revisits
             <<",\"elapsed_s\":"<<chrono::duration<double>(Clock::now()-start).count()<<"}\n";
         cout<<"s "<<(rc==10?"SATISFIABLE":rc==20?"UNSATISFIABLE":"UNKNOWN")<<'\n';
     }
 };
 int main(int argc,char** argv){
     try{
-        if(argc<3||argc>5)throw runtime_error("usage: drnas-core INPUT.cnf|INPUT.op|INPUT.sop EVIDENCE [seconds [default|memory|no-share]]");
+        if(argc<3||argc>5)throw runtime_error("usage: drnas-core INPUT.cnf|INPUT.op|INPUT.sop EVIDENCE [seconds [default|memory|no-share|freedom]]");
         double seconds=5;if(argc>=4){size_t used;seconds=stod(argv[3],&used);if(used!=strlen(argv[3]))throw runtime_error("invalid budget");}
         if(!isfinite(seconds)||seconds<=0||seconds>86400)throw runtime_error("invalid budget");
         string mode=argc==5?argv[4]:"default";
-        if(mode!="default"&&mode!="memory"&&mode!="no-share")throw runtime_error("invalid mode");
+        if(mode!="default"&&mode!="memory"&&mode!="no-share"&&mode!="freedom")throw runtime_error("invalid mode");
         fs::path out=argv[2];
         if(fs::exists(out)&&fs::equivalent(argv[1],out))throw runtime_error("evidence must differ from input");
         if(fs::exists(out))throw runtime_error("evidence already exists; choose a new path");
         { std::ifstream probe(argv[1],std::ios::binary);std::string p,kind; if(probe>>p>>kind && p=="p" && (kind=="op"||kind=="sop")){if(mode!="default")throw runtime_error("operator requires default mode");return kind=="op"?core_operator::run(read_file(argv[1]),out,seconds):core_symbolic::run(read_file(argv[1]),out,seconds);} }
-        Core core(seconds);core.memory=mode=="memory";core.no_share=mode=="no-share";
+        Core core(seconds);core.memory=mode=="memory";core.no_share=mode=="no-share";core.free_reason=mode=="freedom";
         int rc=core.solve(argv[1]);
         if(core.left()==0){rc=0;core.artifact.clear();core.format="none";core.method="solve_budget";}
         if(rc)write_file(out,core.artifact);
