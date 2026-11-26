@@ -1,0 +1,51 @@
+name: DRNAS YM40 - variational soft state search
+on:
+  push:
+    branches: [experiment/ym40-variational-soft-search]
+    paths: ['core/ym40/**', '.github/workflows/ym40.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  variational:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {l: 4, t: 24, beta: 2.35, samples: 2048, warm: 384, seed: 400040}
+          - {l: 8, t: 24, beta: 2.35, samples: 2048, warm: 384, seed: 400080}
+          - {l: 12, t: 24, beta: 2.35, samples: 2048, warm: 384, seed: 400120}
+          - {l: 16, t: 24, beta: 2.35, samples: 2048, warm: 384, seed: 400160}
+          - {l: 8, t: 48, beta: 2.35, samples: 2048, warm: 384, seed: 400840}
+    defaults:
+      run:
+        working-directory: core/ym40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy==2.3.5 scipy==1.17.0
+      - name: Exact positive controls and gauge checks
+        run: |
+          g++ -O3 -std=c++17 basis.cpp -o basis
+          ./basis 4 24 125 0 0 check 2.35
+          python analyze.py
+      - name: Independent cold and hot chains
+        run: |
+          ./basis ${{ matrix.l }} ${{ matrix.t }} ${{ matrix.seed }} ${{ matrix.warm }} ${{ matrix.samples }} cold ${{ matrix.beta }} > cold.csv
+          ./basis ${{ matrix.l }} ${{ matrix.t }} $((${{ matrix.seed }}+1)) ${{ matrix.warm }} ${{ matrix.samples }} hot ${{ matrix.beta }} > hot.csv
+      - name: Held-out energy search
+        env:
+          OPENBLAS_NUM_THREADS: '1'
+        run: python -u analyze.py cold.csv hot.csv --L ${{ matrix.l }} --T ${{ matrix.t }} --beta ${{ matrix.beta }} | tee results.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ym40-L${{ matrix.l }}-T${{ matrix.t }}
+          path: |
+            core/ym40/cold.csv
+            core/ym40/hot.csv
+            core/ym40/results.log
