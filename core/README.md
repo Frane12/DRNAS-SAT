@@ -233,3 +233,10 @@ The paired pilot uses 120 small synthetic formulas (including signed
 permutations), exhaustive truth-table ground truth and independent certificate
 checking; it does not establish generalization to real CNFs. CI status pending.
 Run `python3 core/freedom_tests.py` after building.
+
+## CORE-FREEDOM2 — contextual strategy transfer (experimental)
+
+Opt-in: `python3 core/strategy.py input.cnf new.cert --strategy-memory policy.json --seconds 5`.
+The native FREEDOM mode now accepts three bounded profiles: narrow (original width 2), wide (width 6), bridge (width 4 and balanced-incidence pivot priority). The public wrapper selects a profile using coarse size, density and clause-width buckets; it retains only per-profile attempts, independently accepted solved counts and measured cost. Unseen strategies and periodic exploration are used in training. `--readonly` freezes the policy and selects the highest smoothed success rate, with cost as a tie-breaker; unseen contexts revert to narrow. Invalid memory falls back to narrow and is not rewritten. No clauses, source identifiers, models or prior SAT/UNSAT labels are persisted. The score is end-to-end strategy utility, not causal attribution or invented mathematical rules. No CDCL. Default mode is unchanged. The Python strategy controller is experimental; inference remains native C++.
+
+Paired synthetic pilot: 48 training instances; 60 frozen holdout instances (24 fresh random, 24 NAE mixtures, 12 planted relations), three arms on each holdout, exact truth tables and independent certificate verification. Memory-selection controls, source-hash separation and corrupt-memory negative control. No claim of gain or real-CNF generalization before measured results. Run `python3 core/strategy_tests.py`. CI pending.
