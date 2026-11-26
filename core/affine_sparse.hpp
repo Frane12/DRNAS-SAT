@@ -14,7 +14,7 @@ inline V symmetric(const V&a,const V&b){
     V out;out.reserve(a.size()+b.size());
     std::set_symmetric_difference(a.begin(),a.end(),b.begin(),b.end(),std::back_inserter(out));return out;
 }
-inline Result solve(const toolbox::Input& f,Time stop){
+inline Result solve(const toolbox::Input& f,Time stop,bool weighted=false){
     Result r;auto live=[&](){return toolbox::Clock::now()<stop;};
     if(f.n<1||f.n>200000||f.cs.size()>1000000||!live())return r;
     // Complete forbidden half-cubes only: every recovered equation is implied by CNF.
@@ -90,6 +90,7 @@ inline Result solve(const toolbox::Input& f,Time stop){
     std::mt19937 rng(26112026);
     std::vector<int> count(f.cs.size()),where(f.cs.size(),-1),delta(f.cs.size()),stamp(f.cs.size());
     V bad,touched;int epoch=0;
+    std::vector<int> weight(f.cs.size(),1);
     toolbox::Model m=origin;
     auto add_bad=[&](int i){if(where[i]<0){where[i]=int(bad.size());bad.push_back(i);}};
     auto remove_bad=[&](int i){int j=where[i];if(j<0)return;int b=bad.back();bad[j]=b;where[b]=j;bad.pop_back();where[i]=-1;};
@@ -103,7 +104,7 @@ inline Result solve(const toolbox::Input& f,Time stop){
             if(stamp[i]!=epoch){stamp[i]=epoch;delta[i]=0;touched.push_back(i);}
             delta[i]+=(m[v]==int(l>0))?-1:1;
         }
-        for(int i:touched)score+=int(count[i]+delta[i]==0)-int(count[i]==0);
+        for(int i:touched)score+=weight[i]*(int(count[i]+delta[i]==0)-int(count[i]==0));
         if(commit){
             for(int v:direction[z])m[v]^=1;
             for(int i:touched){count[i]+=delta[i];if(count[i])remove_bad(i);else add_bad(i);}
@@ -112,6 +113,7 @@ inline Result solve(const toolbox::Input& f,Time stop){
     };
     for(int restart=0;restart<64&&live();++restart){
         ++r.restarts;m=origin;
+        std::fill(weight.begin(),weight.end(),1);
         for(int z:free)if(rng()&1u)for(int v:direction[z])m[v]^=1;
         bad.clear();std::fill(where.begin(),where.end(),-1);
         for(int i=0;i<int(f.cs.size());++i){
@@ -124,14 +126,18 @@ inline Result solve(const toolbox::Input& f,Time stop){
             if(r.best<0||int(bad.size())<r.best)r.best=int(bad.size());
             if(bad.empty()){if(toolbox::satisfied(f.cs,m))r.model=std::move(m);return r;}
             if(int(bad.size())<localbest){localbest=int(bad.size());stale=0;}else if(++stale>4000)break;
+            if(weighted&&stale>0&&stale%48==0){
+                for(int i:bad)weight[i]=std::min(32,weight[i]+1);
+                if(stale%384==0)for(int& w:weight)w=1+(w-1)/2;
+            }
             const auto& c=f.cs[bad[rng()%bad.size()]];
             V candidates;for(int l:c)for(int z:dep[std::abs(l)])candidates.push_back(z);
             if(candidates.empty())break;
             std::sort(candidates.begin(),candidates.end());candidates.erase(std::unique(candidates.begin(),candidates.end()),candidates.end());
             std::shuffle(candidates.begin(),candidates.end(),rng);
-            if(candidates.size()>24)candidates.resize(24);
+            if(candidates.size()>size_t(weighted?12:24))candidates.resize(weighted?12:24);
             int chosen=candidates[0],best=INT_MAX;
-            if(rng()%100>=20){
+            if(rng()%100>=unsigned(weighted?(stale>192?35:12):20)){
                 for(int z:candidates){int score=0;if(!evaluate(z,false,score))return r;
                     if(score<best){best=score;chosen=z;}}
             }
