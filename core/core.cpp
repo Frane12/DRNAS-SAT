@@ -57,7 +57,9 @@ struct Core {
     toolbox::Input original;
     F all,ledger,proof_db; set<C> known,active_known;
     Time start=Clock::now(),deadline;
-    double seconds;bool memory=false,no_share=false,free_reason=false,regional=false,regional2=false,regional3=false;
+    double seconds;bool memory=false,no_share=false,free_reason=false,regional=false,regional2=false,regional3=false,regional4=false;
+    long long affine_block_trials=0,affine_block_moves=0,affine_block_states=0;
+    int affine_factors=0,affine_trivial=0,affine_max_block=0;
     int community_groups=0,community_cut=0,community_local_solved=0,community_passes=0,community_best=-1,community_max=0;
     int affine_equations=0,affine_rank=0,affine_free=0,affine_best=-1,affine_restarts=0;
     long long affine_moves=0,affine_work=0;size_t affine_entries=0,affine_basis=0;
@@ -272,6 +274,24 @@ struct Core {
         unsigned char bytes[EVP_MAX_MD_SIZE];unsigned count=0;
         if(!EVP_Digest(raw.data(),raw.size(),bytes,&count,EVP_sha256(),nullptr)||count!=32)throw runtime_error("SHA256");
         ostringstream hash;hash<<hex<<setfill('0');for(unsigned i=0;i<count;++i)hash<<setw(2)<<unsigned(bytes[i]);
+        if(regional4){
+            // Use the exact affine factor graph first. Reserve time for the
+            // successful wide inference path on dense 1000-variable inputs.
+            auto a=core_affine::solve(original,budget(original.n>5000?.55:.20,10.0),true,true);
+            affine_equations=a.equations;affine_rank=a.rank;affine_free=a.free;affine_best=a.best;
+            affine_restarts=a.restarts;affine_moves=a.moves;affine_work=a.work;
+            affine_entries=a.direction_entries;affine_basis=a.basis_entries;
+            affine_block_trials=a.block_trials;affine_block_moves=a.block_moves;affine_block_states=a.block_states;
+            affine_factors=a.affine_factors;affine_trivial=a.affine_trivial;affine_max_block=a.max_block;
+            if(!a.model.empty()&&model(std::move(a.model),"regional4_affine_block_model"))return 10;
+            if(original.n>5000&&left()>.02){
+                auto c=core_communities::solve(original,budget(.80,20.0));
+                community_groups=c.groups;community_cut=c.cut;community_local_solved=c.local_solved;
+                community_passes=c.passes;community_best=c.best;community_max=c.max_group;
+                if(!c.model.empty()&&model(std::move(c.model),"regional4_community_model"))return 10;
+            }
+            if(left()<.005)return 0;
+        }
         if(regional3){
             // Keep wide inference available on dense instances. Only expend a
             // short affine slice if no low-cut partition is found.
@@ -348,6 +368,9 @@ struct Core {
             <<",\"community_groups\":"<<community_groups<<",\"community_cut\":"<<community_cut
             <<",\"community_local_solved\":"<<community_local_solved<<",\"community_passes\":"<<community_passes
             <<",\"community_best_unsatisfied\":"<<community_best<<",\"community_max_group\":"<<community_max
+            <<",\"affine_factors\":"<<affine_factors<<",\"affine_trivial\":"<<affine_trivial
+            <<",\"affine_block_trials\":"<<affine_block_trials<<",\"affine_block_moves\":"<<affine_block_moves
+            <<",\"affine_block_states\":"<<affine_block_states<<",\"affine_max_block\":"<<affine_max_block
             <<",\"affine_equations\":"<<affine_equations<<",\"affine_rank\":"<<affine_rank
             <<",\"affine_free\":"<<affine_free<<",\"affine_best_unsatisfied\":"<<affine_best
             <<",\"affine_restarts\":"<<affine_restarts<<",\"affine_moves\":"<<affine_moves
@@ -364,17 +387,17 @@ struct Core {
 };
 int main(int argc,char** argv){
     try{
-        if(argc<3||argc>5)throw runtime_error("usage: drnas-core INPUT.cnf|INPUT.op|INPUT.sop EVIDENCE [seconds [default|memory|no-share|freedom|regional|regional2|regional3]]");
+        if(argc<3||argc>5)throw runtime_error("usage: drnas-core INPUT.cnf|INPUT.op|INPUT.sop EVIDENCE [seconds [default|memory|no-share|freedom|regional|regional2|regional3|regional4]]");
         double seconds=5;if(argc>=4){size_t used;seconds=stod(argv[3],&used);if(used!=strlen(argv[3]))throw runtime_error("invalid budget");}
         if(!isfinite(seconds)||seconds<=0||seconds>86400)throw runtime_error("invalid budget");
         string mode=argc==5?argv[4]:"default";
-        if(mode!="default"&&mode!="memory"&&mode!="no-share"&&mode!="freedom"&&mode!="regional"&&mode!="regional2"&&mode!="regional3")throw runtime_error("invalid mode");
+        if(mode!="default"&&mode!="memory"&&mode!="no-share"&&mode!="freedom"&&mode!="regional"&&mode!="regional2"&&mode!="regional3"&&mode!="regional4")throw runtime_error("invalid mode");
         fs::path out=argv[2];
         if(fs::exists(out)&&fs::equivalent(argv[1],out))throw runtime_error("evidence must differ from input");
         if(fs::exists(out))throw runtime_error("evidence already exists; choose a new path");
         { std::ifstream probe(argv[1],std::ios::binary);std::string p,kind; if(probe>>p>>kind && p=="p" && (kind=="op"||kind=="sop")){if(mode!="default")throw runtime_error("operator requires default mode");return kind=="op"?core_operator::run(read_file(argv[1]),out,seconds):core_symbolic::run(read_file(argv[1]),out,seconds);} }
-        Core core(seconds);core.memory=mode=="memory";core.no_share=mode=="no-share";core.free_reason=mode=="freedom"||mode=="regional"||mode=="regional2";core.regional=mode=="regional"||mode=="regional2";core.regional2=mode=="regional2";core.regional3=mode=="regional3";
-        if(core.regional3){core.free_reason=true;core.free_profile="wide";}
+        Core core(seconds);core.memory=mode=="memory";core.no_share=mode=="no-share";core.free_reason=mode=="freedom"||mode=="regional"||mode=="regional2";core.regional=mode=="regional"||mode=="regional2";core.regional2=mode=="regional2";core.regional3=mode=="regional3";core.regional4=mode=="regional4";
+        if(core.regional3||core.regional4){core.free_reason=true;core.free_profile="wide";}
         if(core.free_reason)if(const char* hint=getenv("DRNAS_CORE_FREEDOM_PROFILE")){
             string h=hint;if(h=="narrow"||h=="wide"||h=="bridge")core.free_profile=h;
         }
