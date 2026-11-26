@@ -1,0 +1,22 @@
+name: DRNAS YM38 - finite volume wave measurements
+on:
+  push:
+    branches: [experiment/ym38-wave]
+    paths: ['core/ym38/**', '.github/workflows/ym38-wave.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify gauge invariance and staple action
+        working-directory: core/ym38
+        run: |
+          g++ -O3 -std=c++17 wave.cpp -o wave
+          ./wave 4 123 0 0 check
+      - name: Recompute energies and uncertainties from Monte Carlo blocks
+        working-directory: core/ym38
+        run: python3 controls.py
