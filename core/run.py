@@ -39,12 +39,17 @@ def store_rules(path, rules):
         return len(new-old)
 
 
-def run(source, evidence, seconds=5, mode='default', audit_seconds=5, rule_memory=None, rule_feedback=False):
+def run(source, evidence, seconds=5, mode='default', audit_seconds=5, rule_memory=None, rule_feedback=False, strategy_profile=None):
     started = time.monotonic()
     result = dict(status='UNKNOWN', mode=mode, budget_s=seconds)
     env=os.environ.copy()
     env.pop('DRNAS_CORE_RULE_MEMORY',None)
     env.pop('DRNAS_CORE_RULE_SELECT',None)
+    env.pop('DRNAS_CORE_FREEDOM_PROFILE',None)
+    if strategy_profile is not None:
+        if mode!='freedom' or strategy_profile not in ('narrow','wide','bridge'):
+            return dict(status='ERROR',error='invalid freedom profile')
+        env['DRNAS_CORE_FREEDOM_PROFILE']=strategy_profile
     selected=ctx=utility=None
     if rule_feedback and rule_memory is None:
         return dict(status='ERROR',error='rule feedback requires rule memory')
