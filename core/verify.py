@@ -99,6 +99,40 @@ def check_capacity(n, cs, lines):
         raise ValueError('no capacity contradiction')
 
 
+def check_regional(source, n, cs, lines, deadline):
+    # Independent resolution replay, indexed by the normalized original CNF.
+    # Source order and duplicates are retained; tautological clauses are skipped.
+    import hashlib
+    h=hashlib.sha256()
+    with pathlib.Path(source).open('rb') as f:
+        for block in iter(lambda:f.read(1024*1024),b''):
+            h.update(block)
+            if time.monotonic()>deadline:raise AuditLimit('regional hash deadline')
+    if lines[0].split()!=['drnas-regional-resolution-v1',h.hexdigest()]:
+        raise ValueError('regional source digest')
+    db=[]
+    for i,c in enumerate(cs):
+        if i%1024==0 and time.monotonic()>deadline:raise AuditLimit('regional source deadline')
+        z=frozenset(c)
+        if not any(-x in z for x in z):db.append(z)
+    if not 2<=len(lines)<=200002:raise ValueError('regional proof size')
+    for i,line in enumerate(lines[1:-1]):
+        if i%256==0 and time.monotonic()>deadline:raise AuditLimit('regional proof deadline')
+        w=line.split()
+        if len(w)!=4 or w[0]!='r':raise ValueError('regional step syntax')
+        a,b,v=map(int,w[1:])
+        if not (0<=a<len(db) and 0<=b<len(db) and 1<=v<=n):raise ValueError('regional step references')
+        if v not in db[a] or -v not in db[b]:raise ValueError('regional missing pivot')
+        c=(db[a]-{v}) | (db[b]-{-v})
+        if any(-x in c for x in c):raise ValueError('regional tautological resolvent')
+        db.append(c)
+    w=lines[-1].split()
+    if len(w)!=2 or w[0]!='end':raise ValueError('regional terminal syntax')
+    k=int(w[1])
+    if not 0<=k<len(db) or db[k]:raise ValueError('regional terminal is not empty')
+    if time.monotonic()>deadline:raise AuditLimit('regional audit deadline')
+
+
 def verify(source, evidence, status, seconds=5):
     started = time.monotonic()
     n, cs = parse_cnf(source)
@@ -112,6 +146,9 @@ def verify(source, evidence, status, seconds=5):
     lines = text.splitlines()
     if not lines:
         raise ValueError('empty evidence')
+    if lines[0].startswith('drnas-regional-resolution-v1 '):
+        check_regional(source,n,cs,lines,started+seconds)
+        return 'UNSAT','REGIONAL-RES'
     if lines[0].startswith('{'):
         sys.path.insert(0, str(ROOT/'vendor/structural/research/pcmax_capacity'))
         sys.path.insert(0, str(ROOT/'vendor/structural/research/math4'))
