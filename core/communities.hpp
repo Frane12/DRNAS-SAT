@@ -1,12 +1,14 @@
 #pragma once
+#include "boundary_join.hpp"
 // Bounded community decomposition and conditional local SAT construction.
 // Partition is a scheduling hint only. The complete original model is checked.
 namespace core_communities {
 using V=std::vector<int>;using F=std::vector<V>;using Time=toolbox::Time;
 struct Result{
     toolbox::Model model;int groups=0,cut=0,local_solved=0,passes=0,best=-1,max_group=0;
+    int banks=0,bank_models=0,alternatives=0,joined=0,merges=0,table_attempts=0;
 };
-inline Result solve(const toolbox::Input& f,Time stop){
+inline Result solve(const toolbox::Input& f,Time stop,bool negotiate=false){
     Result r;auto live=[&](){return toolbox::Clock::now()<stop;};
     if(f.n<64||f.n>200000||f.cs.size()>1000000||!live())return r;
     // Build a sparse primal graph. Long clauses are retained for verification
@@ -106,6 +108,32 @@ inline Result solve(const toolbox::Input& f,Time stop){
     // A weak-cut region policy should not waste budget on dense random CNFs.
     if(r.cut>int(f.cs.size()/8)||r.max_group<8)return r;
     graph.clear();
+    if(negotiate){
+        auto local_solver=[](int n,const F& cs,Time end)->toolbox::Model{
+            auto t=toolbox::Clock::now();
+            if(t>=end||n<=0)return {};
+            F normalized=cs;
+            for(auto& c:normalized)c=fusion_kernel::norm(std::move(c));
+            for(int bit:{0,1}){
+                toolbox::Model m(n+1,int8_t(bit));if(toolbox::satisfied(cs,m))return m;
+            }
+            // The constructive path is particularly useful for planted local
+            // instances; the exact native kernels remain available.
+            std::vector<int> seed(n+1,-1);
+            if(fusion_kernel::construct(normalized,n,seed,t+(end-t)/4)&&fusion_kernel::verify(normalized,seed)){
+                toolbox::Model m(n+1,0);for(int v=1;v<=n;++v)m[v]=seed[v]>0;return m;
+            }
+            if(toolbox::Clock::now()>=end)return {};
+            auto a=fusion_kernel::fusion_solve(fusion_kernel::Input{n,int(normalized.size()),normalized},end,false,0);
+            if(a.status!=1||a.model.size()!=size_t(n+1)||!fusion_kernel::verify(normalized,a.model))return {};
+            toolbox::Model m(n+1,0);for(int v=1;v<=n;++v)m[v]=a.model[v]>0;return m;
+        };
+        auto a=core_boundary::solve(f,vars,group,local,internal,incident,stop,local_solver);
+        r.model=std::move(a.model);r.local_solved=a.banks;r.passes=a.passes;r.best=a.best;
+        r.banks=a.banks;r.bank_models=a.models;r.alternatives=a.alternatives;
+        r.joined=a.joined;r.merges=a.merges;r.table_attempts=a.table_attempts;
+        return r;
+    }
     toolbox::Model m(f.n+1,-1);
     V sequence(vars.size());std::iota(sequence.begin(),sequence.end(),0);
     std::stable_sort(sequence.begin(),sequence.end(),[&](int a,int b){return internal[a].size()>internal[b].size();});
